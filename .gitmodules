@@ -1,3 +1,6 @@
 [submodule "libJDubX"]
 	path = libJDubX
 	url = git@github.com:jwright159/libJDubX.git
+[submodule "android-midi-lib"]
+	path = android-midi-lib
+	url = git@github.com:LeffelMania/android-midi-lib.git
