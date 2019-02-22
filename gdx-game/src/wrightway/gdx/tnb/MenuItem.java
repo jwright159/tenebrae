@@ -7,7 +7,6 @@ import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.utils.*;
-import wrightway.gdx.tnb.Tenebrae.Action;
 import com.badlogic.gdx.*;
 import wrightway.gdx.tnb.Character.Stats;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -219,13 +218,13 @@ public class MenuItem implements JVSValue{//implements scoped so menuitems can b
 		}
 		GameItem(String name, Function script, Character owner, Skin skin){
 			this(name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
-			Tenebrae.verbose("Parsing file of item!");
+			Log.verbose("Parsing file of item!");
 			script.get(vars, null);
 			if(isEquipable()){
 				addOption(equipOpt);
 				addOption(unequipOpt);
 			}
-			Tenebrae.debug("Item " + name);
+			Log.debug("Item " + name);
 		}
 		public void equip(){
 			owner.unequip(type);

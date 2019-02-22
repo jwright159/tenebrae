@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.utils.*;
 import wrightway.gdx.tnb.EntityBox.*;
 import wrightway.gdx.tnb.MenuItem.*;
-import wrightway.gdx.tnb.Tenebrae.*;
+import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -40,13 +40,12 @@ public class Player extends Character{
 
 	public Player(){
 		super("player");
-		Tenebrae.verbose("Making Player");
+		Log.verbose("Making Player");
 		ptriggers = new Array<RectangleMapObject>();
 		lastCameraPos = new Vector3();
 
-		table = new Table(Tenebrae.skin);
-		table.setFillParent(true);
-		Tenebrae.t.uiStage.addActor(table);
+		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = Tenebrae.t.getSkin();
+		table = Tenebrae.t.getTable();
 		table.setDebug(Tenebrae.tableDebug);
 
 		mapRect = new Container<Stack>().fill();
@@ -54,12 +53,12 @@ public class Player extends Character{
 		mapCell.height(Value.percentWidth(1f, mapRect));
 
 		paneStack = new Stack();
-		final Table pane = new Table(Tenebrae.skin);
+		final Table pane = new Table(skin);
 		pane.setDebug(Tenebrae.tableDebug);
-		pane.background("background");
-		pane.add(box = new PlayerBox(this, Tenebrae.skin)).pad(Tenebrae.margin - pane.getBackground().getTopHeight(), Tenebrae.margin/*-pane.getBackground().getLeftWidth() i want the space here*/, Tenebrae.margin, Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
+		pane.background("window");
+		pane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.margin - pane.getBackground().getTopHeight(), Tenebrae.margin/*-pane.getBackground().getLeftWidth() i want the space here*/, Tenebrae.margin, Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
 		pane.row();
-		pane.add(buttonBox = new ButtonBox(this, Tenebrae.skin)).pad(0, Tenebrae.margin - pane.getBackground().getLeftWidth(), Tenebrae.margin - pane.getBackground().getBottomHeight(), Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
+		pane.add(buttonBox = new ButtonBox(this, skin)).pad(0, Tenebrae.margin - pane.getBackground().getLeftWidth(), Tenebrae.margin - pane.getBackground().getBottomHeight(), Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
 		paneStack.add(pane);
 
 		Stack menuStack = new Stack();
@@ -67,11 +66,11 @@ public class Player extends Character{
 		menuStack.add(buttonBox.menu.box);
 		menuStack.add(buttonBox.items.box);
 
-		final Table diatable = new Table(Tenebrae.skin);
-		dialogBox = new Label("", Tenebrae.skin, "dialog"){
+		final Table diatable = new Table(skin);
+		dialogBox = new Label("", skin, "dialog"){
 			@Override
 			public void setText(CharSequence text){
-				Tenebrae.debug("Settext", getX(), getWidth());
+				Log.debug("Settext", getX(), getWidth());
 				super.setText(text);
 				if(text == null || text.length() == 0){
 					setExpanded(wasExpandedBeforeDialog);
@@ -89,7 +88,7 @@ public class Player extends Character{
 		dialogBox.setWrap(true);
 		dialogBox.setAlignment(Align.topLeft);
 		diatable.setDebug(Tenebrae.tableDebug);
-		diatable.background("background");
+		diatable.background("window");
 		diatable.add(dialogBox).pad(Tenebrae.margin).grow();
 		paneStack.add(diatable);
 
@@ -97,7 +96,7 @@ public class Player extends Character{
 		table.add(paneStack).pad(Tenebrae.margin).padTop(0).grow();
 
 		table.row();
-		table.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, Tenebrae.skin)).expandX().fill().height(Tenebrae.margin * 2);
+		table.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).expandX().fill().height(Tenebrae.margin * 2);
 
 		vars.put("encounter", new Function(new String[]{"filename"}, new JVSValue[]{new JVSValue(){
 						@Override
@@ -118,13 +117,13 @@ public class Player extends Character{
 		vars.put("name", new JVSValue.WValue(){
 				@Override
 				public Object get(){
-					Tenebrae.debug("GetName", trueName);
+					Log.debug("GetName", trueName);
 					return trueName;
 				}
 				@Override
 				public void put(Object value){
 					String newName = value.toString();
-					Tenebrae.debug("PutName", newName);
+					Log.debug("PutName", newName);
 					setPlayerName(newName);
 				}
 			});
@@ -151,14 +150,14 @@ public class Player extends Character{
 	}
 	@Override
 	public void changeMap(TileMap map, float spawnx, float spawny){
-		Tenebrae.debug("Changing map!", map, spawnx, spawny);
+		Log.debug("Changing map!", map, spawnx, spawny);
 		firstFrame = true;
 		if(this.map != null){
 			this.map.dispose();
 			this.map = null;
 		}
 		this.map = map;
-		Tenebrae.t.worldStage.addActor(map);
+		Tenebrae.t.getStage().addActor(map);
 
 		super.changeMap(map, spawnx, spawny);
 		for(NPC npc : Tenebrae.mp.npcs)
@@ -166,7 +165,7 @@ public class Player extends Character{
 
 		setExpanded(isExpanded());
 
-		//Tenebrae.debug("Changing player! " + toString());
+		//Log.debug("Changing player! " + toString());
 
 		Tenebrae.mp.vars.run("onCreate");
 	}
@@ -174,14 +173,14 @@ public class Player extends Character{
 	public void setPlayerName(String name){
 		trueName = name;
 		box.name.setText(trueName);
-		Tenebrae.debug("SetName", name, box.name.getText());
+		Log.debug("SetName", name, box.name.getText());
 	}
 
 	@Override
 	public void move(float newX, float newY, float speed, boolean relative){
-		if(Tenebrae.fight != null)
-			Tenebrae.fight.sprite.moveBy(newX, newY);
-		else
+		//if(Tenebrae.fight != null)
+		//	Tenebrae.fight.sprite.moveBy(newX, newY);
+		//else
 			super.move(newX, newY, speed, relative);
 	}
 
@@ -208,7 +207,7 @@ public class Player extends Character{
 		if(objs != null){
 			for(RectangleMapObject obj : objs)
 				if(toTileRect().overlaps(obj.getRectangle())){
-					Tenebrae.verbose2("Collision!", toTileRect(), obj.getRectangle());
+					Log.verbose2("Collision!", toTileRect(), obj.getRectangle());
 					return true;
 				}
 		}
@@ -228,14 +227,14 @@ public class Player extends Character{
 	}
 	public MapObjects getCollidingTriggerObjects(){
 		MapObjects rtn = map.getCollidingTriggerObjects(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
-		//Tenebrae.debug("Requesting triggers! " + rtn.getCount());
+		//Log.debug("Requesting triggers! " + rtn.getCount());
 		return rtn;
 	}
 	public MapObjects getCollidingEnteranceObjects(){
 		MapObjects rtn = map.getCollidingEnteranceObjects(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
 		for(MapObject obj : getCollidingNPCTriggerObjects("onEnter"))
 			rtn.add(obj);
-		//Tenebrae.debug("Requesting enters! " + rtn.getCount());
+		//Log.debug("Requesting enters! " + rtn.getCount());
 		return rtn;
 	}
 	public MapObjects getCollidingNPCTriggerObjects(String prop){
@@ -246,13 +245,13 @@ public class Player extends Character{
 			for(MapObject obj : objs){
 				if(obj.getProperties().get(prop, "", String.class).isEmpty())
 					continue;
-				Tenebrae.verbose2("NPC trigger", npc, npc.tile.get(0).getId(), objs.getCount(), obj);
+				Log.verbose2("NPC trigger", npc, npc.tile.get(0).getId(), objs.getCount(), obj);
 				if(obj != null){
 					RectangleMapObject r = copy((RectangleMapObject)obj);
-					Tenebrae.verbose2("NPC Raw", r.getRectangle());
+					Log.verbose2("NPC Raw", r.getRectangle());
 					r.getRectangle().setPosition(npc.x * map.tilebasewidth + r.getRectangle().getX(), npc.y * map.tilebaseheight + r.getRectangle().getY());
-					Tenebrae.verbose2("NPC Scaled", r.getRectangle());
-					Tenebrae.verbose2("NPC Player", player);
+					Log.verbose2("NPC Scaled", r.getRectangle());
+					Log.verbose2("NPC Player", player);
 					r.getProperties().put("__npc", npc);
 					if(r.getRectangle().overlaps(player))
 						rtn.add(r);
@@ -271,17 +270,17 @@ public class Player extends Character{
 		Rectangle inter = new Rectangle();
 
 		for(MapObject mapobj : objs){
-			Tenebrae.verbose(mapobj);
+			Log.verbose(mapobj);
 			RectangleMapObject obj = (RectangleMapObject)mapobj;
 			boolean disabled = obj.getProperties().get("disabled", false, java.lang.Boolean.class);
 			Rectangle rect = obj.getRectangle();
-			Tenebrae.verbose("Obj", rect);
-			Tenebrae.verbose("Player", player);
+			Log.verbose("Obj", rect);
+			Log.verbose("Player", player);
 			Intersector.intersectRectangles(rect, player, inter);
-			Tenebrae.verbose("Intersect", inter);
-			//Tenebrae.verbose("Intersecting triggers! " + obj.getName() + " " + rect + " " + player + " " + inter + " " + disabled);
+			Log.verbose("Intersect", inter);
+			//Log.verbose("Intersecting triggers! " + obj.getName() + " " + rect + " " + player + " " + inter + " " + disabled);
 			//rect.set(rect.getX() * map.tilebasewidth, rect.getY() * map.tilebaseheight, rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
-			Tenebrae.verbose("Rescaled", rect);
+			Log.verbose("Rescaled", rect);
 
 			if(inter.area() > best && !disabled){
 				best = inter.area();
@@ -293,7 +292,7 @@ public class Player extends Character{
 	}
 	public void triggerBestTrigger(){
 		RectangleMapObject trig = getBestTrigger();
-		Tenebrae.verbose("Requesting trigger! " + (trig != null ? trig.getName() : trig));
+		Log.verbose("Requesting trigger! " + (trig != null ? trig.getName() : trig));
 		if(trig != null){
 			NPC npc = trig.getProperties().get("__npc", null, NPC.class);
 			if(npc == null)
@@ -310,7 +309,7 @@ public class Player extends Character{
 		addDialog(dialog, delay, false, false);
 	}
 	public void addDialog(String dialog, float delay, boolean tap, boolean tapDelay){
-		Tenebrae.verbose2("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
+		Log.verbose2("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
 		addAction(new DialogAction(this, dialog, delay, tap, tapDelay));
 	}
 
@@ -319,20 +318,20 @@ public class Player extends Character{
 		triggerAction(false);
 	}
 	public void triggerAction(boolean touched){
-		Tenebrae.verbose2("Wanting an action! Was " + currentAction);
+		Log.verbose2("Wanting an action! Was " + currentAction);
 		if(currentAction != null && currentAction.stop(touched)){
 			delay = 0;
 			currentAction = null;
 		}
 		if(actions.size == 0 || !Tenebrae.doneLoading || delay != 0 || (currentAction != null && !currentAction.stop(touched))){
-			//Tenebrae.debug("..But nobody came.");
+			//Log.debug("..But nobody came.");
 			return;
 		}
-		//Tenebrae.debug("Iterate!");
+		//Log.debug("Iterate!");
 		currentAction = actions.removeIndex(0);
 		if(currentAction != null){
 			currentAction.run();
-			Tenebrae.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
+			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
 			if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 				;//map.cover();
 			else if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts
@@ -340,16 +339,16 @@ public class Player extends Character{
 			else
 				triggerAction(false);
 		}else{
-			//Tenebrae.debug("Trigger is null!");
+			//Log.debug("Trigger is null!");
 			triggerAction(touched);
 		}
 	}
 	public boolean performBack(){
-		//Tenebrae.debug("Performing back!");
+		//Log.debug("Performing back!");
 		if(buttonBox.getActiveBox() != null){
 			MenuBox openedBox = buttonBox.getActiveBox();
 			MenuBox active = openedBox.findActiveLeaf();
-			//Tenebrae.debug("Backing up from "+active+"!");
+			//Log.debug("Backing up from "+active+"!");
 			active.setVisible(false);
 			if(buttonBox.getActiveBox() == null)
 				setUiDisabled(false);
@@ -362,7 +361,7 @@ public class Player extends Character{
 			setExpanded(false);
 			return true;
 		}
-		//Tenebrae.debug("But you are backed against the wall.");
+		//Log.debug("But you are backed against the wall.");
 		return false;
 	}
 	public void closeMenus(){
@@ -375,9 +374,9 @@ public class Player extends Character{
 	}
 	public void setExpanded(boolean expanded){
 		activeDeadzone = expanded ? dzRect : bigdzRect;
-		//Tenebrae.debugRect.orient(); //when the debugrect is for deadzone
+		//Log.debugRect.orient(); //when the debugrect is for deadzone
 		paneStack.setVisible(expanded);
-		//Tenebrae.debug("Expanding! " + expanded);
+		//Log.debug("Expanding! " + expanded);
 		//smolStatBox.setVisible(!expanded);
 	}
 	public void setUiDisabled(boolean disabled){
@@ -398,16 +397,16 @@ public class Player extends Character{
 		checkExpLv(true);
 	}
 	public void checkExpLv(boolean silent){
-		Tenebrae.verbose("Checking exp lv!");
+		Log.verbose("Checking exp lv!");
 		int newlv = 0;
 		for(int i = 0; i < statTable.size; i++){
-			Tenebrae.verbose("StatTable exp! " + i + " " + statTable.getKeyAt(i));
+			Log.verbose("StatTable exp! " + i + " " + statTable.getKeyAt(i));
 			if(statTable.getKeyAt(i) > exp){
 				newlv = i - 1;
 				break;
 			}
 		}
-		Tenebrae.debug("Levels: " + lv + " -> " + newlv);
+		Log.debug("Levels: " + lv + " -> " + newlv);
 		for(int i = lv + 1; i <= newlv; i++){
 			if(!silent)
 				addDialog("You have gone up a level! (" + (lv + 1) + " -> " + (i + 1) + ")");
@@ -416,12 +415,12 @@ public class Player extends Character{
 		finishAffect();
 	}
 	public void setStats(int newlv){
-		Tenebrae.debug("Setting a lv! " + newlv);
+		Log.debug("Setting a lv! " + newlv);
 		/*float n = newlv < lv ? -1 : 1;
 		 lv = newlv;
 		 ArrayMap<Stats,Float> paststats = stats.get(baseStats);
 		 ArrayMap<Stats,Float> stats = statTable.getValueAt(newlv);
-		 Tenebrae.debug("Past and new stats! " + paststats + " " + stats);
+		 Log.debug("Past and new stats! " + paststats + " " + stats);
 		 setStats(baseStats, n * stats.get(Stats.str) + paststats.get(Stats.str), n * stats.get(Stats.intl) + paststats.get(Stats.intl), n * stats.get(Stats.def) + paststats.get(Stats.def), n * stats.get(Stats.agl) + paststats.get(Stats.agl), n * stats.get(Stats.maxhp) + paststats.get(Stats.maxhp), n * stats.get(Stats.maxmp) + paststats.get(Stats.maxmp));
 		 heal(maxhp() - hp, true, true);
 		 invigor(maxmp() - mp, true, true);*/
@@ -430,10 +429,10 @@ public class Player extends Character{
 		setStats(baseStats, stats.get(Stats.str), stats.get(Stats.intl), stats.get(Stats.def), stats.get(Stats.agl), stats.get(Stats.maxhp), stats.get(Stats.maxmp));
 		heal(maxhp() - maxhp, true, true);
 		invigor(maxmp() - maxmp, true, true);
-		Tenebrae.debug("setStats", maxhp, maxhp());
+		Log.debug("setStats", maxhp, maxhp());
 	}
 	public void setStatLv(float exp, float str, float intl, float def, float agl, float maxhp, float maxmp){
-		Tenebrae.verbose("Got a new statlv! " + maxhp);
+		Log.verbose("Got a new statlv! " + maxhp);
 		ArrayMap<Stats, Float> stats = new ArrayMap<Stats, Float>();
 		stats.put(Stats.str, str);
 		stats.put(Stats.intl, intl);
@@ -504,7 +503,7 @@ public class Player extends Character{
 
 	@Override
 	public void die(){
-		Tenebrae.debug("Dead.");
+		Log.debug("Dead.");
 		addDialog("You have died! :(");
 		addAction(new Action(){public void run(){
 					Tenebrae.t.loadSave();
@@ -525,34 +524,35 @@ public class Player extends Character{
 	}
 
 	public void constrain(){
-		x = Tenebrae.constrain(x, 0f, map.width - width);
-		y = Tenebrae.constrain(y, 0f, map.height - height);
+		x = MathUtils.clamp(x, 0f, map.width - width);
+		y = MathUtils.clamp(y, 0f, map.height - height);
 	}
+	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle();
 	public void moveCamera(){
-		//Tenebrae.debug("Moving camera! currentAction", currentAction);
+		//Log.debug("Moving camera! currentAction", currentAction);
 		if(currentAction != null || firstFrame)
 			return;
-Get rid of the new rectangles
-		OrthographicCamera cam = (OrthographicCamera)Tenebrae.t.worldStage.getCamera();
-		Rectangle camRect = new Rectangle(cam.position.x - Tenebrae.screenRect.width * cam.zoom / 2, cam.position.y - Tenebrae.screenRect.height * cam.zoom / 2, Tenebrae.screenRect.width * cam.zoom, Tenebrae.screenRect.height * cam.zoom),
-			dz = new Rectangle(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
-		Tenebrae.verbose2("CamRect:", camRect, "Cam:", cam);
+
+		OrthographicCamera cam = Tenebrae.t.getCamera();
+		camRect.set(cam.position.x - Tenebrae.screenRect.width * cam.zoom / 2, cam.position.y - Tenebrae.screenRect.height * cam.zoom / 2, Tenebrae.screenRect.width * cam.zoom, Tenebrae.screenRect.height * cam.zoom);
+		dz.set(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
+		Log.verbose2("CamRect:", camRect, "Cam:", cam);
 
 		//float smolestWidth = Math.min(dz.width, dz.height);
 		float dzx = (dz.width / 2 - getTrueWidth() / 2) * Tenebrae.deadzone, dzy = (dz.height / 2 - getTrueHeight() / 2) * Tenebrae.deadzone;
-		Rectangle dzr = new Rectangle(dz.x + dzx, dz.y + dzy, dz.width - dzx * 2, dz.height - dzy * 2);
-		camRect.x = Tenebrae.constrain(camRect.x, getX() + getTrueWidth()  - (dzr.x + dzr.width),  getX() - dzr.x);
-		camRect.y = Tenebrae.constrain(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
-		Tenebrae.verbose2("DZ:", dz, "DZR:", dzr, "CamRect:", camRect, "Player:", new Rectangle(getX(), getY(), getTrueWidth(), getTrueHeight()));
+		dzr.set(dz.x + dzx, dz.y + dzy, dz.width - dzx * 2, dz.height - dzy * 2);
+		camRect.x = MathUtils.clamp(camRect.x, getX() + getTrueWidth()  - (dzr.x + dzr.width),  getX() - dzr.x);
+		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
+		Log.verbose2("DZ:", dz, "DZR:", dzr, "CamRect:", camRect, "Player:", toRect());
 
-		float d = map.getWidth() <= dz.width ? map.getWidth() / 2 - dz.width / 2 - dz.x : Tenebrae.constrain(camRect.x, -dz.x, map.getWidth() - (dz.x + dz.width));
+		float d = map.getWidth() <= dz.width ? map.getWidth() / 2 - dz.width / 2 - dz.x : MathUtils.clamp(camRect.x, -dz.x, map.getWidth() - (dz.x + dz.width));
 		cam.position.x = d + camRect.width / 2;
-		Tenebrae.verbose2("x:", d, "Mapw:", map.getWidth(), "Cam:", cam);
+		Log.verbose2("x:", d, "Mapw:", map.getWidth(), "Cam:", cam);
 
-		d = map.getHeight() <= dz.height ? map.getHeight() / 2 - dz.height / 2 - dz.y : Tenebrae.constrain(camRect.y, -dz.y, map.getHeight() - (dz.y + dz.height));
+		d = map.getHeight() <= dz.height ? map.getHeight() / 2 - dz.height / 2 - dz.y : MathUtils.clamp(camRect.y, -dz.y, map.getHeight() - (dz.y + dz.height));
 		cam.position.y = d + camRect.height / 2;
-		Tenebrae.verbose2("cr.y", camRect.y, "dz.y", dz.y, "dz.h", dz.height, "top", camRect.y + (dz.y + dz.height), "map.h", map.getHeight());
-		Tenebrae.verbose2("y:", d, "Maph:", map.getHeight(), "Cam:", cam);
+		Log.verbose2("cr.y", camRect.y, "dz.y", dz.y, "dz.h", dz.height, "top", camRect.y + (dz.y + dz.height), "map.h", map.getHeight());
+		Log.verbose2("y:", d, "Maph:", map.getHeight(), "Cam:", cam);
 
 		lastCameraPos.set(cam.position.x, cam.position.y, cam.zoom);
 	}
@@ -565,7 +565,7 @@ Get rid of the new rectangles
 		if(dzRect == null && !firstFrame){
 			dzRect = new Rectangle(mapRect.getX(), mapRect.getY(), mapRect.getWidth(), mapRect.getHeight());
 			bigdzRect = new Rectangle(paneStack.getX(), paneStack.getY(), paneStack.getWidth(), paneStack.getHeight() + Tenebrae.margin + mapRect.getHeight());
-			Tenebrae.debug("MapRect!", dzRect, bigdzRect);
+			Log.debug("MapRect!", dzRect, bigdzRect);
 			setExpanded(isExpanded());
 		}
 
@@ -576,7 +576,7 @@ Get rid of the new rectangles
 			 WScreen.b = 1f;//VISUAL NOTICE FOR DEBUGGING
 			 Vector2 cellvec = getClosestCell();
 			 Enemy enemy = map.getTileEnemy(cellvec.x, cellvec.y);
-			 //Tenebrae.debug("Battle! " + rand + ", " + chance+", "+enemy);
+			 //Log.debug("Battle! " + rand + ", " + chance+", "+enemy);
 			 if(enemy != null){
 			 encounter(enemy);
 			 }
@@ -587,17 +587,17 @@ Get rid of the new rectangles
 			for(RectangleMapObject obj : triggersInMapObj)
 				triggersIn.add(obj);
 			for(RectangleMapObject obj : triggersIn){
-				Tenebrae.verbose2("Found an enter/exit object inside! " + obj.getName());
+				Log.verbose2("Found an enter/exit object inside! " + obj.getName());
 				if(!ptriggers.contains(obj, true) && !obj.getProperties().get("onEnter", "", String.class).isEmpty()){
-					Tenebrae.verbose2("It was an enter object!");
+					Log.verbose2("It was an enter object!");
 					(obj.getProperties().containsKey("__npc") ? ((NPC)obj.getProperties().get("__npc")).vars : Tenebrae.mp.vars).run(obj.getProperties().get("onEnter", "", String.class));
 				}
 			}
 			if(!firstFrame)
 				for(RectangleMapObject obj : ptriggers){
-					Tenebrae.verbose2("Found an enter/exit object outside! " + obj.getName());
+					Log.verbose2("Found an enter/exit object outside! " + obj.getName());
 					if(!triggersIn.contains(obj, true) && !obj.getProperties().get("onExit", "", String.class).isEmpty()){
-						Tenebrae.verbose2("It was an exit object!");
+						Log.verbose2("It was an exit object!");
 						(obj.getProperties().containsKey("__npc") ? ((NPC)obj.getProperties().get("__npc")).vars : Tenebrae.mp.vars).run(obj.getProperties().get("onExit", "", String.class));
 					}
 				}

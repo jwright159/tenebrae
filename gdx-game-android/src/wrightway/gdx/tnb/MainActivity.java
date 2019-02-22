@@ -30,7 +30,7 @@ public class MainActivity extends AndroidApplication{
 					StringWriter sw = new StringWriter();
 					PrintWriter pw = new PrintWriter(sw);
 					e.printStackTrace(pw);
-					Tenebrae.error(message += sw.toString());
+					wrightway.gdx.Log.error(message += sw.toString());
 					pw.close();
 
 					Gdx.files.external("/WrightWay/Tenebrae/error.txt").writeString(message, false);
@@ -42,7 +42,7 @@ public class MainActivity extends AndroidApplication{
 					registerActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
 					context.startActivity(registerActivity);
 					
-					Gdx.files.external("/WrightWay/Tenebrae/error.txt").writeString("did a do2", true);
+					//Gdx.files.external("/WrightWay/Tenebrae/error.txt").writeString("did a do2", true);
 					
 					// make sure we die, otherwise the app will hang ...
 					//android.os.Process.killProcess(android.os.Process.myPid());

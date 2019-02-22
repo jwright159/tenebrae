@@ -23,18 +23,19 @@ public class Projectile extends WActor.WTexture{
 
 		setPosition(x, y);
 		
-		Tenebrae.verbose("New proj", toString(), getX(), getY(), getWidth(), getHeight(), getScaleX(), getScaleY(), touch);
+		Log.verbose("New proj", toString(), getX(), getY(), getWidth(), getHeight(), getScaleX(), getScaleY(), touch);
 	}
 
 	public boolean isColliding(){
-		return toRect().overlaps(Tenebrae.fight.sprite.toRect());
+		throw new UnsupportedOperationException("Fighting not ready yet");
+		//return toRect().overlaps(Tenebrae.fight.sprite.toRect());
 	}
 
 	@Override
 	public void touchDown(float x, float y, int pointer, int button){
 		if(!touch)
 			return;
-		Tenebrae.debug("He touched me");
+		Log.debug("He touched me");
 		owner.owner.enemy.attack(false);
 		dispose();
 	}
@@ -50,7 +51,7 @@ public class Projectile extends WActor.WTexture{
 		move(delta);
 
 		if(timeExisted > 10){
-			Tenebrae.debug("Killing projectile");
+			Log.debug("Killing projectile");
 			dispose();
 			return;
 		}

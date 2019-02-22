@@ -14,7 +14,7 @@ import java.util.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.maps.objects.*;
-import wrightway.gdx.tnb.Tenebrae.*;
+import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 
@@ -53,7 +53,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		vars = new Scope(null, "char"+filename);
 		actions = new Array<Action>();
 		this.filename = filename;
-		box = new EntityBox(this, Tenebrae.skin);
+		box = new EntityBox(this, Tenebrae.t.getSkin());
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
@@ -246,10 +246,10 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		vars.put("x", new JVSValue.WValue(){
 				@Override
 				public Object get(){
-					if(Tenebrae.fight == null)
+					//if(Tenebrae.fight == null)
 						return x;
-					else
-						return Tenebrae.fight.sprite.getX();
+					//else
+					//	return Tenebrae.fight.sprite.getX();
 				}
 				@Override
 				public void put(Object value){
@@ -259,10 +259,10 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		vars.put("y", new JVSValue.WValue(){
 				@Override
 				public Object get(){
-					if(Tenebrae.fight == null)
+					//if(Tenebrae.fight == null)
 						return y;
-					else
-						return Tenebrae.fight.sprite.getY();
+					//else
+					//	return Tenebrae.fight.sprite.getY();
 				}
 				@Override
 				public void put(Object value){
@@ -298,15 +298,15 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		if(mapobj instanceof RectangleMapObject){
 			RectangleMapObject obj = (RectangleMapObject)mapobj;
 			oRect = obj.getRectangle();
-			//Tenebrae.debug("Entity is a rectangle! "+pRect);
+			//Log.debug("Entity is a rectangle! "+pRect);
 		}else if(mapobj instanceof TiledMapTileMapObject){
 			TiledMapTileMapObject obj = (TiledMapTileMapObject)mapobj;
 			oRect = new Rectangle(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
-			//Tenebrae.debug("Entity is a tile! "+pRect);
+			//Log.debug("Entity is a tile! "+pRect);
 		}
 		rect = new Rectangle(oRect.getX() / map.tilebasewidth, oRect.getY() / map.tilebaseheight, oRect.getWidth() / map.tilebasewidth, oRect.getHeight() / map.tilebaseheight);
 
-		Tenebrae.debug("Changing map!", this, spawnx, spawny, rect);
+		Log.debug("Changing map!", this, spawnx, spawny, rect);
 		if(spawnx == -1 || spawny == -1){//for spawnpoint
 			x = rect.getX(); y = rect.getY();
 		}else{//for doors and things
@@ -316,18 +316,18 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		width = rect.getWidth(); height = rect.getHeight();
 		setSize(rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
 		setScale(map.tilewidth / map.tilebasewidth, map.tileheight / map.tilebaseheight);
-		Tenebrae.debug("scaled", width, height, getWidth(), getHeight(), getScaleX(), getScaleY());
+		Log.debug("scaled", width, height, getWidth(), getHeight(), getScaleX(), getScaleY());
 	}
 
 	public void move(final float newX, final float newY, final float speed, final boolean relative){
-		addAction(new Tenebrae.MoveAction(this, newX, newY, speed, relative, false));
+		addAction(new Action.MoveAction(this, newX, newY, speed, relative, false));
 		triggerAction();
 	}
 
 	public float calcDamage(Character enemy, boolean magic){
 		float rtn = ((magic ? intl() : str()) - enemy.def() * 2 / 3 + (float)Math.random() * 2) * 2;//ut player
 		//float rtn = ((magic ? intl() : str()) + ((enemy.hp - 10f) / 10f) - (enemy.def() / 5f)) * (1f - 0.1f * (float)Math.random());//ut enemy(without random part)
-		Tenebrae.verbose("CalcDamage", rtn, str(), enemy.hp, enemy.def());
+		Log.verbose("CalcDamage", rtn, str(), enemy.hp, enemy.def());
 		if(rtn > 1)
 			return (int)rtn;
 		return 1;
@@ -335,7 +335,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 	public float calcHeal(Character enemy, boolean magic){
 		float rtn = (-(magic ? intl() : str()) - enemy.str() * 2 / 3 + (float)Math.random() * 2) * 2;//ut player
 		//float rtn = (-(magic ? intl() : str()) + ((enemy.hp - 10f) / 10f) - (enemy.str() / 5f)) * (1f - 0.1f * (float)Math.random());//ut enemy(without random part)
-		Tenebrae.verbose("CalcHeal", rtn, str(), enemy.hp, enemy.str());
+		Log.verbose("CalcHeal", rtn, str(), enemy.hp, enemy.str());
 		if(rtn > 1)
 			return (int)rtn;
 		return 1;
@@ -358,17 +358,17 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 			box.updateHP();
 	}
 	public void setStats(String type, float str, float intl, float def, float agl, float maxhp, float maxmp){
-		Tenebrae.debug("Updating stats of type " + type + " to " + toString() + "! " + str + " " + intl + " " + def + " " + agl + " " + maxhp + " " + maxmp);
+		Log.debug("Updating stats of type " + type + " to " + toString() + "! " + str + " " + intl + " " + def + " " + agl + " " + maxhp + " " + maxmp);
 		setStat(type, Stats.str, str);
 		setStat(type, Stats.intl, intl);
 		setStat(type, Stats.def, def);
 		setStat(type, Stats.agl, agl);
 		setStat(type, Stats.maxhp, maxhp);
 		setStat(type, Stats.maxmp, maxmp);
-		Tenebrae.verbose("Updated! " + stats);
+		Log.verbose("Updated! " + stats);
 	}
 	public void removeStats(String type){
-		//Tenebrae.debug("Removing stats of type " + type + " from " + toString() + "!");
+		//Log.debug("Removing stats of type " + type + " from " + toString() + "!");
 		ArrayMap<Stats,Float> stat = stats.removeKey(type);
 		if(hp > maxhp())
 			damage(stat.get(Stats.maxhp), true, true);
@@ -397,14 +397,14 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		setSkin(0, tileset);
 	}
 	public void setSkin(int z, String tilesetName){
-		Tenebrae.debug("Setting skinset! " + z + " " + tilesetName);
+		Log.debug("Setting skinset! " + z + " " + tilesetName);
 
 		removeSkin(z);
 
 		TiledMapTileSet tileset = Tenebrae.mp.loadTileset(tilesetName);
 		Skin skin = new Skin(z);
 		for(TiledMapTile tile : tileset){
-			Tenebrae.verbose("Objs on new skin!", tilesetName, tile.getObjects().getCount());
+			Log.verbose("Objs on new skin!", tilesetName, tile.getObjects().getCount());
 			MapProperties prop = tile.getProperties();
 			String dirstr = prop.get("direction", String.class);
 			if(dirstr != null){
@@ -438,7 +438,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 							if(entry.value == tile && mapEntry.key < dirspeed){
 								dirspeed = mapEntry.key;
 								dir = entry.key;
-								//Tenebrae.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir+" "+dirspeed);
+								//Log.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir+" "+dirspeed);
 							}
 			updateSkins(dirspeed, dir);
 		}else{
@@ -446,7 +446,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		}
 	}
 	public void setSkin(String skin, float speed, String type){
-		//Tenebrae.verbose("Setting skin!", skin, speed, type, skinList.get(skin));
+		//Log.verbose("Setting skin!", skin, speed, type, skinList.get(skin));
 		tile.set(skinList.get(skin).z, skinList.get(skin).getSkin(speed, type));
 	}
 	public void updateSkins(float dx, float dy){
@@ -461,7 +461,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 				for(ArrayMap<String,TiledMapTile> map : skin.skinList.values())
 					if(map.containsValue(tile.get(0), true)){
 						dir = map.getKey(tile.get(0), true);
-						//Tenebrae.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir);
+						//Log.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir);
 						break out;
 					}
 		}
@@ -478,7 +478,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		return null;
 	}
 	public String removeSkin(int z){
-		//Tenebrae.debug("Removing skin! " + z);
+		//Log.debug("Removing skin! " + z);
 		String rem = null;
 		for(Skin skin : skinList.values())
 			if(skin.z == z)
@@ -491,26 +491,26 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 	}
 
 	public void triggerAction(){
-		Tenebrae.verbose2("Wanting an action from", this, ", Was", currentAction);
+		Log.verbose2("Wanting an action from", this, ", Was", currentAction);
 		boolean stop = currentAction == null || currentAction.stop(false);
 		if(stop){
 			delay = 0;
 			currentAction = null;
 		}
 		if(!actions.isEmpty())
-			Tenebrae.debug("Triggerboi", actions, stop);
+			Log.debug("Triggerboi", actions, stop);
 		if(!Tenebrae.doneLoading || delay != 0 || !stop){
-			//Tenebrae.debug("..But nobody came.");
+			//Log.debug("..But nobody came.");
 			return;
 		}else if(actions.isEmpty() && stop){
 			if(!doDefaultAction())
 				return;
 		}
-		//Tenebrae.debug("Iterate!");
+		//Log.debug("Iterate!");
 		currentAction = actions.removeIndex(0);
 		if(currentAction != null){
 			currentAction.run();
-			Tenebrae.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
+			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
 			//if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 			//	map.cover();
 			if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts
@@ -518,7 +518,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 			else
 				triggerAction();
 		}else{
-			//Tenebrae.debug("Trigger is null!");
+			//Log.debug("Trigger is null!");
 			triggerAction();
 		}
 	}
@@ -632,6 +632,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 			addAction(new FunctionAction(funcToRun, context));
 	}
 
+	Rectangle rectBuffer = new Rectangle();
 	public Rectangle toTileRect(){
 		rectBuffer.set(x, y, width, height);
 		return rectBuffer;
@@ -647,7 +648,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		super.act(delta);
 
 		if(delay > 0){
-			//Tenebrae.debug("Delay "+delay+", delta "+delta);
+			//Log.debug("Delay "+delay+", delta "+delta);
 			delay -= delta;
 			if(delay < 0)
 				delay = 0;
@@ -700,7 +701,7 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 			this.z = z;
 		}
 		public void putSkin(float speed, String type, TiledMapTile tile){
-			Tenebrae.verbose("Putting skin! " + speed + " " + type + " " + tile.getId());
+			Log.verbose("Putting skin! " + speed + " " + type + " " + tile.getId());
 			ArrayMap<String,TiledMapTile> map;
 			if(skinList.get(speed) != null)
 				map = skinList.get(speed);
@@ -714,13 +715,13 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 			float lowspeed = 0;
 			for(float newspeed : skinList.keys())
 				if(newspeed > speed){
-					//Tenebrae.debug("Speed stop! "+lowspeed+" "+speed+" "+newspeed);
+					//Log.debug("Speed stop! "+lowspeed+" "+speed+" "+newspeed);
 					break;
 				}else{
-					//Tenebrae.debug("Speed go! "+lowspeed+" "+speed+" "+newspeed);
+					//Log.debug("Speed go! "+lowspeed+" "+speed+" "+newspeed);
 					lowspeed = newspeed;
 				}
-			//Tenebrae.debug("Speed end! "+lowspeed+" "+speed);
+			//Log.debug("Speed end! "+lowspeed+" "+speed);
 			return skinList.get(lowspeed).get(type);
 		}
 		public void sortSkinList(){

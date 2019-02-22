@@ -28,7 +28,7 @@ public class Enemy extends Character{
 		enemy = Tenebrae.player;
 
 		name = "Enemy";
-		box = new EntityBox(this, Tenebrae.skin);
+		box = new EntityBox(this, Tenebrae.t.getSkin());
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
@@ -125,7 +125,7 @@ public class Enemy extends Character{
 
 	@Override
 	public void dispose(){
-		Tenebrae.debug("Enemy disposed");
+		Log.debug("Enemy disposed");
 		super.dispose();
 		music.dispose();
 		for(EnemyWeapon weapon : weapons.values())

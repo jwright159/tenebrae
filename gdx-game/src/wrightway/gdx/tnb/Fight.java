@@ -14,7 +14,8 @@ public class Fight extends WScreen{
 	WActor.WTexture sprite;
 	WActor.WRect board;
 
-	public Fight(final Player player, final Enemy enemy, Stage hudstage){
+	public Fight(final Player player, final Enemy enemy, Stage uiStage){
+		super(uiStage);
 		this.player = player;
 		this.enemy = enemy;
 		this.sprite = new WActor.WTexture(player){
@@ -34,8 +35,8 @@ public class Fight extends WScreen{
 				}
 				player.triggerAction(false);
 				
-				setX(Tenebrae.constrain(getX(), board.getX(), board.getX() + board.getWidth() - getTrueWidth()));
-				setY(Tenebrae.constrain(getY(), board.getY(), board.getY() + board.getHeight() - getTrueHeight()));
+				setX(MathUtils.clamp(getX(), board.getX(), board.getX() + board.getWidth() - getTrueWidth()));
+				setY(MathUtils.clamp(getY(), board.getY(), board.getY() + board.getHeight() - getTrueHeight()));
 				player.updateSkins((getX() - px)/player.map.tilewidth, (getY() - py)/player.map.tileheight);
 				px = getX(); py = getY();
 			}
@@ -43,21 +44,20 @@ public class Fight extends WScreen{
 		sprite.sizeBy(-sprite.getWidth()/2, -sprite.getHeight()/2);
 		this.board = null;
 		sprite.setPosition(board.getX()+board.getWidth()/2, board.getY()+board.getHeight()/2, Align.center);
-		worldStage.addActor(enemy);
-		worldStage.addActor(board);
-		worldStage.addActor(sprite);
+		getStage().addActor(enemy);
+		getStage().addActor(board);
+		getStage().addActor(sprite);
 		//enemy.setVisible(false);
-		this.uiStage = hudstage;
 
-		multiplexer.addProcessor(0, new InputAdapter(){
+		getMultiplexer().addProcessor(0, new InputAdapter(){
 				@Override
 				public boolean touchDown(int x, int y, int pointer, int button){
-					Tenebrae.verbose("Pressed down!");
+					Log.verbose("Pressed down!");
 					return false;
 				}
 				@Override
 				public boolean touchUp(int x, int y, int pointer, int button){
-					Tenebrae.verbose("Pressed up!");
+					Log.verbose("Pressed up!");
 					return false;
 				}
 				@Override
@@ -71,7 +71,7 @@ public class Fight extends WScreen{
 					return false;
 				}
 			});
-		multiplexer.addProcessor(2, new GestureDetector(new GestureDetector.GestureListener(){
+		getMultiplexer().addProcessor(2, new GestureDetector(new GestureDetector.GestureListener(){
 					@Override
 					public boolean touchDown(float p1, float p2, int p3, int p4){
 						// TODO: Implement this method
@@ -117,8 +117,6 @@ public class Fight extends WScreen{
 						// TODO: Implement this method
 					}
 				}));
-		multiplexer.removeProcessor(1);
-		multiplexer.addProcessor(1, hudstage);
 	}
 
 	@Override
@@ -133,16 +131,15 @@ public class Fight extends WScreen{
 	}
 	
 	public void spawn(Projectile projectile){
-		worldStage.addActor(projectile);
+		getStage().addActor(projectile);
 		//worldStage.addActor(projectile.debug());
 		//Tenebrae.debug("Spawning projectile", projectile.toRect());
-		Tenebrae.debug(projectile.region.get(0).getTexture());
+		Log.debug(projectile.getRegion(0).getTexture());
 	}
 
 	@Override
 	public void dispose(){
-		uiStage = null;
 		enemy.remove();
-		super.dispose();
+		super.dispose(false);
 	}
 }

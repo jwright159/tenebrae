@@ -24,7 +24,7 @@
         </activity>
 		<activity
 			android:name=".CrashReport"
-			android:screenOrientation="portrait"
+			android:screenOrientation="fullUser"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
 			android:excludeFromRecents="true">
 		</activity>

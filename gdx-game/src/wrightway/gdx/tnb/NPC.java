@@ -5,7 +5,7 @@ import wrightway.gdx.JVSValue.Scope;
 import wrightway.gdx.JVSValue.WObject;
 import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.files.*;
-import wrightway.gdx.tnb.Tenebrae.*;
+import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import java.util.*;
@@ -71,7 +71,7 @@ public class NPC extends Character{
 			return false;
 		FunctionAction a;
 		addAction(a = idleRoutine.removeIndex(0));
-		Tenebrae.debug("Default action!", a, actions, actions.size);
+		Log.debug("Default action!", a, actions, actions.size);
 		idleRoutine.add(a);
 		return true;
 	}

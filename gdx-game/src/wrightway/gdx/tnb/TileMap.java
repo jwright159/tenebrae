@@ -38,7 +38,7 @@ public class TileMap extends WActor{
 
 		Rectangle pRect = null;
 		for(MapLayer layer : map.getLayers()){
-			Tenebrae.verbose2("Layer found! " + layer.getName() + " " + layer instanceof TiledMapTileLayer);
+			Log.verbose2("Layer found! " + layer.getName() + " " + layer instanceof TiledMapTileLayer);
 			//for(MapObject obj : layer.getObjects())
 			//Tenebrae.debug("Object found! "+obj.getName()+" "+obj.getProperties().get("gid"));
 
@@ -97,12 +97,12 @@ public class TileMap extends WActor{
 					tilelayer.getCell(i, j).setFlipVertically(true);
 					tilelayer.getCell(i, j).setFlipHorizontally(true);
 				}
-				Tenebrae.verbose2("Found tile! "+t+" "+i+" "+j);
+				Log.verbose2("Found tile! "+t+" "+i+" "+j);
 			}
 		}
 
 		for(TiledMapTileSet tileset : map.getTileSets())
-			Tenebrae.verbose2("Found tileset! " + tileset.getName());
+			Log.verbose2("Found tileset! " + tileset.getName());
 		
 		trigScriptFile.get(Tenebrae.mp.vars, null);
 
@@ -127,7 +127,7 @@ public class TileMap extends WActor{
 				RectangleMapObject robj = Player.copy((RectangleMapObject)obj);
 				robj.getRectangle().set(relateRectMapObjToMap(obj, x, y));
 				rtn.add(robj);
-				Tenebrae.verbose2("Found collision object! " + r);
+				Log.verbose2("Found collision object! " + r);
 			}
 		return rtn;
 	}
@@ -214,7 +214,7 @@ public class TileMap extends WActor{
 		for(String line : tileenemies){
 			line = line.trim();
 			String[] parts = line.split(",");
-			Tenebrae.debug("Finding enemy on tile! "+line+" "+parts[0]);
+			Log.debug("Finding enemy on tile! "+line+" "+parts[0]);
 			enemap.put(parts[0], Float.parseFloat(parts[1]));
 		}
 		if(enemap.size == 0)
@@ -241,7 +241,7 @@ public class TileMap extends WActor{
 	public MapObject getObject(String name){
 		for(MapLayer layer : map.getLayers())
 			for(MapObject obj : layer.getObjects()){
-				Tenebrae.debug("Looking for mapobj", name, "and found", obj.getName(), "on", layer.getName());
+				Log.debug("Looking for mapobj", name, "and found", obj.getName(), "on", layer.getName());
 				if(obj.getName().equals(name))
 					return obj;
 			}

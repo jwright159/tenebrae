@@ -10,7 +10,6 @@ import com.badlogic.gdx.graphics.glutils.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.graphics.*;
-import wrightway.gdx.tnb.Tenebrae.Action;
 import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
@@ -27,7 +26,7 @@ public class EntityBox extends Table{
 		this.setDebug(Tenebrae.tableDebug);
 		Table pic = new Table(skin);
 		pic.setDebug(Tenebrae.tableDebug);
-		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.region))).size(128, 128);
+		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.getRegions()))).size(128, 128);
 		pic.row();
 		pic.add(name = new Label(parent.name, skin));
 		this.add(pic).padRight(Tenebrae.margin);
@@ -67,7 +66,7 @@ public class EntityBox extends Table{
 		public void updateHP(){
 			Player p = (Player)parent;
 			super.updateHP();
-			Tenebrae.verbose("Lv pts! " + p.expNow());
+			Log.verbose("Lv pts! " + p.expNow());
 			levelBar.setHealth(p.lv, p.expNow(), p.expAtNextLv());
 			p.smolStatBox.updateHP();
 		}
@@ -301,7 +300,7 @@ public class EntityBox extends Table{
 			this(text, box, Align.topLeft, true, skin);
 		}
 		public boolean isEmpty(){
-			Tenebrae.verbose2("Is " + this + " empty? " + (box != null ? box.list.size : -1));
+			Log.verbose2("Is " + this + " empty? " + (box != null ? box.list.size : -1));
 			if(box == null)
 				return false;
 			for(MenuOption opt : box.list)
@@ -392,7 +391,7 @@ public class EntityBox extends Table{
 		}
 
 		public void addOption(MenuOption opt){
-			Tenebrae.verbose2("Adding option " + opt + " to " + this + "!");
+			Log.verbose2("Adding option " + opt + " to " + this + "!");
 			if(list.contains(opt, true))
 				return;
 			list.add(opt);
@@ -417,22 +416,22 @@ public class EntityBox extends Table{
 		}
 
 		public void reorganize(){
-			Tenebrae.verbose2("Reorganizing " + this + "!");
+			Log.verbose2("Reorganizing " + this + "!");
 			if(list.size == 0)
 				return;
 
 			for(int i = 0; i < list.size; i++){
-				Tenebrae.verbose2("Found " + (isPrevPage(list.get(i)) ?"prevPage": isNextPage(list.get(i)) ?"nextPage": isEmpty(list.get(i)) ?"empty": "an option") + "!");
-				Tenebrae.verbose2("Found " + list.get(i) + "! " + (list.get(i).box != null ?"" + list.get(i).box.list.size: "no box"));
+				Log.verbose2("Found " + (isPrevPage(list.get(i)) ?"prevPage": isNextPage(list.get(i)) ?"nextPage": isEmpty(list.get(i)) ?"empty": "an option") + "!");
+				Log.verbose2("Found " + list.get(i) + "! " + (list.get(i).box != null ?"" + list.get(i).box.list.size: "no box"));
 				if(!list.get(i).isOpt()){
-					Tenebrae.verbose2("Removing " + list.get(i) + "!");
+					Log.verbose2("Removing " + list.get(i) + "!");
 					list.removeIndex(i--).remove();
 				}
 			}
 
 			sortList();
 			int listLengthAfter = list.size == 0 ? itemsPerHeight * 2 : ((list.size - 1) / ((itemsPerHeight - 1) * 2) + 1) * itemsPerHeight * 2;
-			Tenebrae.verbose("List Lengths! Current: " + list.size + ", After: Got " + listLengthAfter + ", expected a multiple of " + itemsPerHeight * 2 + "!");
+			Log.verbose("List Lengths! Current: " + list.size + ", After: Got " + listLengthAfter + ", expected a multiple of " + itemsPerHeight * 2 + "!");
 			for(int i = 0; i < listLengthAfter; i++){
 				String debug = "an option";
 				if(i % (itemsPerHeight * 2) == itemsPerHeight * 2 - 2){
@@ -445,20 +444,20 @@ public class EntityBox extends Table{
 					list.insert(i, empty());
 					debug = "empty";
 				}
-				Tenebrae.verbose2("Adding " + debug + " at " + i + "! Size now! " + list.size);
+				Log.verbose2("Adding " + debug + " at " + i + "! Size now! " + list.size);
 			}
 
 			activePage = 0;
 			double pagefloat = (float)list.size / (float)(itemsPerHeight * 2);
 			int pages = list.size == 0 ? 1 : (int)Math.ceil(pagefloat);
-			Tenebrae.verbose2("Pages! " + list.size + ", " + (itemsPerHeight * 2) + ", " + pagefloat + " = " + pages);
+			Log.verbose2("Pages! " + list.size + ", " + (itemsPerHeight * 2) + ", " + pagefloat + " = " + pages);
 
 			clearChildren();
 			this.pages.clear();
 			for(int i = 0; i < pages; i++){
 				final Table page = new Table(skin);
 				page.setDebug(Tenebrae.tableDebug);
-				page.background("background");
+				page.background("window");
 				Drawable bg = page.getBackground();
 				page.setTouchable(Touchable.enabled);
 				this.add(page);
@@ -544,7 +543,7 @@ public class EntityBox extends Table{
 		}
 
 		public void changePage(int page){
-			Tenebrae.verbose2("Changing page on " + this + " of size " + list.size + " from " + activePage + " to " + page + " of " + pages + "!");
+			Log.verbose2("Changing page on " + this + " of size " + list.size + " from " + activePage + " to " + page + " of " + pages + "!");
 			if(list.size == 0)
 				return;
 			if(page < 0 || page >= pages.size){
@@ -584,9 +583,9 @@ public class EntityBox extends Table{
 			MenuItem.GameItem gitem = (MenuItem.GameItem)item;
 			MenuBox b = new MenuBox(gitem.name, box.skin);
 			MenuOption opt = new MenuOption(gitem.name, b, box.skin);
-			Tenebrae.verbose2("Putting item stuff in box!");
+			Log.verbose2("Putting item stuff in box!");
 			while(gitem.toPutInBox.size > 0){
-				Tenebrae.verbose("Got " + gitem.toPutInBox.get(0));
+				Log.verbose("Got " + gitem.toPutInBox.get(0));
 				opt.box.addOption(gitem.toPutInBox.removeIndex(0));
 			}
 			cat.box.addOption(opt);

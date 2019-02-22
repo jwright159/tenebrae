@@ -152,11 +152,11 @@ public class EnemyWeapon implements Disposable,JVSValue{
 			proj = new Projectile(tileset.getTile(1), spawnX, spawnY, touch, id++, this);
 		}
 		proj.setScale(scale);
-		Tenebrae.debug("Spawning", spawnX, spawnY, proj);
-		if(Tenebrae.fight == null)
+		Log.debug("Spawning", spawnX, spawnY, proj);
+		//if(Tenebrae.fight == null)
 			proj.dispose();
-		else
-			Tenebrae.fight.spawn(proj);
+		//else
+			//Tenebrae.fight.spawn(proj);
 	}
 	
 	@Override

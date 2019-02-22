@@ -33,8 +33,6 @@ public class Tenebrae extends WScreen{
 	static GlyphLayout gLayout;
 	static float margin = 30f;
 	static float stroke = 5f;
-	static Skin skin;
-	static Table table;
 	static boolean doneLoading = false;
 	static boolean tableDebug = false, showEmpty = false;
 
@@ -50,7 +48,7 @@ public class Tenebrae extends WScreen{
 
 		loadSkin();
 
-		multiplexer.addProcessor(0, new InputAdapter(){
+		getMultiplexer().addProcessor(0, new InputAdapter(){
 				@Override
 				public boolean touchDown(int x, int y, int pointer, int button){
 					Log.verbose("Pressed down!");
@@ -76,7 +74,7 @@ public class Tenebrae extends WScreen{
 					return false;
 				}
 			});
-		multiplexer.addProcessor(2, new GestureDetector(new GestureListener(){
+		getMultiplexer().addProcessor(2, new GestureDetector(new GestureListener(){
 										 @Override
 										 public boolean touchDown(float p1, float p2, int p3, int p4){
 											 // TODO: Implement this method
@@ -115,7 +113,7 @@ public class Tenebrae extends WScreen{
 										 }
 										 @Override
 										 public boolean zoom(float origdist, float dist){
-											 ((OrthographicCamera)worldStage.getCamera()).zoom = origdist / dist * zoom;
+											 getCamera().zoom = origdist / dist * zoom;
 											 return true;
 										 }
 										 @Override
@@ -148,20 +146,33 @@ public class Tenebrae extends WScreen{
 		//debugBox.toFront();
 		//debugBox2.toFront();
 
-		debug("Done loading!");
+		Log.debug("Done loading!");
 		doneLoading = true;
 	}
 	public void unload(){
 		if(player != null)
 			player.endSelf();
 		player = new Player();
-		worldStage.addActor(player);
-		verbose("Unloaded, made " + Log.player);
+		getStage().addActor(player);
+		Log.verbose("Unloaded, made " + player);
+	}
+	private static TextureAtlas ta1, ta2;
+	private void loadSkin(){
+		getSkin().addRegions(ta1 = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas")));
+		getSkin().load(Gdx.files.internal("tnbskin.json"));
+		
+		FileHandle folder = Gdx.files.external(PAKPATH).child("skin");
+		FileHandle[] atlas = folder.list("atlas");
+		if(atlas.length > 0)
+			getSkin().addRegions(ta2 = new NineRegionTextureAtlas(atlas[0]));
+		FileHandle[] json = folder.list("json");
+		if(json.length > 0)
+			getSkin().load(json[0]);
 	}
 
 	//private Array<Character> neworder = new Array<Character>();
 	@Override
-	public void act(){
+	public void act(float delta){
 		/*for(ObjectMap.Entry<TiledMapTileLayer,Array<Character>> e : player.map.maprenderer.npcs){
 		 TiledMapTileLayer layer = e.key;
 
@@ -191,24 +202,24 @@ public class Tenebrae extends WScreen{
 
 		if(!doneLoading){
 			if(scriptLoader == null){
-				debug("Starting loading scripts!");
+				Log.debug("Starting loading scripts!");
 				loadedScripts = false;
 				mp = new Mappack(PAKPATH);
 				FileHandle folder = Gdx.files.external(PAKPATH);
 				final FileHandle[] flist = folder.list("tnb");
 				if(loadbar == null){
-					uiStage.addActor(splash = new Table(skin));
+					getUiStage().addActor(splash = new Table(getSkin()));
 					splash.setFillParent(true);
 					splash.setDebug(tableDebug);
-					splash.background("background");
+					splash.background("window");
 					Label title;
-					splash.add(title = new Label("Tenebrae RPG Engine", skin, skin.has("title", BitmapFont.class) ? "title" : "default")).grow().bottom();
+					splash.add(title = new Label("Tenebrae RPG Engine", getSkin(), getSkin().has("title", BitmapFont.class) ? "title" : "default")).grow().bottom();
 					title.setWrap(true);
 					title.setAlignment(Align.bottom);
 					splash.row();
-					splash.add(new Label("Loading scripts...", skin)).pad(Log.margin * 0.25f).expandX();
+					splash.add(new Label("Loading scripts...", getSkin())).pad(margin * 0.25f).expandX();
 					splash.row();
-					splash.add(loadbar = new EntityBox.TextBar("Loadin", 0, flist.length - 1, 1, skin)).size(500f, 100f).expand().top();
+					splash.add(loadbar = new EntityBox.TextBar("Loadin", 0, flist.length - 1, 1, getSkin())).size(500f, 100f).expand().top();
 				}
 				scripts = new ArrayMap<String,Function>(){
 					@Override
@@ -224,7 +235,7 @@ public class Tenebrae extends WScreen{
 						public void run(){
 							for(int i = 0; i < flist.length; i++){
 								final FileHandle f = flist[i];
-								debug("Parsing", f.name());
+								Log.debug("Parsing", f.name());
 								final Function script = JVSParser.parseCode(f.readString(), null);
 								final int j = i;
 								Gdx.app.postRunnable(new Runnable(){
@@ -241,7 +252,7 @@ public class Tenebrae extends WScreen{
 									public void run(){
 										loadedScripts = true;
 										loadbar.text.setText("");
-										debug("Done loading scripts!");
+										Log.debug("Done loading scripts!");
 									}
 								});
 						}
@@ -253,9 +264,9 @@ public class Tenebrae extends WScreen{
 				else{
 					splash.remove();
 					splash = null;
-					debug("Starting loading the save!");
+					Log.debug("Starting loading the save!");
 					loadSave();
-					debug("Done loading save!");
+					Log.debug("Done loading save!");
 				}
 			}
 		}
@@ -272,8 +283,8 @@ public class Tenebrae extends WScreen{
 
 	//@Override
 	public void draww(){
-		Batch batch = worldStage.getBatch();
-		NinePatchDrawable patch = new NinePatchDrawable(skin.getPatch("button"));
+		Batch batch = getStage().getBatch();
+		NinePatchDrawable patch = new NinePatchDrawable(getSkin().getPatch("button"));
 		batch.begin();
 		patch.draw(batch, 200, 200, 50, 100);
 		patch.draw(batch, 200, 300, 100, 100);
@@ -284,7 +295,7 @@ public class Tenebrae extends WScreen{
 
 	float zoom = 1;
 	public void updateZoom(){
-		zoom = ((OrthographicCamera)worldStage.getCamera()).zoom;
+		zoom = getCamera().zoom;
 	}
 
 	@Override
@@ -295,29 +306,11 @@ public class Tenebrae extends WScreen{
 		super.resize(x, y);
 	}
 
-	private static void loadSkin(){
-		Make a FrameBuffer, use that as the Atlas, then draw the other atlas to that //rec'd by mgsx
-		FileHandle file = Gdx.files.external(PAKPATH).child("skin");
-		skin = new WSkin();
-
-		skin.addRegions(at1 = new TextureAtlas(Gdx.files.internal("skin.atlas")));
-		FileHandle[] atlas = file.list("atlas");
-		if(atlas.length > 0)
-			skin.addRegions(at2 = new TextureAtlas(atlas[0]));
-
-		skin.load(Gdx.files.internal("skin.json"));
-		FileHandle[] json = file.list("json");
-		if(json.length > 0)
-			skin.load(json[0]);
-	}
-	private static TextureAtlas at1, at2;
-
 	@Override
 	public void dispose(){
-		skin.dispose();
 		super.dispose();
-		at1.dispose();
-		at2.dispose();
+		ta1.dispose();
+		ta2.dispose();
 		//music.dispose();
 	}
 }
