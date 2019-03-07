@@ -1,24 +1,23 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.utils.*;
+import org.luaj.vm2.*;
+import org.luaj.vm2.lib.*;
 
-public class EnemyWeapon implements Disposable,JVSValue{
-	Character owner;
-	String filename, type;
-	float str, spawnX, spawnY, targetX, targetY, speed, scale;
-	int id = 0;
-	TiledMapTileSet tileset;
-	boolean touch;
-	Scope vars;
+public class EnemyWeapon implements Disposable,ScriptGlob{
+	public Character owner;
+	public String filename, type;
+	public float str, spawnX, spawnY, targetX, targetY, speed, scale;
+	public int id = 0;
+	private TiledMapTileSet tileset;
+	public boolean touch;
+	private Globals globals;
 
 	EnemyWeapon(Character owner, String filename){
-		vars = new Scope(null, "ew");
+		globals = new Tenebrae.StdEntGlobals();
 		this.owner = owner;
 		this.filename = filename;
 		tileset = Tenebrae.mp.loadTileset(filename);
@@ -28,118 +27,10 @@ public class EnemyWeapon implements Disposable,JVSValue{
 		 return null;
 		 }
 		 }}));*/
-		vars.put("atk", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return str;
-				}
-				@Override
-				public void put(Object value){
-					str = value;
-				}
-			});
-		vars.put("spawnX", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return spawnX;
-				}
-				@Override
-				public void put(Object value){
-					spawnX = value;
-				}
-			});
-		vars.put("spawnY", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return spawnY;
-				}
-				@Override
-				public void put(Object value){
-					spawnY = value;
-				}
-			});
-		vars.put("targetX", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return targetX;
-				}
-				@Override
-				public void put(Object value){
-					targetX = value;
-				}
-			});
-		vars.put("targetY", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return targetY;
-				}
-				@Override
-				public void put(Object value){
-					targetY = value;
-				}
-			});
-		vars.put("speed", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return speed;
-				}
-				@Override
-				public void put(Object value){
-					speed = value;
-				}
-			});
-		vars.put("scale", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return scale;
-				}
-				@Override
-				public void put(Object value){
-					scale = value;
-				}
-			});
-		vars.put("touch", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return touch;
-				}
-				@Override
-				public void put(Object value){
-					touch = value;
-				}
-			});
-		vars.put("type", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return type;
-				}
-				@Override
-				public void put(Object value){
-					type = value.toString();
-				}
-			});
-		vars.put("this", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return this;
-				}
-			});
-		vars.put("map", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.mp;
-				}
-			});
-		vars.put("owner", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return EnemyWeapon.this.owner;
-				}
-			});
 	}
 
 	public void spawn(){
-		vars.run("onSpawn");
+		globals.get("onSpawn").checkfunction().call();
 		Projectile proj;
 		if(type.equals("linear")){
 			float velX = targetX - spawnX;
@@ -160,12 +51,93 @@ public class EnemyWeapon implements Disposable,JVSValue{
 	}
 	
 	@Override
-	public Object get(Scope scope){
-		return vars;
+	public Globals getGlobals(){
+		return globals;
 	}
 
 	@Override
 	public void dispose(){
 
+	}
+	
+	public class EnenmyWeaponLib extends TwoArgFunction{
+		@Override
+		public LuaValue call(LuaValue modname, LuaValue env){
+			LuaTable library = tableOf();
+			
+			library.setmetatable(tableOf());
+			library.getmetatable().set(INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						switch(key.checkjstring()){
+							case "owner":
+								return owner.getGlobals();
+							case "atk":
+								return valueOf(str);
+							case "spawnX":
+								return valueOf(spawnX);
+							case "spawnY":
+								return valueOf(spawnY);
+							case "targetX":
+								return valueOf(targetX);
+							case "targetY":
+								return valueOf(targetY);
+							case "speed":
+								return valueOf(speed);
+							case "scale":
+								return valueOf(scale);
+							case "touch":
+								return valueOf(touch);
+							case "type":
+								return valueOf(type);
+							default:
+								return NIL;
+						}
+					}
+				});
+			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						switch(key.checkjstring()){
+							case "owner":
+								self.error("owner is read-only");
+								break;
+							case "atk":
+								str = (float)value.checkdouble();
+								break;
+							case "spawnX":
+								spawnX = (float)value.checkdouble();
+								break;
+							case "spawnY":
+								spawnY = (float)value.checkdouble();
+								break;
+							case "targetX":
+								targetX = (float)value.checkdouble();
+								break;
+							case "targetY":
+								targetY = (float)value.checkdouble();
+								break;
+							case "speed":
+								speed = (float)value.checkdouble();
+								break;
+							case "scale":
+								scale = (float)value.checkdouble();
+								break;
+							case "touch":
+								touch = value.checkboolean();
+								break;
+							case "type":
+								type = value.checkjstring();
+								break;
+							default:
+								return TRUE;
+						}
+						return NONE;
+					}
+				});
+				
+			ScriptGlob.S.setLibToEnv(library, env);
+			return env;
+		}
 	}
 }

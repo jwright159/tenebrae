@@ -15,7 +15,7 @@ import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.scenes.scene2d.*;
-import wrightway.gdx.JVSValue.Function;
+import org.luaj.vm2.*;
 
 public class TileMap extends WActor{
 	String filepath,filename;
@@ -25,7 +25,7 @@ public class TileMap extends WActor{
 	int width, height;
 	boolean hasNpcObj;
 
-	public TileMap(FileHandle mapFile, Function trigScriptFile){
+	public TileMap(FileHandle mapFile, LuaFunction trigScriptFile){
 		//stage.addActor(debug());
 
 		filepath = mapFile.path();
@@ -104,7 +104,7 @@ public class TileMap extends WActor{
 		for(TiledMapTileSet tileset : map.getTileSets())
 			Log.verbose2("Found tileset! " + tileset.getName());
 		
-		trigScriptFile.get(Tenebrae.mp.vars, null);
+		trigScriptFile.call();
 
 		//Tenebrar.debug("Map made! "+toString());
 	}

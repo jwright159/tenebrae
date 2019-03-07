@@ -1,9 +1,6 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.graphics.*;
@@ -18,241 +15,23 @@ import java.io.*;
 import com.badlogic.gdx.math.*;
 import com.leff.midi.util.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import org.luaj.vm2.lib.*;
+import org.luaj.vm2.*;
 
-public class Mappack implements JVSValue{
-	FileHandle folder,file;
-	String name = "Mapppack lololol", description, startMap;
-	Scope vars;//This is the only scope, the global for all scripts, bc you can only set the scope when the file is parsed
-	Array<NPC> npcs;
+public class Mappack implements ScriptGlob{
+	public FileHandle folder;
+	public String name = "Mapppack lololol", description, startMap;
+	private Globals globals;
+	public Array<NPC> npcs;
 
 	public Mappack(String folderpath){
 		folder = Gdx.files.external(folderpath);
-		file = folder.child("mappack.tnb");
 		npcs = new Array<NPC>();
-
-		vars = new Scope(null, "mp");
-		//functions
-		vars.put("setTile", new Function(new String[]{"x","y","layer","tileset","tileid"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Tenebrae.player.map.changeTile(scope.getVal("x", Integer.class, null), (Tenebrae.player.map.height - 1) - scope.getVal("y", Integer.class, null), scope.getVal("layer", String.class, null), scope.getVal("tileset", String.class, null), scope.getVal("tileid", Integer.class, null));
-							return null;
-						}
-					}}));
-		vars.put("say", new Function(new String[]{"text", "delayTime", "charsPerSec"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							String text = scope.getVal("text", String.class, null);
-							Float delay, cps;
-							if((delay = scope.getVal("delayTime", Float.class, -1f)) == -1 & (cps = scope.getVal("charsPerSec", Float.class, -1f)) == -1){
-								Tenebrae.player.addDialog(text);
-							}else if(cps == -1){
-								Tenebrae.player.addDialog(text, delay);
-							}else{
-								for(int j = 1; j < text.length(); j++){
-									String substring = text.substring(0, j);
-									//Tenebrae.debug("Say spell out! "+spellOut+" "+substring);
-									if(Utils.endsInWhitespace(substring))
-										continue;
-									boolean punc = (Utils.endsInPunctuation(substring) && !Utils.endsInPunctuation(text.substring(0, j + 1 <= text.length() ? j + 1 : j)) && !text.substring(0, j + 1 <= text.length() ? j + 1 : j).endsWith("\"")) || (Utils.endsInPunctuation(substring.substring(0, substring.length() == 1 ? 1 : substring.length() - 1)) && substring.endsWith("\""));
-									//if(punc)
-									//Tenebrae.debug("Punctuation! " + substring);
-									Tenebrae.player.addDialog(substring, (punc ? 5f : 1f) / cps);
-								}
-								if(delay != -1)
-									Tenebrae.player.addDialog(text, delay);
-								else
-									Tenebrae.player.addDialog(text);
-							}
-							return null;
-						}
-					}}));
-		vars.put("setMap", new Function(new String[]{"mapName", "startX", "startY"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Tenebrae.player.changeMap(Tenebrae.mp.loadMap(scope.getVal("mapName", String.class, null)), scope.getVal("x", Float.class, -1f), scope.getVal("y", Float.class, -1f));
-							return null;
-						}
-					}}));
-		vars.put("enableTrigger", new Function(new String[]{"trigger"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Tenebrae.player.map.getTriggerObjects().get(scope.getVal("trigger", String.class, null)).getProperties().put("disabled", false);
-							return null;
-						}
-					}}));
-		vars.put("disableTrigger", new Function(new String[]{"trigger"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Tenebrae.player.map.getTriggerObjects().get(scope.getVal("trigger", String.class, null)).getProperties().put("disabled", true);
-							return null;
-						}
-					}}));
-		vars.put("setTrigger", new Function(new String[]{"trigger", "function", "value"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							String value = scope.getVal("value", String.class, ""), func = scope.getVal("function", String.class, "");
-							Tenebrae.player.map.getTriggerObjects().get(scope.getVal("trigger", String.class, null)).getProperties().put(!value.isEmpty() ? func : "onTrigger", !value.isEmpty() ? value : func);
-							return null;
-						}
-					}}));
-		vars.put("println", new Function(new String[]{"text"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Log.userLog(scope.getVal("text", String.class, null));
-							return null;
-						}
-					}}));
-		vars.put("errorln", new Function(new String[]{"text"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Log.log((byte)0b000_0011, scope.getVal("text", String.class, null));
-							return null;
-						}
-					}}));
-		vars.put("zoom", new Function(new String[]{"amt", "time", "interp", "tap"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							OrthographicCamera cam = Tenebrae.t.getCamera();
-							Tenebrae.player.addAction(new Action.CameraAction(cam, cam.zoom * scope.getVal("amt", Float.class, 1f), Utils.getInterpolation(scope.getVal("interp", String.class, "constant")), scope.getVal("time", Float.class, 0f), scope.getVal("tap", java.lang.Boolean.class, false)));
-							return null;
-						}
-					}}));
-		vars.put("pan", new Function(new String[]{"x", "y", "time", "interp", "tap"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							OrthographicCamera cam = Tenebrae.t.getCamera();
-							Tenebrae.player.addAction(new Action.CameraAction(cam, cam.position.x + scope.getVal("x", Float.class, 0f) * Tenebrae.player.map.tilewidth, cam.position.y + scope.getVal("y", Float.class, 0f) * Tenebrae.player.map.tileheight, Utils.getInterpolation(scope.getVal("interp", String.class, "constant")), scope.getVal("time", Float.class, 0f), scope.getVal("tap", java.lang.Boolean.class, false)));
-							return null;
-						}
-					}}));
-		vars.put("panTo", new Function(new String[]{"x", "y", "time", "interp", "tap"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							OrthographicCamera cam = Tenebrae.t.getCamera();
-							Tenebrae.player.addAction(new Action.CameraAction(cam, scope.getVal("x", Float.class, 0f) * Tenebrae.player.map.tilewidth - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2, scope.getVal("y", Float.class, 0f) * Tenebrae.player.map.tileheight - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2, Utils.getInterpolation(scope.getVal("interp", String.class, "constant")), scope.getVal("time", Float.class, 0f), scope.getVal("tap", java.lang.Boolean.class, false)));
-							return null;
-						}
-					}}));
-		vars.put("resetCamera", new Function(new String[]{"time", "interp", "tap"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							OrthographicCamera cam = Tenebrae.t.getCamera();
-							Vector3 l = Tenebrae.player.lastCameraPos;
-							Tenebrae.player.addAction(new Action.CameraAction(cam, l.x, l.y, l.z, Utils.getInterpolation(scope.getVal("interp", String.class, "constant")), scope.getVal("time", Float.class, 0f), scope.getVal("tap", java.lang.Boolean.class, false)));
-							return null;
-						}
-					}}));
-		vars.put("delay", new Function(new String[]{"delayTime", "func"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Tenebrae.player.addDelay(scope.getVal("delayTime", Float.class, null), scope.getVal("func", Function.class, null), scope);
-							return null;
-						}
-					}}));
-		
-		//attributes
-		vars.put("this", new JVSValue.WValue(){//actually useful 0_o, needed for vars across files
-				@Override
-				public Object get(){
-					return vars;
-				}
-			});
-		vars.put("name", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return name;
-				}
-				@Override
-				public void put(Object value){
-					name = value.toString();
-				}
-			});
-		vars.put("description", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return description;
-				}
-				@Override
-				public void put(Object value){
-					description = value.toString();
-				}
-			});
-		vars.put("startMap", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return startMap;
-				}
-				@Override
-				public void put(Object value){
-					startMap = value.toString();
-				}
-			});
-		vars.put("player", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.player.get(null);
-				}
-			});
-		vars.put("cameraX", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.t.getCamera().position.x - Tenebrae.screenRect.width / 2 + Tenebrae.player.activeDeadzone.x + Tenebrae.player.activeDeadzone.width / 2;
-				}
-				@Override
-				public void put(Object value){
-					Tenebrae.t.getCamera().position.x = (float)value - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2;
-				}
-			});
-		vars.put("cameraY", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.t.getCamera().position.y - Tenebrae.screenRect.height / 2 + Tenebrae.player.activeDeadzone.y + Tenebrae.player.activeDeadzone.height / 2;
-				}
-				@Override
-				public void put(Object value){
-					Tenebrae.t.getCamera().position.y = (float)value - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2;
-				}
-			});
-		vars.put("cameraZoom", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.t.getCamera().zoom;
-				}
-				@Override
-				public void put(Object value){
-					Tenebrae.t.getCamera().zoom = value;
-				}
-			});
-		vars.put("screen", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return screen;
-				}
-			});
-		vars.put("cameraHeight", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.player.activeDeadzone.height * Tenebrae.t.getCamera().zoom;
-				}
-			});
-		vars.put("cameraWidth", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.player.activeDeadzone.width * Tenebrae.t.getCamera().zoom;
-				}
-			});
-		
-		//constructors
-		vars.put("NPC", new Function(new String[]{"name"}, new JVSValue[]{new JVSValue(){
-											   @Override
-											   public Object get(Scope scope){
-												   return loadNPC(scope.get("name").toString(), Tenebrae.t.getStage()).get(null);
-											   }
-										   }}));
+		globals = new StdGlobals();
+		globals.load(new MappackLib());
 	}
 	public TileMap loadMap(String name){
-		return new TileMap(folder.child(name + ".tmx"), Tenebrae.t.getScript(name));
+		return new TileMap(folder.child(name + ".tmx"), Tenebrae.t.getScript(name, globals));
 	}
 	public TileMap loadMap(){
 		return loadMap(startMap);
@@ -262,7 +41,7 @@ public class Mappack implements JVSValue{
 		throw new UnsupportedOperationException("Not usin this rn");
 	}
 	public MenuItem.GameItem loadItem(String name, Character owner){
-		return new MenuItem.GameItem(name, Tenebrae.t.getScript(name), owner, Tenebrae.t.getSkin());
+		return new MenuItem.GameItem(name, Tenebrae.t.getProto(name), owner, Tenebrae.t.getSkin());
 	}
 	public TiledMapTileSet loadTileset(String name){
 		return TiledMapTileSetLoader.loadTileSet(folder.child(name + ".tsx"), null);
@@ -278,11 +57,11 @@ public class Mappack implements JVSValue{
 	}
 	public EnemyWeapon loadEnemyWeapon(String name, Character owner){
 		EnemyWeapon rtn = new EnemyWeapon(owner, name);
-		Tenebrae.t.getScript(name).get(rtn.vars, null);
+		Tenebrae.t.getScript(name, rtn.getGlobals()).call();
 		return rtn;
 	}
 	public NPC loadNPC(String name, Stage stage){
-		NPC npc = new NPC(name, Tenebrae.t.getScript(name));
+		NPC npc = new NPC(name, Tenebrae.t.getProto(name));
 		npcs.add(npc);
 		stage.addActor(npc);
 		if(Tenebrae.player.map != null)
@@ -291,43 +70,278 @@ public class Mappack implements JVSValue{
 	}
 
 	@Override
-	public Object get(Scope scope){
-		return vars;
+	public Globals getGlobals(){
+		return globals;
 	}
 
-	public ScopedScreen screen = new ScopedScreen();
-	private static class ScopedScreen extends Rectangle implements JVSValue{
-		Scope vars;
-		ScopedScreen(){
-			super(Tenebrae.screenRect);
-			vars = new Scope(null, "sscreen");
-			vars.put("x", new JVSValue.WValue(){
+	public class MappackLib extends TwoArgFunction{
+		@Override
+		public LuaValue call(LuaValue modname, LuaValue env){
+			LuaTable library = tableOf();
+			//functions
+			library.set("setTile", new VarArgFunction(){
 					@Override
-					public Object get(){
-						return getX();
+					public Varargs invoke(Varargs args){// x, y, layer, tileset, tileid
+						Tenebrae.player.map.changeTile(args.checkint(1),
+													   (Tenebrae.player.map.height - 1) - args.checkint(2),
+													   args.checkjstring(3),
+													   args.checkjstring(4),
+													   args.checkint(5));
+						return NONE;
 					}
 				});
-			vars.put("y", new JVSValue.WValue(){
+			library.set("say", new ThreeArgFunction(){
 					@Override
-					public Object get(){
-						return getY();
+					public LuaValue call(LuaValue textl, LuaValue delayTime, LuaValue charsPerSec){
+						String text = textl.checkjstring();
+						float delay = (float)delayTime.optdouble(-1), cps = (float)charsPerSec.optdouble(-1);
+						Log.debug(text, delay, cps);
+						if(delay == -1 & cps == -1){
+							Tenebrae.player.addDialog(text);
+						}else if(cps == -1){
+							Tenebrae.player.addDialog(text, delay);
+						}else{
+							for(int j = 1; j < text.length(); j++){
+								String substring = text.substring(0, j);
+								//Tenebrae.debug("Say spell out! "+spellOut+" "+substring);
+								if(Utils.endsInWhitespace(substring))
+									continue;
+								boolean punc = (Utils.endsInPunctuation(substring) && !Utils.endsInPunctuation(text.substring(0, j + 1 <= text.length() ? j + 1 : j)) // if it ends in punctuation and the next char doesn't
+									&& !text.substring(0, j + 1 <= text.length() ? j + 1 : j).endsWith("\""))														  // and next char isn't quote
+									|| (Utils.endsInPunctuation(substring.substring(0, substring.length() == 1 ? 1 : substring.length() - 1))						  // OR last char was punc
+									&& substring.endsWith("\""));																									  // and it ends in quote
+								//if(punc)
+								//Tenebrae.debug("Punctuation! " + substring);
+								Tenebrae.player.addDialog(substring, (punc ? 5f : 1f) / cps);
+							}
+							if(delay != -1)
+								Tenebrae.player.addDialog(text, delay);
+							else
+								Tenebrae.player.addDialog(text);
+						}
+						return NONE;
 					}
 				});
-			vars.put("width", new JVSValue.WValue(){
+			library.set("setMap", new ThreeArgFunction(){
 					@Override
-					public Object get(){
-						return getWidth();
+					public LuaValue call(LuaValue mapName, LuaValue startX, LuaValue startY){
+						Tenebrae.player.changeMap(Tenebrae.mp.loadMap(mapName.checkjstring()),
+												  (float)startX.optdouble(-1),
+												  (float)startY.optdouble(-1));
+						return NONE;
 					}
 				});
-			vars.put("height", new JVSValue.WValue(){
+			library.set("enableTrigger", new OneArgFunction(){
 					@Override
-					public Object get(){
-						return getHeight();
+					public LuaValue call(LuaValue trigger){
+						Tenebrae.player.map.getTriggerObjects().get(trigger.checkjstring()).getProperties().put("disabled", false);
+						return NONE;
+					}
+				});
+			library.set("disableTrigger", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue trigger){
+						Tenebrae.player.map.getTriggerObjects().get(trigger.checkjstring()).getProperties().put("disabled", true);
+						return NONE;
+					}
+				});
+			library.set("setTrigger", new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue triggerObj, LuaValue type, LuaValue function){
+						Tenebrae.player.map.getTriggerObjects().get(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
+						return NONE;
+					}
+				});
+			library.set("zoom", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // amount, time, interpolation, tapOverride
+						OrthographicCamera cam = Tenebrae.t.getCamera();
+						Tenebrae.player.addAction(new Action.CameraAction(cam,
+																		  cam.zoom * (float)args.optdouble(1, 1),
+																		  Utils.getInterpolation(args.optjstring(3, "constant")),
+																		  (float)args.optdouble(2, 0),
+																		  args.optboolean(4, false)));
+						return NONE;
+					}
+				});
+			library.set("pan", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
+						OrthographicCamera cam = Tenebrae.t.getCamera();
+						Tenebrae.player.addAction(new Action.CameraAction(cam,
+																		  cam.position.x + (float)args.optdouble(1, 0) * Tenebrae.player.map.tilewidth,
+																		  cam.position.y + (float)args.optdouble(2, 0) * Tenebrae.player.map.tileheight,
+																		  Utils.getInterpolation(args.optjstring(4, "constant")),
+																		  (float)args.optdouble(3, 0),
+																		  args.optboolean(5, false)));
+						return NONE;
+					}
+				});
+			library.set("panTo", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
+						OrthographicCamera cam = Tenebrae.t.getCamera();
+						Tenebrae.player.addAction(new Action.CameraAction(cam,
+																		  (float)args.optdouble(1, 0) * Tenebrae.player.map.tilewidth - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2,
+																		  (float)args.optdouble(2, 0) * Tenebrae.player.map.tileheight - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2,
+																		  Utils.getInterpolation(args.optjstring(4, "constant")),
+																		  (float)args.optdouble(3, 0),
+																		  args.optboolean(5, false)));
+						return NONE;
+					}
+				});
+			library.set("setTrigger", new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue time, LuaValue interpolation, LuaValue tapOverride){
+						OrthographicCamera cam = Tenebrae.t.getCamera();
+						Vector3 l = Tenebrae.player.lastCameraPos;
+						Tenebrae.player.addAction(new Action.CameraAction(cam,
+																		  l.x,
+																		  l.y,
+																		  l.z,
+																		  Utils.getInterpolation(interpolation.optjstring("constant")),
+																		  (float)time.optdouble(0),
+																		  tapOverride.optboolean(false)));
+						return NONE;
+					}
+				});
+			library.set("setTrigger", new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue time, LuaValue function){
+						Tenebrae.player.addDelay((float)time.optdouble(0), function.checkfunction());
+						return NONE;
+					}
+				});
+			library.set("NPC", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue name){
+						return loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
+					}
+				});
+
+			//attributes
+			library.setmetatable(tableOf());
+			library.getmetatable().set(INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						Log.debug("Getting", key.checkjstring());
+						switch(key.checkjstring()){
+							case "name":
+								return valueOf(Mappack.this.name);
+							case "description":
+								return valueOf(description);
+							case "startMap":
+								return valueOf(startMap);
+							case "player":
+								return Tenebrae.player.getGlobals();
+							case "cameraX":
+								return valueOf(Tenebrae.t.getCamera().position.x - Tenebrae.screenRect.width / 2 + Tenebrae.player.activeDeadzone.x + Tenebrae.player.activeDeadzone.width / 2);
+							case "cameraY":
+								return valueOf(Tenebrae.t.getCamera().position.y - Tenebrae.screenRect.height / 2 + Tenebrae.player.activeDeadzone.y + Tenebrae.player.activeDeadzone.height / 2);
+							case "cameraZoom":
+								return valueOf(Tenebrae.t.getCamera().zoom);
+							case "screen":
+								return screen.getVars();
+							case "screenWidth":
+								return valueOf(Tenebrae.player.activeDeadzone.width * Tenebrae.t.getCamera().zoom);
+							case "screenHeight":
+								return valueOf(Tenebrae.player.activeDeadzone.height * Tenebrae.t.getCamera().zoom);
+							default:
+								return self.rawget(key);
+						}
+					}
+				});
+			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						switch(key.checkjstring()){
+							case "name":
+								Mappack.this.name = value.checkjstring();
+								break;
+							case "description":
+								description = value.checkjstring();
+								break;
+							case "startMap":
+								startMap = value.checkjstring();
+								break;
+							case "player":
+								self.error("player is read-only");
+								break;
+							case "cameraX":
+								Tenebrae.t.getCamera().position.x = (float)value.checkdouble() - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2;
+								break;
+							case "cameraY":
+								Tenebrae.t.getCamera().position.y = (float)value.checkdouble() - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2;
+								break;
+							case "cameraZoom":
+								Tenebrae.t.getCamera().zoom = (float)value.checkdouble();
+								break;
+							case "screen":
+								self.error("screen dimensions are read-only");
+								break;
+							case "screenWidth":
+								self.error("screen dimensions are read-only");
+								break;
+							case "screenHeight":
+								self.error("screen dimensions are read-only");
+								break;
+							default:
+								self.rawset(key, value);
+						}
+						return NONE;
+					}
+				});
+
+			//constructors
+			/*final LuaTable npcClass = tableOf();
+			npcClass.set(INDEX, npcClass); // instances will look up stuff in class. npcInstance will have npcClass, not npcInstance, so no inf recurse
+			npcClass.set("new", new TwoArgFunction(){
+				@Override
+				public LuaValue call(LuaValue clazz, LuaValue name){
+					LuaTable instance = loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
+					instance.setmetatable(clazz); // Actually this line is killing the inherited metatables
+					return instance;
+				}
+			});
+			library.set("NPC", npcClass);*/
+			
+			ScriptGlob.S.setLibToEnv(library, env);
+			return env;
+		}
+	}
+
+	public ScreenDims screen = new ScreenDims();
+	public static class ScreenDims{
+		private LuaTable vars;
+		public ScreenDims(){
+			vars = LuaValue.tableOf();
+			if(vars.getmetatable() == null) vars.setmetatable(LuaValue.tableOf());
+			vars.getmetatable().set(LuaValue.INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						switch(key.checkjstring()){
+							case "x":
+								return valueOf(Tenebrae.screenRect.getX());
+							case "y":
+								return valueOf(Tenebrae.screenRect.getY());
+							case "width":
+								return valueOf(Tenebrae.screenRect.getWidth());
+							case "height":
+								return valueOf(Tenebrae.screenRect.getHeight());
+							default:
+								return self.rawget(key);
+						}
+					}
+				});
+			vars.getmetatable().set(LuaValue.NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						self.error("screen dimensions are read-only");
+						return NONE;
 					}
 				});
 		}
-		@Override
-		public Object get(Scope scope){
+		public LuaTable getVars(){
 			return vars;
 		}
 	}

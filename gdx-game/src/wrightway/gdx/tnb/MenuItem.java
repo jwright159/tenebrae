@@ -1,72 +1,52 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.*;
 import wrightway.gdx.tnb.Character.Stats;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import org.luaj.vm2.*;
+import org.luaj.vm2.lib.*;
 
-public class MenuItem implements JVSValue{//implements scoped so menuitems can be run by code (ex: the kill command)
-	Scope vars;
-	String name, catagory;
-	EntityBox.MenuOption option;
-	final Character owner;
-	MenuItem(String catagory, String name, Function script, Character owner){
-		this.catagory = catagory;
+public class MenuItem implements ScriptGlob{
+	private Globals globals;
+	public String name, category;
+	public EntityBox.MenuOption option;
+	protected final Character owner;
+	public MenuItem(String category, String name, Prototype onUse, Character owner){
+		this.category = category;
 		this.name = name;
-		vars = new Scope(null, "mi"+name);
+		globals = new Tenebrae.StdEntGlobals();
+		if(onUse != null)
+			globals.set("onUse", new LuaClosure(onUse, globals));
 		this.owner = owner;
-		vars.put("onUse", script != null ? script : JVSValue.nulll);//for customfuncs in the java code
-		vars.put("this", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return vars;
-				}
-			});
-		vars.put("player", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.player.get(null);
-				}
-			});
-		vars.put("map", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.mp.get(null);
-				}
-			});
-	}
-	public boolean contains(String name){
-		return vars.containsKey(name);
 	}
 	public void run(String funcName){
 		Tenebrae.player.closeMenus();
-		vars.run(funcName);
+		globals.get(funcName).checkfunction().call();
 	}
 	@Override
-	public Object get(Scope scope){
-		return vars;
+	public Globals getGlobals(){
+		return globals;
 	}
 	@Override
 	public String toString(){
-		return super.toString() + "§" + catagory + "." + name;
+		return super.toString() + "§" + category + "." + name;
 	}
 
 	public static class GameItem extends MenuItem{
-		ArrayMap<Character.Stats,Float> equip;
-		int life;
-		float eChance;
-		String type, id;
-		boolean magic;
-		Array<EntityBox.MenuOption> toPutInBox = new Array<EntityBox.MenuOption>();
-		EntityBox.MenuOption equipOpt, unequipOpt;
+		private ArrayMap<Character.Stats,Float> equip;
+		private int life;
+		public float eChance;
+		public String type, id;
+		private boolean magic;
+		public Array<EntityBox.MenuOption> toPutInBox = new Array<EntityBox.MenuOption>();
+		public EntityBox.MenuOption equipOpt, unequipOpt;
+		private Skin skin;
 
-		GameItem(String id, String name, Character owner, ArrayMap<Character.Stats,Float> equip, int life, String catagory, String type, float enemyChance, boolean isMagic, final Skin skin){
+		public GameItem(String id, String name, Character owner, ArrayMap<Character.Stats,Float> equip, int life, String catagory, String type, float enemyChance, boolean isMagic, Skin skin){
 			super(catagory, name, null, owner);
 			this.id = id;
 			this.equip = equip;
@@ -74,130 +54,8 @@ public class MenuItem implements JVSValue{//implements scoped so menuitems can b
 			this.type = type;
 			this.eChance = enemyChance;
 			this.magic = isMagic;
-
-			vars.put("decay", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								decay();
-								return null;
-							}
-						}}));
-			vars.put("equip", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								equip();
-								return null;
-							}
-						}}));
-			vars.put("unequip", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								unequip();
-								return null;
-							}
-						}}));
-			vars.put("setStat", new Function(new String[]{"stat", "value"}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								setStat(Character.Stats.valueOf(scope.getVal("stat", String.class, null)), scope.getVal("value", Float.class, null));
-								return null;
-							}
-						}}));
-			vars.put("setStats", new Function(new String[]{"atk", "intl", "def", "agl", "maxhp", "maxmp"}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								setStats(scope.getVal("atk", Float.class, null), scope.getVal("intl", Float.class, null), scope.getVal("def", Float.class, null), scope.getVal("agl", Float.class, null), scope.getVal("maxhp", Float.class, null), scope.getVal("maxmp", Float.class, null));
-								return null;
-							}
-						}}));
-			vars.put("attack", new Function(new String[]{"atk", "intl", "def", "agl", "maxhp", "maxmp"}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								GameItem.this.owner.setStats("_temp" + GameItem.this.owner.stats.size, scope.getVal("atk", Float.class, 0f), scope.getVal("intl", Float.class, 0f), scope.getVal("def", Float.class, 0f), scope.getVal("agl", Float.class, 0f), scope.getVal("maxhp", Float.class, 0f), scope.getVal("maxmp", Float.class, 0f));
-								GameItem.this.owner.attack(magic);
-								return null;
-							}
-						}}));
-			vars.put("addFunc", new Function(new String[]{"name", "func"}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(final Scope scope){
-								EntityBox.MenuOption opt = new EntityBox.MenuOption(scope.getVal("name", String.class, null), null, skin){
-									@Override
-									public void open(){
-										scope.run("func");
-									}
-								};
-								addOption(opt);
-								return null;
-							}
-						}}));
-			vars.put("remove", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-							@Override
-							public Object get(Scope scope){
-								GameItem.this.owner.removeItem(GameItem.this);
-								return null;
-							}
-						}}));
-			vars.put("name", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return GameItem.this.name;
-					}
-					@Override
-					public void put(Object value){
-						GameItem.this.name = value.toString();
-					}
-				});
-			vars.put("catagory", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return GameItem.this.catagory;
-					}
-					@Override
-					public void put(Object value){
-						GameItem.this.catagory = value.toString();
-					}
-				});
-			vars.put("durability", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return GameItem.this.life;
-					}
-					@Override
-					public void put(Object value){
-						GameItem.this.life = (int)(float)value;
-					}
-				});
-			vars.put("enemyUseChance", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return eChance;
-					}
-					@Override
-					public void put(Object value){
-						eChance = value;
-					}
-				});
-			vars.put("type", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return GameItem.this.type;
-					}
-					@Override
-					public void put(Object value){
-						GameItem.this.type = value.toString();
-					}
-				});
-			vars.put("magic", new JVSValue.WValue(){
-					@Override
-					public Object get(){
-						return magic;
-					}
-					@Override
-					public void put(Object value){
-						magic = value;
-					}
-				});
+			this.skin = skin;
+			getGlobals().load(new GameItemLib());
 
 			equipOpt = new EntityBox.MenuOption("Equip", null, skin){
 				@Override
@@ -216,15 +74,15 @@ public class MenuItem implements JVSValue{//implements scoped so menuitems can b
 				}
 			};
 		}
-		GameItem(String name, Function script, Character owner, Skin skin){
+		public GameItem(String name, Prototype script, Character owner, Skin skin){
 			this(name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
 			Log.verbose("Parsing file of item!");
-			script.get(vars, null);
+			new LuaClosure(script, getGlobals()).call();
 			if(isEquipable()){
 				addOption(equipOpt);
 				addOption(unequipOpt);
 			}
-			Log.debug("Item " + name);
+			Log.debug("Item", this);
 		}
 		public void equip(){
 			owner.unequip(type);
@@ -236,7 +94,7 @@ public class MenuItem implements JVSValue{//implements scoped so menuitems can b
 			owner.removeStats(type);
 		}
 		public boolean isEquipable(){
-			return contains("onEquip");
+			return !getGlobals().get("onEquip").isnil();
 		}
 		public boolean isEquipped(){
 			return owner.equippedItems.get(type) == this;
@@ -276,6 +134,137 @@ public class MenuItem implements JVSValue{//implements scoped so menuitems can b
 			if(life <= 0){
 				//Tenebrae.debug("Item decayed!");
 				run("onDestroy");
+			}
+		}
+
+		public class GameItemLib extends TwoArgFunction{
+			@Override
+			public LuaValue call(LuaValue modname, LuaValue env){
+				LuaTable library = tableOf();
+				
+				library.set("decay", new ZeroArgFunction(){
+						@Override
+						public LuaValue call(){
+							decay();
+							return NONE;
+						}
+					});
+				library.set("equip", new ZeroArgFunction(){
+						@Override
+						public LuaValue call(){
+							equip();
+							return NONE;
+						}
+					});
+				library.set("unequip", new ZeroArgFunction(){
+						@Override
+						public LuaValue call(){
+							unequip();
+							return NONE;
+						}
+					});
+				library.set("setStat", new TwoArgFunction(){
+						@Override
+						public LuaValue call(LuaValue stat, LuaValue value){
+							setStat(Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
+							return NONE;
+						}
+					});
+				library.set("setStats", new VarArgFunction(){ // atk, intl, def, agl, maxhp, maxmp
+						@Override
+						public Varargs invoke(Varargs args){
+							setStats((float)args.checkdouble(1), (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6));
+							return NONE;
+						}
+					});
+				library.set("attack", new VarArgFunction(){ // atk, intl, def, agl, maxhp, maxmp
+						@Override
+						public Varargs invoke(Varargs args){
+							GameItem.this.owner.setStats("_temp" + owner.stats.size, (float)args.optdouble(1, 0), (float)args.optdouble(2, 0), (float)args.optdouble(3, 0), (float)args.optdouble(4, 0), (float)args.optdouble(5, 0), (float)args.optdouble(6, 0));
+							GameItem.this.owner.attack(magic);
+							return NONE;
+						}
+					});
+				library.set("addFunc", new TwoArgFunction(){
+						@Override
+						public LuaValue call(LuaValue name, LuaValue function){
+							final LuaFunction func = function.checkfunction();
+							EntityBox.MenuOption opt = new EntityBox.MenuOption(name.checkjstring(), null, skin){
+								@Override
+								public void open(){
+									Tenebrae.player.closeMenus();
+									func.call();
+								}
+							};
+							addOption(opt);
+							return NONE;
+						}
+					});
+				library.set("remove", new ZeroArgFunction(){
+						@Override
+						public LuaValue call(){
+							GameItem.this.owner.removeItem(GameItem.this);
+							return NONE;
+						}
+					});
+				library.setmetatable(tableOf());
+				library.getmetatable().set(INDEX, new TwoArgFunction(){
+						@Override
+						public LuaValue call(LuaValue self, LuaValue key){
+							switch(key.checkjstring()){
+								case "owner":
+									return owner.getGlobals();
+								case "name":
+									return valueOf(GameItem.this.name);
+								case "category":
+									return valueOf(category);
+								case "durability":
+									return valueOf(life);
+								case "enemyUseChance":
+									return valueOf(eChance);
+								case "type":
+									return valueOf(type);
+								case "magic":
+									return valueOf(magic);
+								default:
+									return NIL;
+							}
+						}
+					});
+				library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+						@Override
+						public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+							switch(key.checkjstring()){
+								case "owner":
+									self.error("owner is read-only");
+									break;
+								case "name":
+									GameItem.this.name = value.checkjstring();
+									break;
+								case "category":
+									category = value.checkjstring();
+									break;
+								case "durability":
+									life = value.checkint();
+									break;
+								case "enemyUseChance":
+									eChance = (float)value.checkdouble();
+									break;
+								case "type":
+									type = value.checkjstring();
+									break;
+								case "magic":
+									magic = value.checkboolean();
+									break;
+								default:
+									return TRUE;
+							}
+							return NONE;
+						}
+					});
+
+				ScriptGlob.S.setLibToEnv(library, env);
+				return env;
 			}
 		}
 	}

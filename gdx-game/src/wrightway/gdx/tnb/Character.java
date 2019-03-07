@@ -1,9 +1,6 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
 import static wrightway.gdx.tnb.EntityBox.HealthBar.f;
@@ -17,26 +14,28 @@ import com.badlogic.gdx.maps.objects.*;
 import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import org.luaj.vm2.*;
+import org.luaj.vm2.lib.*;
 
-abstract public class Character extends WActor.WTexture implements JVSValue{
-	String name, filename;
-	float x,y,width,height,px,py,targetX=-1,targetY=-1;//in tiles
-	float exp, g, hp, mp;
-	ArrayMap<String,ArrayMap<Stats,Float>> stats;
-	Array<MenuItem.GameItem> items;
-	ArrayMap<String,MenuItem.GameItem> equippedItems;
-	EntityBox box;
-	Character enemy;
-	ArrayMap<String,Skin> skinList;
-	Scope vars;
-	Array<Action> actions;
-	Action currentAction;
-	float delay;//Using Delay Action keeps me from using only RunnableActions //But now it doesn't matter anyway as I'm not using Actions //Well i was just using Runnables with a boolean property but now i need more properties so i renamed it to Action
-	MapObject mapobj;
-	LayeredTile tile;
+abstract public class Character extends WActor.WTexture implements ScriptGlob{
+	public String name, filename;
+	public float x,y,width,height,px,py,targetX=-1,targetY=-1;//in tiles
+	public float exp, g, hp, mp;
+	public ArrayMap<String,ArrayMap<Stats,Float>> stats;
+	protected Array<MenuItem.GameItem> items;
+	public ArrayMap<String,MenuItem.GameItem> equippedItems;
+	public EntityBox box;
+	public Character enemy;
+	private ArrayMap<String,Skin> skinList;
+	private Globals globals;
+	public Array<Action> actions;
+	protected Action currentAction;
+	public float delay;//Using Delay Action keeps me from using only RunnableActions //But now it doesn't matter anyway as I'm not using Actions //Well i was just using Runnables with a boolean property but now i need more properties so i renamed it to Action
+	public MapObject mapobj;
+	protected LayeredTile tile;
 
 	public static final String baseStats = "_base", atkMod = "_attackMod", itemMod = "_itemMod";
-	enum Stats{str,intl,def,agl,maxhp,maxmp}
+	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
 	public Character(String filename){
 		tile = new LayeredTile(){
@@ -50,243 +49,14 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		items = new Array<MenuItem.GameItem>();
 		equippedItems = new ArrayMap<String,MenuItem.GameItem>();
 		skinList = new ArrayMap<String,Skin>();
-		vars = new Scope(null, "char"+filename);
+		globals = new Tenebrae.StdEntGlobals();
+		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
 		box = new EntityBox(this, Tenebrae.t.getSkin());
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
-		vars.put("setSkin", new Function(new String[]{"tileset", "z"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							int z;
-							if((z = scope.getVal("z", Integer.class, -1)) != -1)
-								setSkin(z, scope.getVal("tileset", String.class, null));
-							else
-								setSkin(scope.getVal("tileset", String.class, null));
-							return null;
-						}
-					}}));
-		vars.put("removeSkin", new Function(new String[]{"z"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							removeSkin(scope.getVal("z", Integer.class, null));
-							return null;
-						}
-					}}));
-		vars.put("addItem", new Function(new String[]{"file"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							MenuItem.GameItem item;
-							addItem(item = Tenebrae.mp.loadItem(scope.getVal("file", String.class, null), Character.this));
-							return item;
-						}
-					}}));
-		vars.put("affect", new Function(new String[]{"hp", "mp", "silent", "override"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							float hp = scope.getVal("hp", Float.class, null), mp = scope.getVal("mp", Float.class, null);
-							boolean silent = scope.getVal("silent", java.lang.Boolean.class, false);
-							boolean override = scope.getVal("override", java.lang.Boolean.class, false);
-							if(hp < 0)
-								damage(-hp, override,  silent);
-							else if(hp > 0)
-								heal(hp, override, silent);
-							if(mp < 0)
-								tire(-mp, override, silent);
-							else if(mp > 0)
-								invigor(mp, override, silent);
-							return null;
-						}
-					}}));
-		vars.put("setStat", new Function(new String[]{"statLevel", "stat", "value"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							String lv;
-							if((lv = scope.getVal("statLevel", String.class, "")).isEmpty())
-								lv = baseStats;
-							setStat(lv, Character.Stats.valueOf(scope.getVal("stat", String.class, null)), scope.getVal("value", Float.class, null));
-							return null;
-						}
-					}}));
-		vars.put("setStats", new Function(new String[]{"statLevel", "atk", "intl", "def", "agl", "maxhp", "maxmp", "exp", "g"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							String lv;
-							if((lv = scope.getVal("statLevel", String.class, "")).isEmpty())
-								lv = baseStats;
-							setStats(lv, scope.getVal("atk", Float.class, null), scope.getVal("intl", Float.class, null), scope.getVal("def", Float.class, null), scope.getVal("agl", Float.class, null), scope.getVal("maxhp", Float.class, null), scope.getVal("maxmp", Float.class, null));
-							float ex;
-							if((ex = scope.getVal("exp", Float.class, -1f)) != -1)
-								exp = ex;
-							float go;
-							if((go = scope.getVal("g", Float.class, -1f)) != -1)
-								g = go;
-							return null;
-						}
-					}}));
-		vars.put("hasItem", new Function(new String[]{"item"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							int amt = 0;
-							for(MenuItem.GameItem item : items)
-								if(item.id.equals(scope.getVal("item", String.class, null)))
-									amt++;
-							return (float)amt;
-						}
-					}}));
-		vars.put("moveBy", new Function(new String[]{"x", "y", "speed", "noclip"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
-							move(scope.getVal("x", Float.class, null), scope.getVal("y", Float.class, null), scope.getVal("speed", Float.class, 0f), true);
-							return null;
-						}
-					}}));
-		vars.put("moveTo", new Function(new String[]{"x", "y", "speed", "noclip"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
-							move(scope.getVal("x", Float.class, null), scope.getVal("y", Float.class, null), scope.getVal("speed", Float.class, 0f), false);
-							return null;
-						}
-					}}));
-		vars.put("delay", new Function(new String[]{"delayTime", "func"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							addDelay(scope.getVal("delayTime", Float.class, null), scope.getVal("func", Function.class, null), scope);
-							return null;
-						}
-					}}));
-		vars.put("this", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return vars;
-				}
-			});
-		vars.put("name", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return name;
-				}
-				@Override
-				public void put(Object value){
-					name = value.toString();
-				}
-			});
-		vars.put("str", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return str();
-				}
-			});
-		vars.put("int", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return intl();
-				}
-			});
-		vars.put("def", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return def();
-				}
-			});
-		vars.put("agl", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return agl();
-				}
-			});
-		vars.put("hp", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return hp;
-				}
-			});
-		vars.put("maxhp", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return maxhp();
-				}
-			});
-		vars.put("mp", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return mp;
-				}
-			});
-		vars.put("maxmp", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return maxmp();
-				}
-			});
-		vars.put("gold", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return g;
-				}
-				@Override
-				public void put(Object value){
-					g = (Float)value;
-				}
-			});
-		vars.put("exp", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return exp;
-				}
-				@Override
-				public void put(Object value){
-					exp = (Float)value;
-				}
-			});
-		vars.put("x", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					//if(Tenebrae.fight == null)
-						return x;
-					//else
-					//	return Tenebrae.fight.sprite.getX();
-				}
-				@Override
-				public void put(Object value){
-					move(value, y, 0, false);
-				}
-			});
-		vars.put("y", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					//if(Tenebrae.fight == null)
-						return y;
-					//else
-					//	return Tenebrae.fight.sprite.getY();
-				}
-				@Override
-				public void put(Object value){
-					move(x, value, 0, false);
-				}
-			});
-		vars.put("map", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.mp.get(null);
-				}
-			});
-		vars.put("enemy", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return enemy.get(null);
-				}
-			});
-		vars.put("player", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return Tenebrae.player.get(null);
-				}
-			});
 	}
 	public void changeMap(TileMap map, float spawnx, float spawny){
 		Rectangle rect, oRect = null;
@@ -626,10 +396,10 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 	public void addAction(Action add){
 		actions.add(add);
 	}
-	public void addDelay(float delay, Function funcToRun, Scope context){
+	public void addDelay(float delay, LuaFunction funcToRun){
 		addAction(new DelayAction(this, delay, false));
 		if(funcToRun != null)
-			addAction(new FunctionAction(funcToRun, context));
+			addAction(new FunctionAction(funcToRun));
 	}
 
 	Rectangle rectBuffer = new Rectangle();
@@ -639,8 +409,8 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 	}
 
 	@Override
-	public Object get(Scope scope){
-		return vars;
+	public Globals getGlobals(){
+		return globals;
 	}
 
 	@Override
@@ -690,6 +460,205 @@ abstract public class Character extends WActor.WTexture implements JVSValue{
 		for(Skin skin : skinList.values())
 			skin.dispose();
 		dispose();
+	}
+	
+	public class CharacterLib extends TwoArgFunction{
+		@Override
+		public LuaValue call(LuaValue modname, LuaValue env){
+			LuaTable library = tableOf();
+			
+			library.set("setSkin", new TwoArgFunction(){
+							@Override
+							public LuaValue call(LuaValue tileset, LuaValue z){
+								if(!z.isnil())
+									setSkin(z.checkint(), tileset.checkjstring());
+								else
+									setSkin(tileset.checkjstring());
+								return NONE;
+							}
+						});
+			library.set("removeSkin", new OneArgFunction(){
+							@Override
+							public LuaValue call(LuaValue z){
+								removeSkin(z.checkint());
+								return NONE;
+							}
+						});
+			library.set("addItem", new OneArgFunction(){
+							@Override
+							public LuaValue call(LuaValue file){
+								MenuItem.GameItem item;
+								addItem(item = Tenebrae.mp.loadItem(file.checkjstring(), Character.this));
+								Log.debug(item);
+								return item.getGlobals();
+							}
+						});
+			library.set("affect", new VarArgFunction(){ // hp, mp, silent, override
+							@Override
+							public Varargs invoke(Varargs args){
+								float hp = (float)args.checkdouble(1), mp = (float)args.checkdouble(2);
+								boolean silent = args.optboolean(3, false);
+								boolean override = args.optboolean(4, false);
+								if(hp < 0)
+									damage(-hp, override,  silent);
+								else if(hp > 0)
+									heal(hp, override, silent);
+								if(mp < 0)
+									tire(-mp, override, silent);
+								else if(mp > 0)
+									invigor(mp, override, silent);
+								return NONE;
+							}
+						});
+			library.set("setStat", new ThreeArgFunction(){
+							@Override
+							public LuaValue call(LuaValue statLevel, LuaValue stat, LuaValue value){
+								String lv;
+								if(statLevel.isnil())
+									lv = baseStats;
+								else
+									lv = statLevel.checkjstring();
+								setStat(lv, Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
+								return NONE;
+							}
+						});
+			library.set("setStats", new VarArgFunction(){ // statLevel, atk, intl, def, agl, maxhp, maxmp, exp, g
+							@Override
+							public Varargs invoke(Varargs args){
+								String lv;
+								if(args.isnil(1))
+									lv = baseStats;
+								else
+									lv = args.checkjstring(1);
+								setStats(lv, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
+								if(!args.isnil(8))
+									exp = (float)args.checkdouble(8);
+								if(!args.isnil(9))
+									g = (float)args.checkdouble(9);
+								return NONE;
+							}
+						});
+			library.set("hasItem", new OneArgFunction(){
+							@Override
+							public LuaValue call(LuaValue itemName){
+								int amt = 0;
+								for(MenuItem.GameItem item : items)
+									if(item.id.equals(itemName.checkjstring()))
+										amt++;
+								return valueOf(amt);
+							}
+						});
+			library.set("moveBy", new ThreeArgFunction(){
+							@Override
+							public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+								//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
+								move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true);
+								return NONE;
+							}
+						});
+			library.set("moveTo", new ThreeArgFunction(){
+							@Override
+							public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+								//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
+								move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false);
+								return NONE;
+							}
+						});
+			library.set("delay", new TwoArgFunction(){
+							@Override
+							public LuaValue call(LuaValue delayTime, LuaValue function){
+								addDelay((float)delayTime.checkdouble(), function.checkfunction());
+								return NONE;
+							}
+						});
+			library.setmetatable(tableOf());
+			library.getmetatable().set(INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						switch(key.checkjstring()){
+							case "name":
+								return valueOf(Character.this.name);
+							case "str":
+								return valueOf(str());
+							case "intl":
+								return valueOf(intl());
+							case "def":
+								return valueOf(def());
+							case "agl":
+								return valueOf(agl());
+							case "hp":
+								return valueOf(hp);
+							case "mp":
+								return valueOf(mp);
+							case "maxhp":
+								return valueOf(maxhp());
+							case "maxmp":
+								return valueOf(maxmp());
+							case "gold":
+								return valueOf(g);
+							case "exp":
+								return valueOf(exp);
+							case "x":
+								return valueOf(x);
+							case "y":
+								return valueOf(y);
+							case "enemy":
+								return enemy.getGlobals();
+							default:
+								return NIL;
+						}
+					}
+				});
+			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						switch(key.checkjstring()){
+							case "name":
+								Character.this.name = value.checkjstring();
+								break;
+							case "str":
+								self.error("str is read-only");
+								break;
+							case "intl":
+								self.error("intl is read-only");
+								break;
+							case "def":
+								self.error("def is read-only");
+								break;
+							case "agl":
+								self.error("agl is read-only");
+								break;
+							case "hp":
+								self.error("hp is read-only");
+								break;
+							case "mp":
+								self.error("mp is read-only");
+								break;
+							case "maxhp":
+								self.error("maxhp is read-only");
+								break;
+							case "maxmp":
+								self.error("maxmp is read-only");
+								break;
+							case "x":
+								move((float)value.checkdouble(), y, 0, false);
+								break;
+							case "y":
+								move(x, (float)value.checkdouble(), 0, false);
+								break;
+							case "enemy":
+								self.error("enemy is read-only");
+								break;
+							default:
+								return TRUE;
+						}
+						return NONE;
+					}
+				});
+			
+			ScriptGlob.S.setLibToEnv(library, env);
+			return env;
+		}
 	}
 
 	public static class Skin implements Disposable, Iterable<TiledMapTile>{

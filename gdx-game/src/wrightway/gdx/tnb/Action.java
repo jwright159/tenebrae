@@ -2,21 +2,19 @@ package wrightway.gdx.tnb;
 
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.math.*;
-import java.util.function.*;
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Function;
-import wrightway.gdx.JVSValue.Scope;
+import org.luaj.vm2.*;
 
 public abstract class Action implements Runnable{
-	Character chara;
-	boolean manualOverride;
+	protected Character chara;
+	protected boolean manualOverride;
 	public boolean stop(boolean touched){
 		return true;
 	}
 	
 	public static class DelayAction extends Action{
-		float delay;
-		DelayAction(Character chara, float delay, boolean tap){
+		protected float delay;
+		public DelayAction(Character chara, float delay, boolean tap){
 			this.chara = chara;
 			this.delay = delay;
 			this.manualOverride = tap;
@@ -36,9 +34,9 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class DialogAction extends DelayAction{
-		String text;
-		boolean tap, tapDelay;//tap is whether we should wait for a tap, tapDelay is whether we can skip the delay and consecutive tapDelays
-		DialogAction(Character chara, String text, float delay, boolean tap, boolean tapDelay){
+		private String text;
+		private boolean tap, tapDelay;//tap is whether we should wait for a tap, tapDelay is whether we can skip the delay and consecutive tapDelays
+		public DialogAction(Character chara, String text, float delay, boolean tap, boolean tapDelay){
 			super(chara, delay, tap);
 			this.text = text;
 			this.tap = tap;
@@ -64,22 +62,20 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class FunctionAction extends Action{
-		Function func;
-		Scope scope;
-		FunctionAction(Function funcToRun, Scope scope){
+		private LuaFunction func;
+		public FunctionAction(LuaFunction funcToRun){
 			func = funcToRun;
-			this.scope = scope;
 		}
 		@Override
 		public void run(){
-			func.get(scope, null);
+			func.call();
 		}
 	}
 	
 	public static abstract class InterpAction extends DelayAction{
-		Interpolation interp;
-		float start, end;
-		InterpAction(Character chara, Interpolation interp, float time, float startValue, float endValue, boolean tap){
+		protected Interpolation interp;
+		protected float start, end;
+		public InterpAction(Character chara, Interpolation interp, float time, float startValue, float endValue, boolean tap){
 			super(chara, time, tap);
 			this.interp = interp;
 			this.start = startValue;
@@ -99,10 +95,10 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class CameraAction extends DelayAction{
-		float x, y, z, oldx, oldy, oldz;
-		Interpolation interpx, interpy, interpz;
-		OrthographicCamera cam;
-		CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interpx, Interpolation interpy, Interpolation interpz, float time, boolean tap){
+		private float x, y, z, oldx, oldy, oldz;
+		private Interpolation interpx, interpy, interpz;
+		private OrthographicCamera cam;
+		public CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interpx, Interpolation interpy, Interpolation interpz, float time, boolean tap){
 			super(Tenebrae.player, time, tap);
 			this.cam = cam;
 			oldx = cam.position.x;
@@ -137,10 +133,10 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class MoveAction extends DelayAction{
-		float x, y, oldx, oldy;
-		Interpolation interp;
-		boolean relative, done;
-		MoveAction(Character chara, float x, float y, float speed, boolean relative, boolean tap){
+		private float x, y, oldx, oldy;
+		private Interpolation interp;
+		private boolean relative, done;
+		public MoveAction(Character chara, float x, float y, float speed, boolean relative, boolean tap){
 			super(chara, speed, tap);
 			this.x = x;
 			this.y = y;

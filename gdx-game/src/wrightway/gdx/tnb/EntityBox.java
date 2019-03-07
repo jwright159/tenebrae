@@ -10,9 +10,10 @@ import com.badlogic.gdx.graphics.glutils.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.graphics.*;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
+import org.luaj.vm2.*;
+import java.io.*;
 
 public class EntityBox extends Table{
 	Image icon;
@@ -563,15 +564,16 @@ public class EntityBox extends Table{
 	public static void addItemToBox(final MenuItem item, MenuBox box){
 		MenuOption cat = null;
 		for(MenuOption opt : box.list)
-			if(opt.getText().equals(item.catagory)){
+			if(opt.getText().equals(item.category)){
 				cat = opt;
 				break;
 			}
 		if(cat == null){
-			MenuBox b = new MenuBox(item.catagory, box.skin);
-			cat = new MenuOption(item.catagory, b, box.skin);
+			MenuBox b = new MenuBox(item.category, box.skin);
+			cat = new MenuOption(item.category, b, box.skin);
 		}
 
+		Log.debug(item);
 		if(!(item instanceof MenuItem.GameItem)){
 			cat.box.addOption(new MenuOption(item.name, null, box.skin){
 					@Override
@@ -663,10 +665,15 @@ public class EntityBox extends Table{
 					}
 				})*/;
 		}
-		public static final Function killScript = JVSParser.parseCode("player.affect(-player.hp,0)", null);
-		public static final Function healScript = JVSParser.parseCode("player.affect(player.maxhp-player.hp,0)", null);
-		public static final Function tireScript = JVSParser.parseCode("player.affect(0,-player.mp)", null);
-		public static final Function invigorScript = JVSParser.parseCode("player.affect(0,player.maxmp-player.mp)", null);
+		public static final Prototype killScript, healScript, tireScript, invigorScript;
+		static{
+			try{
+				killScript = Tenebrae.globals.compilePrototype(new StringReader("function kill() player.affect(-player.hp,0) end"), "kill");
+				healScript = Tenebrae.globals.compilePrototype(new StringReader("function heal() player.affect(player.maxhp-player.hp,0) end"), "heal");
+				tireScript = Tenebrae.globals.compilePrototype(new StringReader("function tire() player.affect(0,-player.mp) end"), "tire");
+				invigorScript = Tenebrae.globals.compilePrototype(new StringReader("function invigor() player.affect(0,player.maxmp-player.mp) end"), "invigor");
+			}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
+		}
 
 		public MenuBox getActiveBox(){
 			if(menu.box.isVisible())

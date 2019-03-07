@@ -1,9 +1,6 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
@@ -17,30 +14,33 @@ import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import org.luaj.vm2.lib.*;
+import org.luaj.vm2.*;
 
 public class Player extends Character{
-	TileMap map;
-	boolean firstFrame;// True for first frame after map load, for skipping exittriggers (just call them manually if you need them instead of auto detection)
-	float speedMult = 1;
-	int lv = -1;
-	ArrayMap<Float, ArrayMap<Stats, Float>> statTable;
-	final static int actstep = 1;
-	ButtonBox buttonBox;
-	StatBox smolStatBox;
-	Label dialogBox;
-	Stack paneStack;
-	Container<Stack> mapRect;
-	String trueName;
-	boolean expandDeltaRecord, wasExpandedBeforeDialog;
-	Rectangle activeDeadzone;
-	Array<RectangleMapObject> ptriggers;
-	Vector3 lastCameraPos;
-	static Rectangle dzRect, bigdzRect;
-	Table table;
+	public TileMap map;
+	private boolean firstFrame;// True for first frame after map load, for skipping exittriggers (just call them manually if you need them instead of auto detection)
+	public float speedMult = 1;
+	public int lv = -1;
+	private ArrayMap<Float, ArrayMap<Stats, Float>> statTable;
+	public final static int actstep = 1;
+	public ButtonBox buttonBox;
+	public StatBox smolStatBox;
+	public Label dialogBox;
+	public Stack paneStack;
+	public Container<Stack> mapRect;
+	public String trueName;
+	private boolean wasExpandedBeforeDialog;
+	public Rectangle activeDeadzone;
+	private Array<RectangleMapObject> ptriggers;
+	public Vector3 lastCameraPos;
+	private static Rectangle dzRect, bigdzRect;
+	public Table table;
 
 	public Player(){
 		super("player");
 		Log.verbose("Making Player");
+		getGlobals().load(new PlayerLib());
 		ptriggers = new Array<RectangleMapObject>();
 		lastCameraPos = new Vector3();
 
@@ -98,46 +98,6 @@ public class Player extends Character{
 		table.row();
 		table.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).expandX().fill().height(Tenebrae.margin * 2);
 
-		vars.put("encounter", new Function(new String[]{"filename"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							Enemy enemy = Tenebrae.mp.loadEnemy(scope.getVal("filename", String.class, null));
-							encounter(enemy);
-							return enemy;
-						}
-					}}));
-		vars.put("setStatLv", new Function(new String[]{"exp", "str", "intl", "def", "agl", "maxhp", "maxmp"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							setStatLv(scope.getVal("exp", Float.class, null), scope.getVal("str", Float.class, null), scope.getVal("intl", Float.class, null), scope.getVal("def", Float.class, null), scope.getVal("agl", Float.class, null), scope.getVal("maxhp", Float.class, null), scope.getVal("maxmp", Float.class, null));
-							return null;
-						}
-					}}));
-		vars.remove("name");
-		vars.put("name", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					Log.debug("GetName", trueName);
-					return trueName;
-				}
-				@Override
-				public void put(Object value){
-					String newName = value.toString();
-					Log.debug("PutName", newName);
-					setPlayerName(newName);
-				}
-			});
-		vars.put("speed", new JVSValue.WValue(){
-				@Override
-				public Object get(){
-					return speedMult;
-				}
-				@Override
-				public void put(Object value){
-					speedMult = value;
-				}
-			});
-
 		statTable = new ArrayMap<Float, ArrayMap<Stats, Float>>();
 		setPlayerName("Player");
 		name = "You";
@@ -167,7 +127,7 @@ public class Player extends Character{
 
 		//Log.debug("Changing player! " + toString());
 
-		Tenebrae.mp.vars.run("onCreate");
+		Tenebrae.mp.getGlobals().get("onCreate").call();
 	}
 
 	public void setPlayerName(String name){
@@ -181,7 +141,7 @@ public class Player extends Character{
 		//if(Tenebrae.fight != null)
 		//	Tenebrae.fight.sprite.moveBy(newX, newY);
 		//else
-			super.move(newX, newY, speed, relative);
+		super.move(newX, newY, speed, relative);
 	}
 
 	public static RectangleMapObject copy(RectangleMapObject o){
@@ -272,7 +232,7 @@ public class Player extends Character{
 		for(MapObject mapobj : objs){
 			Log.verbose(mapobj);
 			RectangleMapObject obj = (RectangleMapObject)mapobj;
-			boolean disabled = obj.getProperties().get("disabled", false, java.lang.Boolean.class);
+			boolean disabled = obj.getProperties().get("disabled", false, Boolean.class);
 			Rectangle rect = obj.getRectangle();
 			Log.verbose("Obj", rect);
 			Log.verbose("Player", player);
@@ -291,14 +251,16 @@ public class Player extends Character{
 		return rtn;
 	}
 	public void triggerBestTrigger(){
-		RectangleMapObject trig = getBestTrigger();
-		Log.verbose("Requesting trigger! " + (trig != null ? trig.getName() : trig));
-		if(trig != null){
-			NPC npc = trig.getProperties().get("__npc", null, NPC.class);
-			if(npc == null)
-				Tenebrae.mp.vars.run(trig.getProperties().get("onTrigger", "", String.class));
+		RectangleMapObject obj = getBestTrigger();
+		Log.verbose("Requesting trigger! " + (obj != null ? obj.getName() : obj));
+		if(obj != null){
+			LuaValue call;
+			if(obj.getProperties().containsKey("__npc"))
+				call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onTrigger", String.class));
 			else
-				npc.vars.run(trig.getProperties().get("onTrigger", "", String.class));
+				call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onTrigger", String.class));
+			if(!call.isnil())
+				call.call();
 		}
 	}
 
@@ -590,7 +552,13 @@ public class Player extends Character{
 				Log.verbose2("Found an enter/exit object inside! " + obj.getName());
 				if(!ptriggers.contains(obj, true) && !obj.getProperties().get("onEnter", "", String.class).isEmpty()){
 					Log.verbose2("It was an enter object!");
-					(obj.getProperties().containsKey("__npc") ? ((NPC)obj.getProperties().get("__npc")).vars : Tenebrae.mp.vars).run(obj.getProperties().get("onEnter", "", String.class));
+					LuaValue call;
+					if(obj.getProperties().containsKey("__npc"))
+						call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onEnter", String.class));
+					else
+						call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onEnter", String.class));
+					if(!call.isnil())
+						call.call();
 				}
 			}
 			if(!firstFrame)
@@ -598,7 +566,13 @@ public class Player extends Character{
 					Log.verbose2("Found an enter/exit object outside! " + obj.getName());
 					if(!triggersIn.contains(obj, true) && !obj.getProperties().get("onExit", "", String.class).isEmpty()){
 						Log.verbose2("It was an exit object!");
-						(obj.getProperties().containsKey("__npc") ? ((NPC)obj.getProperties().get("__npc")).vars : Tenebrae.mp.vars).run(obj.getProperties().get("onExit", "", String.class));
+						LuaValue call;
+						if(obj.getProperties().containsKey("__npc"))
+							call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onEnter", String.class));
+						else
+							call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onEnter", String.class));
+						if(!call.isnil())
+							call.call();
 					}
 				}
 			ptriggers = triggersIn;
@@ -637,5 +611,63 @@ public class Player extends Character{
 	public void endSelf(){
 		super.endSelf();
 		table.remove();
+	}
+
+	public class PlayerLib extends TwoArgFunction{
+		@Override
+		public LuaValue call(LuaValue modname, LuaValue env){
+			LuaTable library = tableOf();
+
+			library.set("encounter", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue filename){
+						Enemy enemy = Tenebrae.mp.loadEnemy(filename.checkjstring());
+						encounter(enemy);
+						return enemy.getGlobals();
+					}
+				});
+			library.set("setStatLv", new VarArgFunction(){ // exp, str, intl, def, agl, maxhp, maxmp
+					@Override
+					public Varargs invoke(Varargs args){
+						setStatLv((float)args.checkdouble(1), (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
+						return NONE;
+					}
+				});
+			library.setmetatable(tableOf());
+			library.getmetatable().set(INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						Log.debug("Getting", key.checkjstring());
+						switch(key.checkjstring()){
+							case "name":
+								return valueOf(trueName);
+							case "speed":
+								return valueOf(speedMult);
+							default:
+								return NIL;
+						}
+					}
+				});
+			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						Log.debug("Setting", key.checkjstring());
+						switch(key.checkjstring()){
+							case "name":
+								setPlayerName(value.checkjstring());
+								break;
+							case "speed":
+								speedMult = (float)value.checkdouble();
+								break;
+							default:
+								return TRUE;
+						}
+						return NONE;
+					}
+				});
+
+			ScriptGlob.S.setLibToEnv(library, env);
+			return env;
+		}
 	}
 }

@@ -1,65 +1,29 @@
 package wrightway.gdx.tnb;
 
 import wrightway.gdx.*;
-import wrightway.gdx.JVSValue.Scope;
-import wrightway.gdx.JVSValue.WObject;
-import wrightway.gdx.JVSValue.Function;
 import com.badlogic.gdx.files.*;
 import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import java.util.*;
+import org.luaj.vm2.*;
+import java.io.*;
+import org.luaj.vm2.lib.*;
 
 public class NPC extends Character{
-	Array<FunctionAction> idleRoutine;
-	boolean enabled = true;
-	public static final Function setup = JVSParser.parseCode("moveTo(x, y, 0)  this.trigger = trigger  this.enter = enter  this.exit = exit  if(idleRoutine != null)setIdleRoutine(idleRoutine);", new String[]{"x", "y", "trigger", "enter", "exit", "idleRoutine"});
+	private Array<FunctionAction> idleRoutine;
+	private boolean enabled = true;
+	public static final Prototype setup;
+	static{
+		try{
+			setup = Tenebrae.globals.compilePrototype(new StringReader("function setup(x, y, trigger_, enter_, exit_, idleRoutine) \n moveTo(x, y, 0) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n if idleRoutine then setIdleRoutine(idleRoutine) end \n end"), "setup"); // x, y, trigger, enter, exit, idleRoutine
+		}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
+	}
 
-	public NPC(String name, Function script){
+	public NPC(String name, Prototype script){
 		super(name);
-
-		vars.put("setIdleRoutine", new Function(new String[]{"routine"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							idleRoutine = new Array<FunctionAction>();
-							Array<Object> routine = (scope.getVal("routine", JVSValue.WObjectArr.class, null)).toArray();
-							for(Function a : routine)
-								idleRoutine.add(new FunctionAction(a, vars));
-							return null;
-						}
-					}}));
-		vars.put("enable", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							enabled = true;
-							boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
-							if(!had)
-								Tenebrae.mp.npcs.add(NPC.this);
-							return !had;
-						}
-					}}));
-		vars.put("disable", new Function(new String[]{}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							enabled = false;
-							boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
-							if(had)
-								return Tenebrae.mp.npcs.removeValue(NPC.this, true);
-							return had;
-						}
-					}}));
-		vars.put("setup", new Function(new String[]{"x", "y", "trigger", "enter", "exit", "idleRoutine"}, new JVSValue[]{new JVSValue(){
-						@Override
-						public Object get(Scope scope){
-							setup.getFromScope(vars, scope);
-							return null;
-						}
-					}}));
-		vars.put("trigger", JVSValue.nulll);
-		vars.put("enter", JVSValue.nulll);
-		vars.put("exit", JVSValue.nulll);
-
-		script.get(vars, null);
+		getGlobals().load(new NPCLib());
+		new LuaClosure(script, getGlobals()).call();
 		hp = maxhp();
 		mp = maxmp();
 		//box.updateHP(this);
@@ -85,5 +49,75 @@ public class NPC extends Character{
 	public void draw(Batch batch, float parentAlpha){
 		if(enabled)
 			super.draw(batch, parentAlpha);
+	}
+	
+	public class NPCLib extends TwoArgFunction{
+		@Override
+		public LuaValue call(LuaValue modname, LuaValue env){
+			LuaTable library = tableOf();
+
+			library.set("setIdleRoutine", new OneArgFunction(){
+							@Override
+							public LuaValue call(LuaValue routine){
+								idleRoutine = new Array<FunctionAction>();
+								LuaValue k = LuaValue.NIL;
+								while(true){
+									Varargs en = routine.checktable().next(k);
+									if((k = en.arg1()).isnil())
+										break;
+									LuaValue v = en.arg(2);
+									idleRoutine.add(new FunctionAction(v.checkfunction()));
+								}
+								return NONE;
+							}
+						});
+			library.set("enable", new ZeroArgFunction(){
+							@Override
+							public LuaValue call(){
+								enabled = true;
+								boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
+								if(!had)
+									Tenebrae.mp.npcs.add(NPC.this);
+								return valueOf(!had);
+							}
+						});
+			library.set("disable", new ZeroArgFunction(){
+							@Override
+							public LuaValue call(){
+								enabled = false;
+								boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
+								if(had)
+									return valueOf(Tenebrae.mp.npcs.removeValue(NPC.this, true));
+								return valueOf(had);
+							}
+						});
+			// also trigger, enter, and exit
+			/*library.setmetatable(tableOf());
+			library.getmetatable().set(INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						switch(key.checkjstring()){
+							
+							default:
+								return NIL;
+						}
+					}
+				});
+			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						switch(key.checkjstring()){
+							
+							default:
+								return TRUE;
+						}
+						//return NONE;
+					}
+				});*/
+			new LuaClosure(setup, getGlobals()).call();
+			
+			ScriptGlob.S.setLibToEnv(library, env);
+			return env;
+		}
 	}
 }
