@@ -190,7 +190,7 @@ public class Mappack implements ScriptGlob{
 						return NONE;
 					}
 				});
-			library.set("setTrigger", new ThreeArgFunction(){
+			library.set("resetTrigger", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue interpolation, LuaValue tapOverride){
 						OrthographicCamera cam = Tenebrae.t.getCamera();
@@ -205,7 +205,7 @@ public class Mappack implements ScriptGlob{
 						return NONE;
 					}
 				});
-			library.set("setTrigger", new TwoArgFunction(){
+			library.set("delay", new TwoArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue function){
 						Tenebrae.player.addDelay((float)time.optdouble(0), function.checkfunction());
@@ -216,6 +216,34 @@ public class Mappack implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue name){
 						return loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
+					}
+				});
+			LuaTable ent = tableOf();
+			library.set("Entity", ent);
+			ent.setmetatable(tableOf());
+			ent.getmetatable().set(CALL, new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						return new Entity().vars;
+					}
+				});
+			ent.set("add", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue ent){
+						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
+						Tenebrae.t.getStage().addActor(e.debug());
+						return NONE;
+					}
+				});
+			ent.set("closeOn", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // x, y, targetX, targetY, speed, delta
+						float dx = (float)(args.checkdouble(3) - args.checkdouble(1)), dy = (float)(args.checkdouble(4) - args.checkdouble(2));
+						float mag = (float)Math.hypot(dx, dy);
+						if(mag <= (float)(args.checkdouble(5)*args.checkdouble(6)))
+							return varargsOf(args.arg(3), args.arg(4));
+						dx /= mag; dy /= mag;
+						return varargsOf(valueOf(args.checkdouble(1)+dx*args.checkdouble(5)*args.checkdouble(6)), valueOf(args.checkdouble(2)+dy*args.checkdouble(5)*args.checkdouble(6)));
 					}
 				});
 
