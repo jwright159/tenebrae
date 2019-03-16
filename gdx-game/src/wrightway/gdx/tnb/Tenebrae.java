@@ -76,7 +76,7 @@ public class Tenebrae extends WScreen{
 											 if(doneLoading){
 												 if(player.buttonBox.getActiveBox() != null || player.dialogBox.isVisible())
 													 player.performBack();
-												 else
+												 else if(player.delay == 0)
 													 player.triggerBestTrigger();
 											 }
 											 return true;
