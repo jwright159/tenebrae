@@ -50,14 +50,20 @@ public abstract class Action implements Runnable{
 		@Override
 		public boolean stop(boolean touched){
 			if((chara.delay == 0 && (!tap || (tap && touched))) || (chara.delay > 0 && tapDelay && touched)){
-				if(tapDelay)
-					while(chara.actions.size > 0 && chara.actions.get(0) instanceof DialogAction && ((DialogAction)chara.actions.get(0)).tapDelay)
+				if(tapDelay && touched){
+					//Log.debug(chara.actions);
+					while(!chara.actions.isEmpty() && chara.actions.get(0) instanceof DialogAction && ((DialogAction)chara.actions.get(0)).tapDelay)
 						chara.actions.removeIndex(0);
+				}
 				Tenebrae.player.dialogBox.setText(null);
 				Log.verbose2("Ending Dialog!", chara.delay, tap, touched, tapDelay);
 				return true;
 			}
 			return false;
+		}
+		@Override
+		public String toString(){
+			return super.toString()+"§"+tap+","+tapDelay+","+text;
 		}
 	}
 	
