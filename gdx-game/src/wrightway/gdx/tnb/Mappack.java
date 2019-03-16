@@ -50,7 +50,7 @@ public class Mappack implements ScriptGlob{
 		return new MidiWavSync(folder.child(name + ".mid"), folder.child(name + ".wav"), listener);
 	}
 	public Projectile loadProjectile(String name){
-		throw new UnsupportedOperationException("Too slow to be used effectively until the code system can be revamped.");
+		throw new UnsupportedOperationException("Give me bit to add textures.");
 		//TiledMapTileSet ts = loadTileset(name);
 		//Tenebrae.debug("Projts", ts, ts.getTile(1), ts.getTile(2));
 		//return new Projectile(folder.child(name+".tnb"), ts.getTile(1));
@@ -90,16 +90,17 @@ public class Mappack implements ScriptGlob{
 						return NONE;
 					}
 				});
-			library.set("say", new ThreeArgFunction(){
+			library.set("say", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue textl, LuaValue delayTime, LuaValue charsPerSec){
-						String text = textl.checkjstring();
-						float delay = (float)delayTime.optdouble(-1), cps = (float)charsPerSec.optdouble(-1);
+					public Varargs invoke(Varargs args){ // text, delayTime, charsPerSec, tapToSkip
+						String text = args.checkjstring(1);
+						float delay = (float)args.optdouble(2, -1), cps = (float)args.optdouble(3, -1);
+						boolean tapDelay = args.toboolean(4);
 						Log.debug(text, delay, cps);
-						if(delay == -1 & cps == -1){
+						if(delay == -1 && cps == -1){
 							Tenebrae.player.addDialog(text);
 						}else if(cps == -1){
-							Tenebrae.player.addDialog(text, delay);
+							Tenebrae.player.addDialog(text, delay, false, tapDelay);
 						}else{
 							for(int j = 1; j < text.length(); j++){
 								String substring = text.substring(0, j);
@@ -112,7 +113,7 @@ public class Mappack implements ScriptGlob{
 									&& substring.endsWith("\""));																									  // and it ends in quote
 								//if(punc)
 								//Tenebrae.debug("Punctuation! " + substring);
-								Tenebrae.player.addDialog(substring, (punc ? 5f : 1f) / cps);
+								Tenebrae.player.addDialog(substring, (punc ? 5f : 1f) / cps, false, tapDelay);
 							}
 							if(delay != -1)
 								Tenebrae.player.addDialog(text, delay);
@@ -190,7 +191,7 @@ public class Mappack implements ScriptGlob{
 						return NONE;
 					}
 				});
-			library.set("resetTrigger", new ThreeArgFunction(){
+			library.set("resetCamera", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue interpolation, LuaValue tapOverride){
 						OrthographicCamera cam = Tenebrae.t.getCamera();

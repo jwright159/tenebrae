@@ -70,7 +70,6 @@ public class Player extends Character{
 		dialogBox = new Label("", skin, "dialog"){
 			@Override
 			public void setText(CharSequence text){
-				Log.debug("Settext", getX(), getWidth());
 				super.setText(text);
 				if(text == null || text.length() == 0){
 					setExpanded(wasExpandedBeforeDialog);

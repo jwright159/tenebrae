@@ -38,13 +38,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
 	public Character(String filename){
-		tile = new LayeredTile(){
-			@Override
-			public void set(int index, TiledMapTile value){
-				super.set(index, value);
-				getRegions().set(index, value.getTextureRegion());
-			}
-		};
+		tile = new LayeredTile();
 		stats = new ArrayMap<String,ArrayMap<Stats,Float>>();
 		items = new Array<MenuItem.GameItem>();
 		equippedItems = new ArrayMap<String,MenuItem.GameItem>();
@@ -167,26 +161,26 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		setSkin(0, tileset);
 	}
 	public void setSkin(int z, String tilesetName){
-		Log.debug("Setting skinset! " + z + " " + tilesetName);
+		Log.debug("Setting skinset!", z, tilesetName);
 
 		removeSkin(z);
 
 		TiledMapTileSet tileset = Tenebrae.mp.loadTileset(tilesetName);
-		Skin skin = new Skin(z);
+		Skin newSkin = new Skin(z);
 		for(TiledMapTile tile : tileset){
 			Log.verbose("Objs on new skin!", tilesetName, tile.getObjects().getCount());
 			MapProperties prop = tile.getProperties();
 			String dirstr = prop.get("direction", String.class);
 			if(dirstr != null){
 				String[] dirs = dirstr.split("\\s+");
-				if(dirs.length != 0)
-					for(String dir : dirs)
-						skin.putSkin(prop.get("speed", 0f, Float.class), dir, tile);
+				for(String dir : dirs)
+					newSkin.putSkin(prop.get("speed", 0f, Float.class), dir, tile);
 			}
 		}
 
+		//dispose of the unused skin textures in the new tileset
 		Array<Texture> used = new Array<Texture>();
-		for(TiledMapTile tile : skin)
+		for(TiledMapTile tile : newSkin)
 			used.add(tile.getTextureRegion().getTexture());
 		Array<Texture> disposed = new Array<Texture>();
 		for(TiledMapTile tile : tileset){
@@ -196,28 +190,28 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 				disposed.add(tex);
 			}
 		}
-
-		skinList.put(tilesetName, skin);
-		if(tile.size != 0){
-			String dir = null;
-			float dirspeed = Float.MAX_VALUE;
-			for(Skin skins : skinList.values())
-				for(ObjectMap.Entry<Float,ArrayMap<String,TiledMapTile>> mapEntry : skins.skinList)
-					for(ObjectMap.Entry<String,TiledMapTile> entry : mapEntry.value)
-						for(TiledMapTile tile : this.tile)
-							if(entry.value == tile && mapEntry.key < dirspeed){
-								dirspeed = mapEntry.key;
-								dir = entry.key;
-								//Log.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir+" "+dirspeed);
-							}
-			updateSkins(dirspeed, dir);
-		}else{
-			updateSkins(0, "down");
-		}
+		
+		skinList.put(tilesetName, newSkin);
+		if(!tile.isEmpty()){
+			MapProperties p = null;
+			for(TiledMapTile t : tile)
+				if(t != null){
+					p = t.getProperties();
+					break;
+				}
+			if(p == null)
+				updateSkins();
+			else
+				updateSkins(p.get("speed", 0f, Float.class), p.get("direction", "down", String.class).split("\\s+")[0]);
+		}else
+			updateSkins();
 	}
 	public void setSkin(String skin, float speed, String type){
-		//Log.verbose("Setting skin!", skin, speed, type, skinList.get(skin));
-		tile.set(skinList.get(skin).z, skinList.get(skin).getSkin(speed, type));
+		Log.verbose2("Setting skin!", skin, speed, type, skinList.get(skin));
+		int z = skinList.get(skin).z;
+		TiledMapTile t = skinList.get(skin).getSkin(speed, type);
+		tile.set(z, t);
+		setRegion(z, t.getTextureRegion());
 	}
 	public void updateSkins(float dx, float dy){
 		//if(dx == 0 && dy == 0)//causes running to be played if sudden stop
@@ -228,7 +222,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		}else{
 			out:
 			for(Skin skin : skinList.values())
-				for(ArrayMap<String,TiledMapTile> map : skin.skinList.values())
+				for(ArrayMap<String,TiledMapTile> map : skin.tileList.values())
 					if(map.containsValue(tile.get(0), true)){
 						dir = map.getKey(tile.get(0), true);
 						//Log.debug("Found active skin! "+skinList.getKey(skins,true)+" "+dir);
@@ -240,6 +234,9 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	public void updateSkins(float speed, String directon){
 		for(int i = 0; i < skinList.size; i++)
 			setSkin(skinList.getKeyAt(i), speed, directon);
+	}
+	public void updateSkins(){
+		updateSkins(0, "down");
 	}
 	public String getSkin(int z){
 		for(Skin skin : skinList.values())
@@ -254,7 +251,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			if(skin.z == z)
 				rem = skinList.getKey(skin, true);
 		if(rem != null){
-			removeRegion(z);
+			tile.removeIndex(z);
 			skinList.removeKey(rem).dispose();
 		}
 		return rem;
@@ -461,116 +458,125 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			skin.dispose();
 		dispose();
 	}
-	
+
 	public class CharacterLib extends TwoArgFunction{
 		@Override
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
-			
+
 			library.set("setSkin", new TwoArgFunction(){
-							@Override
-							public LuaValue call(LuaValue tileset, LuaValue z){
-								if(!z.isnil())
-									setSkin(z.checkint(), tileset.checkjstring());
-								else
-									setSkin(tileset.checkjstring());
-								return NONE;
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue tileset, LuaValue z){
+						if(!z.isnil())
+							setSkin(z.checkint(), tileset.checkjstring());
+						else
+							setSkin(tileset.checkjstring());
+						return NONE;
+					}
+				});
 			library.set("removeSkin", new OneArgFunction(){
-							@Override
-							public LuaValue call(LuaValue z){
-								removeSkin(z.checkint());
-								return NONE;
-							}
-						});
-			library.set("addItem", new OneArgFunction(){
-							@Override
-							public LuaValue call(LuaValue file){
-								MenuItem.GameItem item;
-								addItem(item = Tenebrae.mp.loadItem(file.checkjstring(), Character.this));
-								Log.debug(item);
-								return item.getGlobals();
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue z){
+						removeSkin(z.checkint());
+						return NONE;
+					}
+				});
 			library.set("affect", new VarArgFunction(){ // hp, mp, silent, override
-							@Override
-							public Varargs invoke(Varargs args){
-								float hp = (float)args.checkdouble(1), mp = (float)args.checkdouble(2);
-								boolean silent = args.optboolean(3, false);
-								boolean override = args.optboolean(4, false);
-								if(hp < 0)
-									damage(-hp, override,  silent);
-								else if(hp > 0)
-									heal(hp, override, silent);
-								if(mp < 0)
-									tire(-mp, override, silent);
-								else if(mp > 0)
-									invigor(mp, override, silent);
-								return NONE;
-							}
-						});
+					@Override
+					public Varargs invoke(Varargs args){
+						float hp = (float)args.checkdouble(1), mp = (float)args.checkdouble(2);
+						boolean silent = args.optboolean(3, false);
+						boolean override = args.optboolean(4, false);
+						if(hp < 0)
+							damage(-hp, override,  silent);
+						else if(hp > 0)
+							heal(hp, override, silent);
+						if(mp < 0)
+							tire(-mp, override, silent);
+						else if(mp > 0)
+							invigor(mp, override, silent);
+						return NONE;
+					}
+				});
 			library.set("setStat", new ThreeArgFunction(){
-							@Override
-							public LuaValue call(LuaValue statLevel, LuaValue stat, LuaValue value){
-								String lv;
-								if(statLevel.isnil())
-									lv = baseStats;
-								else
-									lv = statLevel.checkjstring();
-								setStat(lv, Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
-								return NONE;
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue statLevel, LuaValue stat, LuaValue value){
+						String lv;
+						if(statLevel.isnil())
+							lv = baseStats;
+						else
+							lv = statLevel.checkjstring();
+						setStat(lv, Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
+						return NONE;
+					}
+				});
 			library.set("setStats", new VarArgFunction(){ // statLevel, atk, intl, def, agl, maxhp, maxmp, exp, g
-							@Override
-							public Varargs invoke(Varargs args){
-								String lv;
-								if(args.isnil(1))
-									lv = baseStats;
-								else
-									lv = args.checkjstring(1);
-								setStats(lv, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
-								if(!args.isnil(8))
-									exp = (float)args.checkdouble(8);
-								if(!args.isnil(9))
-									g = (float)args.checkdouble(9);
-								return NONE;
-							}
-						});
+					@Override
+					public Varargs invoke(Varargs args){
+						String lv;
+						if(args.isnil(1))
+							lv = baseStats;
+						else
+							lv = args.checkjstring(1);
+						setStats(lv, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
+						if(!args.isnil(8))
+							exp = (float)args.checkdouble(8);
+						if(!args.isnil(9))
+							g = (float)args.checkdouble(9);
+						return NONE;
+					}
+				});
+			library.set("addItem", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue file){
+						MenuItem.GameItem item;
+						addItem(item = Tenebrae.mp.loadItem(file.checkjstring(), Character.this));
+						Log.debug(item);
+						return item.getGlobals();
+					}
+				});
 			library.set("hasItem", new OneArgFunction(){
-							@Override
-							public LuaValue call(LuaValue itemName){
-								int amt = 0;
-								for(MenuItem.GameItem item : items)
-									if(item.id.equals(itemName.checkjstring()))
-										amt++;
-								return valueOf(amt);
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue itemName){
+						int amt = 0;
+						for(MenuItem.GameItem item : items)
+							if(item.id.equals(itemName.checkjstring()))
+								amt++;
+						return valueOf(amt);
+					}
+				});
+			library.set("getItem", new OneArgFunction(){ // Should only be used for unique items
+					@Override
+					public LuaValue call(LuaValue itemName){
+						for(MenuItem.GameItem item : items)
+							if(item.id.equals(itemName.checkjstring()))
+								return item.getGlobals();
+						return NIL;
+					}
+				});
 			library.set("moveBy", new ThreeArgFunction(){
-							@Override
-							public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
-								//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
-								move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true);
-								return NONE;
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+						//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
+						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true);
+						return NONE;
+					}
+				});
 			library.set("moveTo", new ThreeArgFunction(){
-							@Override
-							public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
-								//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
-								move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false);
-								return NONE;
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+						//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
+						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false);
+						return NONE;
+					}
+				});
 			library.set("delay", new TwoArgFunction(){
-							@Override
-							public LuaValue call(LuaValue delayTime, LuaValue function){
-								addDelay((float)delayTime.checkdouble(), function.checkfunction());
-								return NONE;
-							}
-						});
+					@Override
+					public LuaValue call(LuaValue delayTime, LuaValue function){
+						addDelay((float)delayTime.checkdouble(), function.checkfunction());
+						return NONE;
+					}
+				});
 			library.setmetatable(tableOf());
 			library.getmetatable().set(INDEX, new TwoArgFunction(){
 					@Override
@@ -603,7 +609,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 							case "y":
 								return valueOf(y);
 							case "enemy":
-								return enemy.getGlobals();
+								return enemy == null ? NIL : enemy.getGlobals();
 							default:
 								return NIL;
 						}
@@ -655,34 +661,34 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 						return NONE;
 					}
 				});
-			
+
 			ScriptGlob.S.setLibToEnv(library, env);
 			return env;
 		}
 	}
 
-	public static class Skin implements Disposable, Iterable<TiledMapTile>{
-		ArrayMap<Float,ArrayMap<String, TiledMapTile>> skinList;
-		int z;
+	public static class Skin implements Disposable,Iterable<TiledMapTile>{
+		private ArrayMap<Float,ArrayMap<String, TiledMapTile>> tileList;
+		private int z;
 
-		Skin(int z){
-			skinList = new ArrayMap<Float,ArrayMap<String, TiledMapTile>>();
+		public Skin(int z){
+			tileList = new ArrayMap<Float,ArrayMap<String, TiledMapTile>>();
 			this.z = z;
 		}
 		public void putSkin(float speed, String type, TiledMapTile tile){
-			Log.verbose("Putting skin! " + speed + " " + type + " " + tile.getId());
+			Log.verbose2("Putting skin!", speed, type, tile.getId());
 			ArrayMap<String,TiledMapTile> map;
-			if(skinList.get(speed) != null)
-				map = skinList.get(speed);
+			if(tileList.get(speed) != null)
+				map = tileList.get(speed);
 			else
 				map = new ArrayMap<String,TiledMapTile>();
 			map.put(type, tile);
-			skinList.put(speed, map);
+			tileList.put(speed, map);
 			sortSkinList();
 		}
 		public TiledMapTile getSkin(float speed, String type){
 			float lowspeed = 0;
-			for(float newspeed : skinList.keys())
+			for(float newspeed : tileList.keys())
 				if(newspeed > speed){
 					//Log.debug("Speed stop! "+lowspeed+" "+speed+" "+newspeed);
 					break;
@@ -691,25 +697,26 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 					lowspeed = newspeed;
 				}
 			//Log.debug("Speed end! "+lowspeed+" "+speed);
-			return skinList.get(lowspeed).get(type);
+			Log.verbose2("Getting skin", lowspeed, type, tileList.get(lowspeed));
+			return tileList.get(lowspeed).get(type);
 		}
 		public void sortSkinList(){
 			ArrayMap<Float,ArrayMap<String, TiledMapTile>> sorted = new ArrayMap<Float,ArrayMap<String, TiledMapTile>>();
-			while(skinList.size > 0){
+			while(tileList.size > 0){
 				int lowest = 0;
-				for(int i = 0; i < skinList.size; i++)
-					if(skinList.getKeyAt(i) < skinList.getKeyAt(lowest))
+				for(int i = 0; i < tileList.size; i++)
+					if(tileList.getKeyAt(i) < tileList.getKeyAt(lowest))
 						lowest = i;
-				sorted.put(skinList.getKeyAt(lowest), skinList.getValueAt(lowest));
-				skinList.removeIndex(lowest);
+				sorted.put(tileList.getKeyAt(lowest), tileList.getValueAt(lowest));
+				tileList.removeIndex(lowest);
 			}
-			skinList = sorted;
+			tileList = sorted;
 		}
 
 		@Override
 		public Iterator<TiledMapTile> iterator(){
 			Array<TiledMapTile> tiles = new Array<TiledMapTile>();
-			for(ArrayMap<String,TiledMapTile> map : skinList.values())
+			for(ArrayMap<String,TiledMapTile> map : tileList.values())
 				for(TiledMapTile tile : map.values())
 					if(!tiles.contains(tile, true))
 						tiles.add(tile);
