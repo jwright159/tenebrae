@@ -123,6 +123,8 @@ public class Player extends Character{
 		}
 		((OrthographicCamera)Tenebrae.t.getUiStage().getCamera()).zoom = 0.25f;*/
 		// What have we learned? zoom=1/4 means width and height are 1/4th
+		
+		table.validate();
 
 		statTable = new ArrayMap<Float, ArrayMap<Stats, Float>>();
 		setPlayerName("Player");
@@ -513,10 +515,13 @@ public class Player extends Character{
 		x = MathUtils.clamp(x, 0f, map.width - width);
 		y = MathUtils.clamp(y, 0f, map.height - height);
 	}
-	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle();
 	public void moveCamera(){
+		moveCamera(false);
+	}
+	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle();
+	public void moveCamera(boolean force){
 		//Log.debug("Moving camera! currentAction", currentAction);
-		if(currentAction != null || firstFrame)
+		if(!force && currentAction != null)
 			return;
 
 		OrthographicCamera cam = Tenebrae.t.getCamera();
@@ -548,7 +553,7 @@ public class Player extends Character{
 		boolean moved = targetX != -1 || targetY != -1;
 		super.act(delta);
 
-		if(dzRect == null && !firstFrame){
+		if(dzRect == null){
 			Vector2 mapCoords = new Vector2();
 			mapRect.localToStageCoordinates(mapCoords);
 			dzRect = new Rectangle(mapCoords.x, mapCoords.y, mapRect.getWidth(), mapRect.getHeight());
@@ -558,6 +563,7 @@ public class Player extends Character{
 			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.tiles / dzRect.getHeight();
 			Tenebrae.t.updateZoom();
 			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.tiles, dzRect.getHeight());
+			moveCamera(true);
 		}
 
 		if(moved || firstFrame){
