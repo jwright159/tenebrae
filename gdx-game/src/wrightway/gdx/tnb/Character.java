@@ -28,7 +28,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	public Character enemy;
 	private ArrayMap<String,Skin> skinList;
 	private Globals globals;
-	public Array<Action> actions;
+	private Array<Action> actions;
 	protected Action currentAction;
 	public float delay;//Using Delay Action keeps me from using only RunnableActions //But now it doesn't matter anyway as I'm not using Actions //Well i was just using Runnables with a boolean property but now i need more properties so i renamed it to Action
 	public MapObject mapobj;
@@ -83,7 +83,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		Log.debug("scaled", width, height, getWidth(), getHeight());
 	}
 
-	public void move(final float newX, final float newY, final float speed, final boolean relative){
+	public void move(float newX, float newY, float speed, boolean relative){
 		addAction(new Action.MoveAction(this, newX, newY, speed, relative, false));
 		triggerAction();
 	}
@@ -264,17 +264,17 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			delay = 0;
 			currentAction = null;
 		}
-		if(!actions.isEmpty())
+		if(hasAction())
 			Log.debug("Triggerboi", actions, stop);
 		if(!Tenebrae.doneLoading || delay != 0 || !stop){
 			//Log.debug("..But nobody came.");
 			return;
-		}else if(actions.isEmpty() && stop){
+		}else if(!hasAction() && stop){
 			if(!doDefaultAction())
 				return;
 		}
 		//Log.debug("Iterate!");
-		currentAction = actions.removeIndex(0);
+		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
 			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
@@ -391,7 +391,20 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	abstract public void die()
 
 	public void addAction(Action add){
+		Log.verbose2("Adding action", add);
 		actions.add(add);
+	}
+	public boolean hasAction(){
+		return !actions.isEmpty();
+	}
+	public Action getAction(){
+		return actions.get(0);
+	}
+	public Array<Action> getActionArray(){
+		return actions;
+	}
+	public Action removeAction(){
+		return actions.removeIndex(0);
 	}
 	public void addDelay(float delay, LuaFunction funcToRun){
 		addAction(new DelayAction(this, delay, false));

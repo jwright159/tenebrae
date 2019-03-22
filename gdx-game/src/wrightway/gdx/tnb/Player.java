@@ -30,7 +30,6 @@ public class Player extends Character{
 	private Container<Stack> mapRect;
 	private Table uiTable;
 	public String trueName;
-	private boolean wasExpandedBeforeDialog;
 	public Rectangle activeDeadzone;
 	private Array<RectangleMapObject> ptriggers;
 	public Vector3 lastCameraPos;
@@ -92,13 +91,9 @@ public class Player extends Character{
 			public void setText(CharSequence text){
 				super.setText(text);
 				if(text == null || text.length() == 0){
-					setExpanded(wasExpandedBeforeDialog);
-					wasExpandedBeforeDialog = false;
 					setVisible(false);//hasDialog
 					dialogBoxBox.setVisible(false);
 				}else{
-					wasExpandedBeforeDialog = isExpanded();
-					setExpanded(true);
 					setVisible(true);
 					dialogBoxBox.setVisible(true);
 				}
@@ -106,6 +101,7 @@ public class Player extends Character{
 		};
 		dialogBox.setWrap(true);
 		dialogBox.setAlignment(Align.topLeft);
+		dialogBox.setText(null);
 		dialogBoxBox.setDebug(Tenebrae.tableDebug);
 		dialogBoxBox.background("window");
 		dialogBoxBox.add(dialogBox).pad(Tenebrae.margin).grow();
@@ -302,23 +298,22 @@ public class Player extends Character{
 		Log.verbose2("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
 		addAction(new DialogAction(this, dialog, delay, tap, tapDelay));
 	}
-
 	@Override
 	public void triggerAction(){
 		triggerAction(false);
 	}
 	public void triggerAction(boolean touched){
-		Log.verbose2("Wanting an action! Was " + currentAction);
+		Log.verbose2("Wanting an action! Was", currentAction, "Might be", hasAction() ? getAction() : null);
 		if(currentAction != null && currentAction.stop(touched)){
 			delay = 0;
 			currentAction = null;
 		}
-		if(actions.size == 0 || !Tenebrae.doneLoading || delay != 0 || (currentAction != null && !currentAction.stop(touched))){
+		if(!hasAction() || !Tenebrae.doneLoading || delay != 0 || (currentAction != null && !currentAction.stop(touched))){
 			//Log.debug("..But nobody came.");
 			return;
 		}
 		//Log.debug("Iterate!");
-		currentAction = actions.removeIndex(0);
+		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
 			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);

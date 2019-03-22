@@ -52,11 +52,11 @@ public abstract class Action implements Runnable{
 			if((chara.delay == 0 && (!tap || (tap && touched))) || (chara.delay > 0 && tapDelay && touched)){
 				if(tapDelay && touched){
 					//Log.debug(chara.actions);
-					while(!chara.actions.isEmpty() && chara.actions.get(0) instanceof DialogAction && ((DialogAction)chara.actions.get(0)).tapDelay)
-						chara.actions.removeIndex(0);
+					while(chara.hasAction() && chara.getAction() instanceof DialogAction && ((DialogAction)chara.getAction()).tapDelay)
+						chara.removeAction();
 				}
 				Tenebrae.player.dialogBox.setText(null);
-				Log.verbose2("Ending Dialog!", chara.delay, tap, touched, tapDelay);
+				//Log.verbose("Ending Dialog!", chara.delay, tap, touched, tapDelay);
 				return true;
 			}
 			return false;

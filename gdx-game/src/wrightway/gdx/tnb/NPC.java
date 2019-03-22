@@ -35,7 +35,7 @@ public class NPC extends Character{
 			return false;
 		FunctionAction a;
 		addAction(a = idleRoutine.removeIndex(0));
-		Log.debug("Default action!", a, actions, actions.size);
+		Log.debug("Default action!", a);
 		idleRoutine.add(a);
 		return true;
 	}

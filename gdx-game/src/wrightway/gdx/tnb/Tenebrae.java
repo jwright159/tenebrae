@@ -93,7 +93,7 @@ public class Tenebrae extends WScreen{
 					}
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
-						if(doneLoading && player.buttonBox.getActiveBox() == null)
+						if(doneLoading && player.buttonBox.getActiveBox() == null && !player.dialogBox.isVisible())
 							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true);
 						return true;
 					}
