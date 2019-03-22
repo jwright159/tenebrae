@@ -16,12 +16,12 @@ import org.luaj.vm2.*;
 import java.io.*;
 
 public class EntityBox extends Table{
-	Image icon;
-	HealthBar healthBar, manaBar;
-	Label name;
-	Table bars;
-	Character parent;
-	public EntityBox(Character parent, Skin skin){
+	private Image icon;
+	public HealthBar healthBar, manaBar;
+	public Label name;
+	protected Table bars;
+	public Character parent;
+	public EntityBox(Character parent, boolean vertical, Skin skin){
 		super(skin);
 		this.parent = parent;
 		this.setDebug(Tenebrae.tableDebug);
@@ -30,12 +30,13 @@ public class EntityBox extends Table{
 		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.getRegions()))).size(128, 128);
 		pic.row();
 		pic.add(name = new Label(parent.name, skin));
-		this.add(pic).padRight(Tenebrae.margin);
+		this.add(pic).pad(0, 0, vertical ? Tenebrae.margin : 0, vertical ? 0 : Tenebrae.margin);
+		if(vertical) this.row();
 		bars = new Table(skin);
 		bars.setDebug(Tenebrae.tableDebug);
-		bars.add(healthBar = new HealthBar("HP", skin, "health")).grow();
-		bars.row();
-		bars.add(manaBar = new HealthBar("MP", skin, "mana")).grow();
+		bars.add(healthBar = new HealthBar("HP", vertical, skin, "health")).grow();
+		if(!vertical) bars.row();
+		bars.add(manaBar = new HealthBar("MP", vertical, skin, "mana")).grow();
 		this.add(bars).grow();
 	}
 	public void updateHP(){
@@ -56,12 +57,11 @@ public class EntityBox extends Table{
 	}
 
 	public static class PlayerBox extends EntityBox{
-		LevelBar levelBar;
-		PlayerBox(Player player, Skin skin){
-			super(player, skin);
+		public LevelBar levelBar;
+		public PlayerBox(Player player, Skin skin){
+			super(player, true, skin);
 			name.setText(player.trueName);
-			bars.row();
-			bars.add(levelBar = new LevelBar(skin)).grow();
+			bars.add(levelBar = new LevelBar(true, skin)).grow();
 		}
 		@Override
 		public void updateHP(){
@@ -110,21 +110,17 @@ public class EntityBox extends Table{
 			float y = getY();
 			float width = getWidth();
 			float height = getHeight();
-			float knobHeight = knob == null ? 0 : knob.getMinHeight();
-			float knobWidth = knob == null ? 0 : knob.getMinWidth();
 			float percent = getVisualPercent();
 
 			batch.setColor(color.r, color.g, color.b, color.a * parentAlpha);
 
 			if(isVertical()){
 				float positionHeight = height;
+				float knobHeight = knob == null ? 0 : knob.getMinHeight();
 
 				float bgTopHeight = 0, bgBottomHeight = 0;
 				if(bg != null){
-					if(round)
-						bg.draw(batch, Math.round(x + (width - bg.getMinWidth()) * 0.5f), y, Math.round(bg.getMinWidth()), height);
-					else
-						bg.draw(batch, x + width - bg.getMinWidth() * 0.5f, y, bg.getMinWidth(), height);
+					bg.draw(batch, x, y, width, height);
 					bgTopHeight = bg.getTopHeight();
 					bgBottomHeight = bg.getBottomHeight();
 					positionHeight -= bgTopHeight + bgBottomHeight;
@@ -143,33 +139,17 @@ public class EntityBox extends Table{
 				position = Math.max(Math.min(0, bgBottomHeight), position);
 
 				if(knobBefore != null){
-					if(round){
-						knobBefore.draw(batch, Math.round(x + (width - knobBefore.getMinWidth()) * 0.5f), Math.round(y + bgTopHeight),
-							Math.round(knobBefore.getMinWidth()), Math.round(position + knobHeightHalf));
-					}else{
-						knobBefore.draw(batch, x + (width - knobBefore.getMinWidth()) * 0.5f, y + bgTopHeight, knobBefore.getMinWidth(),
-							position + knobHeightHalf);
-					}
+					knobBefore.draw(batch, x, y + bgTopHeight, width, position + knobHeightHalf);
 				}
 				if(knobAfter != null){
-					if(round){
-						knobAfter.draw(batch, Math.round(x + (width - knobAfter.getMinWidth()) * 0.5f),
-							Math.round(y + position + knobHeightHalf), Math.round(knobAfter.getMinWidth()),
-							Math.round(height - position - knobHeightHalf));
-					}else{
-						knobAfter.draw(batch, x + (width - knobAfter.getMinWidth()) * 0.5f, y + position + knobHeightHalf,
-							knobAfter.getMinWidth(), height - position - knobHeightHalf);
-					}
+					knobAfter.draw(batch, x, y + position + knobHeightHalf, width, height - position - knobHeightHalf);
 				}
 				if(knob != null){
-					if(round){
-						knob.draw(batch, Math.round(x + (width - knobWidth) * 0.5f), Math.round(y + position), Math.round(knobWidth),
-							Math.round(knobHeight));
-					}else
-						knob.draw(batch, x + (width - knobWidth) * 0.5f, y + position, knobWidth, knobHeight);
+					knob.draw(batch, x, y + position, width, knobHeight);
 				}
 			}else{
 				float positionWidth = width;
+				float knobWidth = knob == null ? 0 : knob.getMinWidth();
 
 				float bgLeftWidth = 0, bgRightWidth = 0;
 				if(bg != null){
@@ -205,28 +185,25 @@ public class EntityBox extends Table{
 	}
 
 	public static class TextBar extends Stack{
-		ProgressBar bar;
-		Label text;
-		TextBar(String text, float min, float max, float step, Skin skin, String skinName){
-			this(text, min, max, step, skin);
-			if(skinName != null && skin.has(skinName, ProgressBar.ProgressBarStyle.class)){
+		protected ProgressBar bar;
+		public Label text;
+		public TextBar(String text, float min, float max, float step, boolean vertical, Skin skin, String skinName){
+			this(text, min, max, step, vertical, skin);
+			if(skinName != null && skin.has(skinName, ProgressBar.ProgressBarStyle.class))
 				bar.setStyle(skin.get(skinName, ProgressBar.ProgressBarStyle.class));
-				//if(bar.getStyle().knobBefore instanceof TextureRegionDrawable)
-				//bar.getStyle().knobBefore = new TiledDrawable((TextureRegionDrawable)bar.getStyle().knobBefore);
-			}
 		}
-		TextBar(String text, float min, float max, float step, Skin skin){
+		public TextBar(String text, float min, float max, float step, boolean vertical, Skin skin){
 			setDebug(Tenebrae.tableDebug);
-			this.add(bar = new SizableProgressBar(min, max, step, false, skin));
-			this.add(new Container<Label>(this.text = new Label(text, skin)).padLeft(Tenebrae.margin / 2f).padRight(Tenebrae.margin / 2f).fill());
+			this.add(bar = new SizableProgressBar(min, max, step, vertical, skin));
+			this.add(new Container<Label>(this.text = new Label(text, skin, "bar")).padLeft(Tenebrae.margin / 2f).padRight(Tenebrae.margin / 2f).fill());
 			this.text.setAlignment(Align.left);
 		}
 	}
 	public static class HealthBar extends TextBar{
-		String name;
-		float value, max;//cant change max in bar
-		HealthBar(String name, Skin skin, String skinName){
-			super(name, 0, 1, 0.01f, skin, skinName);
+		public String name;
+		public float value, max;//cant change max in bar
+		public HealthBar(String name, boolean vertical, Skin skin, String skinName){
+			super(name, 0, 1, 0.01f, vertical, skin, skinName);
 			this.name = name;
 		}
 		public void setHealth(float value, float max){
@@ -240,16 +217,16 @@ public class EntityBox extends Table{
 			if(!bar.isVertical())
 				return name + ": " + f(value) + "/" + f(max);
 			else
-				return name + "\n" + f(value) + "\n--\n" + f(max);
+				return name + "\n" + f(value) + "\n—\n" + f(max);
 		}
 		public static String f(float val){
 			return String.format("%.0f", val);
 		}
 	}
 	public static class LevelBar extends HealthBar{
-		int lv;
-		LevelBar(Skin skin){
-			super("LV", skin, "level");
+		private int lv;
+		public LevelBar(boolean vertical, Skin skin){
+			super("LV", vertical, skin, "level");
 		}
 		public void setHealth(int lv, float value, float max){
 			this.lv = lv;
@@ -258,15 +235,15 @@ public class EntityBox extends Table{
 		@Override
 		public String toString(){
 			if(!bar.isVertical())
-				return "LV: " + (lv + 1) + "; EXP: " + f(value) + "/" + f(max);
+				return "LV: " + (lv + 1) + "; EX: " + f(value) + "/" + f(max);
 			else
-				return "LV\n" + (lv + 1) + "\n\nEXP" + f(value) + "\n--\n" + f(max);
+				return "LV\n" + (lv + 1) + "\n\nEX\n" + f(value) + "\n—\n" + f(max);
 		}
 	}
 	public static class MiniHealthBar extends HealthBar{
-		HealthBar hbar;
-		MiniHealthBar(HealthBar bar, Skin skin){
-			super("", skin, skin.find(bar.bar.getStyle()));
+		private HealthBar hbar;
+		public MiniHealthBar(HealthBar bar, Skin skin){
+			super("", false, skin, skin.find(bar.bar.getStyle()));
 			this.hbar = bar;
 			this.text.remove();
 		}
@@ -276,9 +253,9 @@ public class EntityBox extends Table{
 	}
 
 	public static class MenuOption extends Button implements Comparable<MenuOption>{//Not TextButton bc the padding widens the button
-		MenuBox box;
-		Label text;
-		MenuOption(String textStr, MenuBox box, int align, boolean enabled, Skin skin){
+		public MenuBox box;
+		public Label text;
+		public MenuOption(String textStr, MenuBox box, int align, boolean enabled, Skin skin){
 			super(skin);
 			this.box = box;
 			if(box != null)
@@ -297,7 +274,7 @@ public class EntityBox extends Table{
 					}
 				});
 		}
-		MenuOption(String text, MenuBox box, Skin skin){
+		public MenuOption(String text, MenuBox box, Skin skin){
 			this(text, box, Align.topLeft, true, skin);
 		}
 		public boolean isEmpty(){
@@ -377,14 +354,14 @@ public class EntityBox extends Table{
 			});
 	}*/
 	public static class MenuBox extends Stack{
-		static float padding = 30f;
-		static int itemsPerHeight = 5;
-		int activePage;
-		String id;
-		Array<MenuOption> list;
-		Skin skin;
-		Array<Table> pages;
-		MenuBox(String id, Skin skin){
+		public static float padding = 30f;
+		public static int itemsPerHeight = 5;
+		private int activePage;
+		private String id;
+		private Array<MenuOption> list;
+		private Skin skin;
+		private Array<Table> pages;
+		public MenuBox(String id, Skin skin){
 			this.skin = skin;
 			list = new Array<MenuOption>();
 			pages = new Array<Table>();
@@ -648,22 +625,13 @@ public class EntityBox extends Table{
 				}
 			};
 			menu.addListener(click);
-			this.add(menu).grow()/*.width(new Value(){
-					@Override
-					public float get(Actor a){
-						return (ButtonBox.this.getWidth() - Tenebrae.margin) * 0.5f;
-					}
-				})*/;
+			this.add(menu).grow();
+			this.row();
 
 			MenuBox itemsBox = new MenuBox("ItemsBox", skin);
 			items = new MenuOption("Items", itemsBox, Align.center, true, skin);
 			items.addListener(click);
-			this.add(items).padLeft(Tenebrae.margin).grow()/*.width(new Value(){
-					@Override
-					public float get(Actor a){
-						return (ButtonBox.this.getWidth() - Tenebrae.margin) * 0.5f;
-					}
-				})*/;
+			this.add(items).padTop(Tenebrae.margin).grow();
 		}
 		public static final Prototype killScript, healScript, tireScript, invigorScript;
 		static{

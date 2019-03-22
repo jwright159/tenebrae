@@ -51,6 +51,28 @@ com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator: {
 		incremental: false
 		hinting: AutoSlight
 	}
+	bar: {
+		font: 8bitoperator.ttf
+		size: 30
+		mono: false
+		color: white
+		gamma: 1
+		renderCount: 2
+		borderWidth: 0
+		borderColor: black
+		borderStraight: false
+		borderGamma: 1.7999999523162842
+		shadowOffsetX: 0
+		shadowOffsetY: 0
+		shadowColor: shadow
+		spaceX: 1
+		spaceY: 1
+		kerning: true
+		flip: false
+		genMipMaps: false
+		incremental: false
+		hinting: AutoSlight
+	}
 }
 BitmapFont: {
 	default-font: { file: default.fnt }
@@ -93,8 +115,9 @@ SliderStyle: {
 	default-vertical: { parent: default-vertical }
 },
 LabelStyle: {
-	default: { font: default-font },
+	default: { font: default-font }
 	dialog: { font: dialog }
+	bar: { font: bar }
 },
 TextFieldStyle: {
 	default: { selection: selection, background: textfield, font: default-font, fontColor: white, cursor: cursor }

@@ -19,7 +19,7 @@ public class Projectile extends WActor.WTexture{
 		this.id = "_temp"+owner.filename+id;
 		
 		TileMap map = Tenebrae.player.map;
-		setSize(map.tilewidth, map.tileheight);
+		setSize(map.tileWidth, map.tileHeight);
 
 		setPosition(x, y);
 		

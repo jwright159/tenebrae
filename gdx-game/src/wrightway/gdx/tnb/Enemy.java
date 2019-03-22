@@ -28,7 +28,7 @@ public class Enemy extends Character{
 		enemy = Tenebrae.player;
 
 		name = "Enemy";
-		box = new EntityBox(this, Tenebrae.t.getSkin());
+		box = new EntityBox(this, false, Tenebrae.t.getSkin());
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;

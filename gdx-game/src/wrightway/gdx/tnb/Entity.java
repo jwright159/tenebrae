@@ -69,19 +69,19 @@ public class Entity extends WActor.WRect{
 						switch(key.checkjstring()){
 							case "x":
 								x = (float)value.checkdouble();
-								setX(x*Tenebrae.player.map.tilewidth);
+								setX(x*Tenebrae.player.map.tileWidth);
 								break;
 							case "y":
 								y = (float)value.checkdouble();
-								setY(y*Tenebrae.player.map.tileheight);
+								setY(y*Tenebrae.player.map.tileHeight);
 								break;
 							case "width":
 								width = (float)value.checkdouble();
-								setWidth(width*Tenebrae.player.map.tilewidth);
+								setWidth(width*Tenebrae.player.map.tileWidth);
 								break;
 							case "height":
 								height = (float)value.checkdouble();
-								setHeight(height*Tenebrae.player.map.tileheight);
+								setHeight(height*Tenebrae.player.map.tileHeight);
 								break;
 							default:
 								self.rawset(key, value);

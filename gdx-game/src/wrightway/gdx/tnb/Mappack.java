@@ -83,10 +83,10 @@ public class Mappack implements ScriptGlob{
 					@Override
 					public Varargs invoke(Varargs args){// x, y, layer, tileset, tileid
 						Tenebrae.player.map.changeTile(args.checkint(1),
-													   (Tenebrae.player.map.height - 1) - args.checkint(2),
-													   args.checkjstring(3),
-													   args.checkjstring(4),
-													   args.checkint(5));
+							(Tenebrae.player.map.height - 1) - args.checkint(2),
+							args.checkjstring(3),
+							args.checkjstring(4),
+							args.checkint(5));
 						return NONE;
 					}
 				});
@@ -127,8 +127,8 @@ public class Mappack implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue mapName, LuaValue startX, LuaValue startY){
 						Tenebrae.player.changeMap(Tenebrae.mp.loadMap(mapName.checkjstring()),
-												  (float)startX.optdouble(-1),
-												  (float)startY.optdouble(-1));
+							(float)startX.optdouble(-1),
+							(float)startY.optdouble(-1));
 						return NONE;
 					}
 				});
@@ -158,10 +158,10 @@ public class Mappack implements ScriptGlob{
 					public Varargs invoke(Varargs args){ // amount, time, interpolation, tapOverride
 						OrthographicCamera cam = Tenebrae.t.getCamera();
 						Tenebrae.player.addAction(new Action.CameraAction(cam,
-																		  cam.zoom * (float)args.optdouble(1, 1),
-																		  Utils.getInterpolation(args.optjstring(3, "constant")),
-																		  (float)args.optdouble(2, 0),
-																		  args.optboolean(4, false)));
+								cam.zoom * (float)args.optdouble(1, 1),
+								Utils.getInterpolation(args.optjstring(3, "constant")),
+								(float)args.optdouble(2, 0),
+								args.optboolean(4, false)));
 						return NONE;
 					}
 				});
@@ -170,11 +170,11 @@ public class Mappack implements ScriptGlob{
 					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
 						OrthographicCamera cam = Tenebrae.t.getCamera();
 						Tenebrae.player.addAction(new Action.CameraAction(cam,
-																		  cam.position.x + (float)args.optdouble(1, 0) * Tenebrae.player.map.tilewidth,
-																		  cam.position.y + (float)args.optdouble(2, 0) * Tenebrae.player.map.tileheight,
-																		  Utils.getInterpolation(args.optjstring(4, "constant")),
-																		  (float)args.optdouble(3, 0),
-																		  args.optboolean(5, false)));
+								cam.position.x + (float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth,
+								cam.position.y + (float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight,
+								Utils.getInterpolation(args.optjstring(4, "constant")),
+								(float)args.optdouble(3, 0),
+								args.optboolean(5, false)));
 						return NONE;
 					}
 				});
@@ -183,11 +183,11 @@ public class Mappack implements ScriptGlob{
 					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
 						OrthographicCamera cam = Tenebrae.t.getCamera();
 						Tenebrae.player.addAction(new Action.CameraAction(cam,
-																		  (float)args.optdouble(1, 0) * Tenebrae.player.map.tilewidth - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2,
-																		  (float)args.optdouble(2, 0) * Tenebrae.player.map.tileheight - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2,
-																		  Utils.getInterpolation(args.optjstring(4, "constant")),
-																		  (float)args.optdouble(3, 0),
-																		  args.optboolean(5, false)));
+								(float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2,
+								(float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2,
+								Utils.getInterpolation(args.optjstring(4, "constant")),
+								(float)args.optdouble(3, 0),
+								args.optboolean(5, false)));
 						return NONE;
 					}
 				});
@@ -197,12 +197,12 @@ public class Mappack implements ScriptGlob{
 						OrthographicCamera cam = Tenebrae.t.getCamera();
 						Vector3 l = Tenebrae.player.lastCameraPos;
 						Tenebrae.player.addAction(new Action.CameraAction(cam,
-																		  l.x,
-																		  l.y,
-																		  l.z,
-																		  Utils.getInterpolation(interpolation.optjstring("constant")),
-																		  (float)time.optdouble(0),
-																		  tapOverride.optboolean(false)));
+								l.x,
+								l.y,
+								l.z,
+								Utils.getInterpolation(interpolation.optjstring("constant")),
+								(float)time.optdouble(0),
+								tapOverride.optboolean(false)));
 						return NONE;
 					}
 				});
@@ -241,10 +241,10 @@ public class Mappack implements ScriptGlob{
 					public Varargs invoke(Varargs args){ // x, y, targetX, targetY, speed, delta
 						float dx = (float)(args.checkdouble(3) - args.checkdouble(1)), dy = (float)(args.checkdouble(4) - args.checkdouble(2));
 						float mag = (float)Math.hypot(dx, dy);
-						if(mag <= (float)(args.checkdouble(5)*args.checkdouble(6)))
+						if(mag <= (float)(args.checkdouble(5) * args.checkdouble(6)))
 							return varargsOf(args.arg(3), args.arg(4));
 						dx /= mag; dy /= mag;
-						return varargsOf(valueOf(args.checkdouble(1)+dx*args.checkdouble(5)*args.checkdouble(6)), valueOf(args.checkdouble(2)+dy*args.checkdouble(5)*args.checkdouble(6)));
+						return varargsOf(valueOf(args.checkdouble(1) + dx * args.checkdouble(5) * args.checkdouble(6)), valueOf(args.checkdouble(2) + dy * args.checkdouble(5) * args.checkdouble(6)));
 					}
 				});
 
@@ -323,17 +323,17 @@ public class Mappack implements ScriptGlob{
 
 			//constructors
 			/*final LuaTable npcClass = tableOf();
-			npcClass.set(INDEX, npcClass); // instances will look up stuff in class. npcInstance will have npcClass, not npcInstance, so no inf recurse
-			npcClass.set("new", new TwoArgFunction(){
-				@Override
-				public LuaValue call(LuaValue clazz, LuaValue name){
-					LuaTable instance = loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
-					instance.setmetatable(clazz); // Actually this line is killing the inherited metatables
-					return instance;
-				}
-			});
-			library.set("NPC", npcClass);*/
-			
+			 npcClass.set(INDEX, npcClass); // instances will look up stuff in class. npcInstance will have npcClass, not npcInstance, so no inf recurse
+			 npcClass.set("new", new TwoArgFunction(){
+			 @Override
+			 public LuaValue call(LuaValue clazz, LuaValue name){
+			 LuaTable instance = loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
+			 instance.setmetatable(clazz); // Actually this line is killing the inherited metatables
+			 return instance;
+			 }
+			 });
+			 library.set("NPC", npcClass);*/
+
 			ScriptGlob.S.setLibToEnv(library, env);
 			return env;
 		}

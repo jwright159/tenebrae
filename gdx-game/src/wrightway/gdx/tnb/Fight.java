@@ -37,7 +37,7 @@ public class Fight extends WScreen{
 				
 				setX(MathUtils.clamp(getX(), board.getX(), board.getX() + board.getWidth() - getTrueWidth()));
 				setY(MathUtils.clamp(getY(), board.getY(), board.getY() + board.getHeight() - getTrueHeight()));
-				player.updateSkins((getX() - px)/player.map.tilewidth, (getY() - py)/player.map.tileheight);
+				player.updateSkins((getX() - px)/player.map.tileWidth, (getY() - py)/player.map.tileHeight);
 				px = getX(); py = getY();
 			}
 		};

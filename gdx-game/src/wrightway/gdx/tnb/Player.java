@@ -27,8 +27,8 @@ public class Player extends Character{
 	public ButtonBox buttonBox;
 	public StatBox smolStatBox;
 	public Label dialogBox;
-	public Stack paneStack;
-	public Container<Stack> mapRect;
+	private Container<Stack> mapRect;
+	private Table uiTable;
 	public String trueName;
 	private boolean wasExpandedBeforeDialog;
 	public Rectangle activeDeadzone;
@@ -47,26 +47,46 @@ public class Player extends Character{
 		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = Tenebrae.t.getSkin();
 		table = Tenebrae.t.getTable();
 		table.setDebug(Tenebrae.tableDebug);
+		
+		Stack stack = new Stack();
+		Container<Table> uiRect = new Container<Table>();
+		uiTable = new Table(skin);
+		uiTable.setDebug(Tenebrae.tableDebug);
+		uiRect.setActor(uiTable);
+		uiRect.pad(Tenebrae.margin).fill();
+		stack.add(uiRect);
+		Table dialogTable = new Table(skin);
+		dialogTable.setDebug(Tenebrae.tableDebug);
+		stack.add(dialogTable);
+		dialogTable.setFillParent(true);
+		table.add(stack).grow();
+		
+		Table buttonPane = new Table(skin);
+		buttonPane.setDebug(Tenebrae.tableDebug);
+		buttonPane.background("window");
+		buttonPane.add(buttonBox = new ButtonBox(this, skin)).pad(Tenebrae.margin).grow();
+		uiTable.add(buttonPane).grow().uniform();
 
 		mapRect = new Container<Stack>().fill();
-		Cell mapCell = table.add(mapRect).pad(Tenebrae.margin).growX();
-		mapCell.height(Value.percentWidth(1f, mapRect));
-
-		paneStack = new Stack();
-		final Table pane = new Table(skin);
-		pane.setDebug(Tenebrae.tableDebug);
-		pane.background("window");
-		pane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.margin - pane.getBackground().getTopHeight(), Tenebrae.margin/*-pane.getBackground().getLeftWidth() i want the space here*/, Tenebrae.margin, Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
-		pane.row();
-		pane.add(buttonBox = new ButtonBox(this, skin)).pad(0, Tenebrae.margin - pane.getBackground().getLeftWidth(), Tenebrae.margin - pane.getBackground().getBottomHeight(), Tenebrae.margin - pane.getBackground().getRightWidth()).grow().uniform();
-		paneStack.add(pane);
-
+		mapRect.setDebug(Tenebrae.tableDebug);
+		uiTable.add(mapRect).padLeft(Tenebrae.margin).growY().width(Value.percentHeight(1f, mapRect));
 		Stack menuStack = new Stack();
 		mapRect.setActor(menuStack);
+		menuStack.setFillParent(true);
 		menuStack.add(buttonBox.menu.box);
 		menuStack.add(buttonBox.items.box);
 
-		final Table diatable = new Table(skin);
+		Table playerPane = new Table(skin);
+		playerPane.setDebug(Tenebrae.tableDebug);
+		playerPane.background("window");
+		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.margin).grow();
+		uiTable.add(playerPane).padLeft(Tenebrae.margin).grow().uniform();
+
+		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.margin*5, 0, Tenebrae.margin*5).expandX().fill().height(Tenebrae.margin * 2);
+		dialogTable.row();
+		dialogTable.add().grow();
+		
+		final Table dialogBoxBox = new Table(skin);
 		dialogBox = new Label("", skin, "dialog"){
 			@Override
 			public void setText(CharSequence text){
@@ -75,27 +95,34 @@ public class Player extends Character{
 					setExpanded(wasExpandedBeforeDialog);
 					wasExpandedBeforeDialog = false;
 					setVisible(false);//hasDialog
-					diatable.setVisible(false);
+					dialogBoxBox.setVisible(false);
 				}else{
 					wasExpandedBeforeDialog = isExpanded();
 					setExpanded(true);
 					setVisible(true);
-					diatable.setVisible(true);
+					dialogBoxBox.setVisible(true);
 				}
 			}
 		};
 		dialogBox.setWrap(true);
 		dialogBox.setAlignment(Align.topLeft);
-		diatable.setDebug(Tenebrae.tableDebug);
-		diatable.background("window");
-		diatable.add(dialogBox).pad(Tenebrae.margin).grow();
-		paneStack.add(diatable);
-
-		table.row();
-		table.add(paneStack).pad(Tenebrae.margin).padTop(0).grow();
-
-		table.row();
-		table.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).expandX().fill().height(Tenebrae.margin * 2);
+		dialogBoxBox.setDebug(Tenebrae.tableDebug);
+		dialogBoxBox.background("window");
+		dialogBoxBox.add(dialogBox).pad(Tenebrae.margin).grow();
+		dialogTable.row();
+		dialogTable.add(dialogBoxBox).pad(Tenebrae.margin).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
+		
+		/*Table zoomt = new Table();
+		Tenebrae.t.getUiStage().addActor(zoomt);
+		zoomt.setFillParent(true);
+		zoomt.setDebug(true);
+		for(int i = 0; i < 12; i++){
+			for(int j = 0; j < 16; j++)
+				zoomt.add().grow();
+			zoomt.row();
+		}
+		((OrthographicCamera)Tenebrae.t.getUiStage().getCamera()).zoom = 0.25f;*/
+		// What have we learned? zoom=1/4 means width and height are 1/4th
 
 		statTable = new ArrayMap<Float, ArrayMap<Stats, Float>>();
 		setPlayerName("Player");
@@ -117,7 +144,7 @@ public class Player extends Character{
 		}
 		this.map = map;
 		Tenebrae.t.getStage().addActor(map);
-
+		
 		super.changeMap(map, spawnx, spawny);
 		for(NPC npc : Tenebrae.mp.npcs)
 			npc.changeMap(map, -1, -1);
@@ -185,12 +212,12 @@ public class Player extends Character{
 		return new Vector2(rx, ry);
 	}
 	public MapObjects getCollidingTriggerObjects(){
-		MapObjects rtn = map.getCollidingTriggerObjects(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
+		MapObjects rtn = map.getCollidingTriggerObjects(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		//Log.debug("Requesting triggers! " + rtn.getCount());
 		return rtn;
 	}
 	public MapObjects getCollidingEnteranceObjects(){
-		MapObjects rtn = map.getCollidingEnteranceObjects(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
+		MapObjects rtn = map.getCollidingEnteranceObjects(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		for(MapObject obj : getCollidingNPCTriggerObjects("onEnter"))
 			rtn.add(obj);
 		//Log.debug("Requesting enters! " + rtn.getCount());
@@ -198,7 +225,7 @@ public class Player extends Character{
 	}
 	public MapObjects getCollidingNPCTriggerObjects(String prop){
 		MapObjects rtn = new MapObjects();
-		Rectangle player = new Rectangle(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
+		Rectangle player = new Rectangle(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		for(NPC npc : Tenebrae.mp.npcs){
 			MapObjects objs = npc.tile.get(0).getObjects();
 			for(MapObject obj : objs){
@@ -208,7 +235,7 @@ public class Player extends Character{
 				if(obj != null){
 					RectangleMapObject r = copy((RectangleMapObject)obj);
 					Log.verbose2("NPC Raw", r.getRectangle());
-					r.getRectangle().setPosition(npc.x * map.tilebasewidth + r.getRectangle().getX(), npc.y * map.tilebaseheight + r.getRectangle().getY());
+					r.getRectangle().setPosition(npc.x * map.tileWidth + r.getRectangle().getX(), npc.y * map.tileHeight + r.getRectangle().getY());
 					Log.verbose2("NPC Scaled", r.getRectangle());
 					Log.verbose2("NPC Player", player);
 					r.getProperties().put("__npc", npc);
@@ -224,7 +251,7 @@ public class Player extends Character{
 		for(MapObject obj : getCollidingNPCTriggerObjects("onTrigger"))
 			objs.add(obj);
 		RectangleMapObject rtn = null;
-		Rectangle player = new Rectangle(x * map.tilebasewidth, y * map.tilebaseheight, width * map.tilebasewidth, height * map.tilebaseheight);
+		Rectangle player = new Rectangle(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		float best = 0;
 		Rectangle inter = new Rectangle();
 
@@ -331,14 +358,12 @@ public class Player extends Character{
 	}
 
 	public boolean isExpanded(){
-		return paneStack.isVisible();
+		return uiTable.isVisible();
 	}
 	public void setExpanded(boolean expanded){
 		activeDeadzone = expanded ? dzRect : bigdzRect;
-		//Log.debugRect.orient(); //when the debugrect is for deadzone
-		paneStack.setVisible(expanded);
+		uiTable.setVisible(expanded);
 		//Log.debug("Expanding! " + expanded);
-		//smolStatBox.setVisible(!expanded);
 	}
 	public void setUiDisabled(boolean disabled){
 		buttonBox.menu.setDisabled(disabled);
@@ -524,10 +549,15 @@ public class Player extends Character{
 		super.act(delta);
 
 		if(dzRect == null && !firstFrame){
-			dzRect = new Rectangle(mapRect.getX(), mapRect.getY(), mapRect.getWidth(), mapRect.getHeight());
-			bigdzRect = new Rectangle(paneStack.getX(), paneStack.getY(), paneStack.getWidth(), paneStack.getHeight() + Tenebrae.margin + mapRect.getHeight());
+			Vector2 mapCoords = new Vector2();
+			mapRect.localToStageCoordinates(mapCoords);
+			dzRect = new Rectangle(mapCoords.x, mapCoords.y, mapRect.getWidth(), mapRect.getHeight());
+			bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
 			setExpanded(isExpanded());
+			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.tiles / dzRect.getHeight();
+			Tenebrae.t.updateZoom();
+			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.tiles, dzRect.getHeight());
 		}
 
 		if(moved || firstFrame){
@@ -603,7 +633,7 @@ public class Player extends Character{
 			updateSkins(0, 0);
 		}
 
-		setPosition(x * map.tilewidth, y * map.tilewidth);
+		setPosition(x * map.tileWidth, y * map.tileWidth);
 	}
 
 	@Override

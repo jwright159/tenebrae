@@ -21,7 +21,7 @@ public class TileMap extends WActor{
 	String filepath,filename;
 	TiledMap map;
 	WOrthogonalTiledMapRenderer maprenderer;
-	float tilewidth, tileheight, tilebasewidth, tilebaseheight;
+	float tileWidth, tileHeight;
 	int width, height;
 	boolean hasNpcObj;
 
@@ -58,19 +58,16 @@ public class TileMap extends WActor{
 
 		//mapRect must stay same size for this code to work not in orient() (bc of scale in constructor)
 		TiledMapTileLayer tilelayer = (TiledMapTileLayer)getCollisionLayers().get(0);
-		tilebasewidth = tilelayer.getTileWidth();
-		tilebaseheight = tilelayer.getTileHeight();
-		float scale = (Math.min(Tenebrae.screenRect.width, Tenebrae.screenRect.height) / Tenebrae.tiles) / Math.max(pRect.width, pRect.height); //mapRect.width or screenRect.width
-		tilewidth = tilebasewidth * scale;
-		tileheight = tilebaseheight * scale;
+		tileWidth = tilelayer.getTileWidth();
+		tileHeight = tilelayer.getTileHeight();
 		//Tenebrae.debug("Tile Dims! "+tilewidth+"x"+tileheight);
 		width = tilelayer.getWidth();
 		height = tilelayer.getHeight();
 		setPosition(0, 0);
-		setSize(width * tilewidth, height * tileheight);
+		setSize(width * tileWidth, height * tileHeight);
 
 		//final WRect objRenderer = new WRect(new Rectangle(), Color.WHITE, Color.BLACK, 1);
-		maprenderer = new WOrthogonalTiledMapRenderer(map, scale){
+		maprenderer = new WOrthogonalTiledMapRenderer(map, 1){
 			@Override
 			public void renderObject(MapObject object){
 				for(NPC npc : Tenebrae.mp.npcs)
@@ -136,7 +133,7 @@ public class TileMap extends WActor{
 			return null;
 		RectangleMapObject obj = (RectangleMapObject)mapobj;
 		Rectangle r = obj.getRectangle();
-		return new Rectangle((int)x + r.getX() / tilebasewidth, (int)y + r.getY() / tilebaseheight, r.getWidth() / tilebasewidth, r.getHeight() / tilebaseheight);
+		return new Rectangle((int)x + r.getX() / tileWidth, (int)y + r.getY() / tileHeight, r.getWidth() / tileWidth, r.getHeight() / tileHeight);
 	}
 	public MapObjects getCollidingTriggerObjects(float x, float y, float width, float height){
 		Rectangle player = new Rectangle(x, y, width, height);

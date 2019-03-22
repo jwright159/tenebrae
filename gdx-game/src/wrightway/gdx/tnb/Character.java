@@ -47,10 +47,11 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
-		box = new EntityBox(this, Tenebrae.t.getSkin());
+		box = new EntityBox(this, false, Tenebrae.t.getSkin());
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
+		setDebug(Tenebrae.tableDebug);
 	}
 	public void changeMap(TileMap map, float spawnx, float spawny){
 		Rectangle rect, oRect = null;
@@ -68,7 +69,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			oRect = new Rectangle(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
 			//Log.debug("Entity is a tile! "+pRect);
 		}
-		rect = new Rectangle(oRect.getX() / map.tilebasewidth, oRect.getY() / map.tilebaseheight, oRect.getWidth() / map.tilebasewidth, oRect.getHeight() / map.tilebaseheight);
+		rect = new Rectangle(oRect.getX() / map.tileWidth, oRect.getY() / map.tileHeight, oRect.getWidth() / map.tileWidth, oRect.getHeight() / map.tileHeight);
 
 		Log.debug("Changing map!", this, spawnx, spawny, rect);
 		if(spawnx == -1 || spawny == -1){//for spawnpoint
@@ -78,9 +79,8 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		}
 
 		width = rect.getWidth(); height = rect.getHeight();
-		setSize(rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
-		setScale(map.tilewidth / map.tilebasewidth, map.tileheight / map.tilebaseheight);
-		Log.debug("scaled", width, height, getWidth(), getHeight(), getScaleX(), getScaleY());
+		setSize(width * map.tileWidth, height * map.tileHeight);
+		Log.debug("scaled", width, height, getWidth(), getHeight());
 	}
 
 	public void move(final float newX, final float newY, final float speed, final boolean relative){
@@ -439,7 +439,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			updateSkins(0, 0);
 		}
 
-		setPosition(x * Tenebrae.player.map.tilewidth, y * Tenebrae.player.map.tilewidth);
+		setPosition(x * Tenebrae.player.map.tileWidth, y * Tenebrae.player.map.tileWidth);
 	}
 
 	@Override

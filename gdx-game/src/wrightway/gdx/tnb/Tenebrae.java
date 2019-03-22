@@ -13,6 +13,7 @@ import wrightway.gdx.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import java.io.*;
+import com.badlogic.gdx.utils.viewport.*;
 
 public class Tenebrae extends WScreen{
 	public static final String PAKPATH = "WrightWay/Tenebrae/pak/";
@@ -28,7 +29,7 @@ public class Tenebrae extends WScreen{
 	public static Tenebrae t;
 	public static Player player;
 	public static Mappack mp;
-	
+
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
 	public Tenebrae(){
@@ -53,70 +54,69 @@ public class Tenebrae extends WScreen{
 				@Override
 				public boolean keyDown(int keycode){
 					if(keycode == Input.Keys.BACK){
-						if(player == null){
+						if(!doneLoading || player == null){
 							Gdx.app.exit();
-							return true;
-						}else if(!doneLoading || !player.performBack()){
-							Gdx.app.exit();
-							//player.setExpanded(true);
-							return true;
+						}else if(!player.performBack()){
+							//Gdx.app.exit();
+							player.setExpanded(true);
 						}
+						return true;
 					}
 					return false;
 				}
 			});
 		getMultiplexer().addProcessor(2, new GestureDetector(new GestureListener(){
-										 @Override
-										 public boolean touchDown(float p1, float p2, int p3, int p4){
-											 // TODO: Implement this method
-											 return false;
-										 }
-										 @Override
-										 public boolean tap(float p1, float p2, int p3, int p4){
-											 if(doneLoading){
-												 if(player.buttonBox.getActiveBox() != null || player.dialogBox.isVisible())
-													 player.performBack();
-												 else if(player.delay == 0)
-													 player.triggerBestTrigger();
-											 }
-											 return true;
-										 }
-										 @Override
-										 public boolean longPress(float p1, float p2){
-											 // TODO: Implement this method
-											 return false;
-										 }
-										 @Override
-										 public boolean fling(float p1, float p2, int p3){
-											 // TODO: Implement this method
-											 return false;
-										 }
-										 @Override
-										 public boolean pan(float x, float y, float dx, float dy){
-											 if(doneLoading && player.buttonBox.getActiveBox() == null)
-												 player.move(dx / player.map.tilewidth * player.speedMult, -dy / player.map.tileheight * player.speedMult, 0, true);
-											 return true;
-										 }
-										 @Override
-										 public boolean panStop(float p1, float p2, int p3, int p4){
-											 updateZoom();
-											 return false;
-										 }
-										 @Override
-										 public boolean zoom(float origdist, float dist){
-											 getCamera().zoom = origdist / dist * zoom;
-											 return true;
-										 }
-										 @Override
-										 public boolean pinch(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4){
-											 // TODO: Implement this method
-											 return false;
-										 }
-										 @Override
-										 public void pinchStop(){
-											 // TODO: Implement this method
-										 }
-									 }));
+					@Override
+					public boolean touchDown(float p1, float p2, int p3, int p4){
+						// TODO: Implement this method
+						return false;
+					}
+					@Override
+					public boolean tap(float p1, float p2, int p3, int p4){
+						if(doneLoading){
+							if(player.buttonBox.getActiveBox() != null || player.dialogBox.isVisible())
+								player.performBack();
+							else if(player.delay == 0)
+								player.triggerBestTrigger();
+						}
+						return true;
+					}
+					@Override
+					public boolean longPress(float p1, float p2){
+						// TODO: Implement this method
+						return false;
+					}
+					@Override
+					public boolean fling(float p1, float p2, int p3){
+						// TODO: Implement this method
+						return false;
+					}
+					@Override
+					public boolean pan(float x, float y, float dx, float dy){
+						if(doneLoading && player.buttonBox.getActiveBox() == null)
+							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true);
+						return true;
+					}
+					@Override
+					public boolean panStop(float p1, float p2, int p3, int p4){
+						updateZoom();
+						return false;
+					}
+					@Override
+					public boolean zoom(float origdist, float dist){
+						getCamera().zoom = origdist / dist * zoom;
+						return true;
+					}
+					@Override
+					public boolean pinch(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4){
+						// TODO: Implement this method
+						return false;
+					}
+					@Override
+					public void pinchStop(){
+						// TODO: Implement this method
+					}
+				}));
 		Gdx.input.setCatchBackKey(true);
 	}
 	public void loadSave(){
@@ -151,7 +151,7 @@ public class Tenebrae extends WScreen{
 	private void loadSkin(){
 		getSkin().addRegions(ta1 = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas")));
 		getSkin().load(Gdx.files.internal("tnbskin.json"));
-		
+
 		FileHandle folder = Gdx.files.external(PAKPATH).child("skin");
 		FileHandle[] atlas = folder.list("atlas");
 		if(atlas.length > 0)
@@ -212,7 +212,7 @@ public class Tenebrae extends WScreen{
 					splash.row();
 					splash.add(new Label("Loading scripts...", getSkin())).pad(margin * 0.25f).expandX();
 					splash.row();
-					splash.add(loadbar = new EntityBox.TextBar("Loadin", 0, flist.length - 1, 1, getSkin())).size(500f, 100f).expand().top();
+					splash.add(loadbar = new EntityBox.TextBar("Loadin", 0, flist.length - 1, 1, false, getSkin())).size(500f, 100f).expand().top();
 				}
 				scripts = new ArrayMap<String,Prototype>(){
 					@Override
@@ -232,7 +232,8 @@ public class Tenebrae extends WScreen{
 								final Prototype script;
 								try{
 									script = globals.compilePrototype(f.read(), f.nameWithoutExtension());
-								}catch(IOException ex){throw new GdxRuntimeException("Couldn't load script "+f.name(), ex);}
+								}
+								catch(IOException ex){throw new GdxRuntimeException("Couldn't load script " + f.name(), ex);}
 								final int j = i;
 								Gdx.app.postRunnable(new Runnable(){
 										@Override
@@ -292,7 +293,7 @@ public class Tenebrae extends WScreen{
 		batch.end();
 	}
 
-	float zoom = 1;
+	public float zoom = 1;
 	public void updateZoom(){
 		zoom = getCamera().zoom;
 	}
@@ -310,7 +311,7 @@ public class Tenebrae extends WScreen{
 		ta2.dispose();
 		//music.dispose();
 	}
-	
+
 	public static class StdEntGlobals extends ScriptGlob.StdGlobals{
 		public StdEntGlobals(){
 			if(getmetatable() == null) setmetatable(tableOf());
