@@ -256,6 +256,17 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		}
 		return rem;
 	}
+	
+	public MapObjects getRectObjects(){
+		MapObjects rtn = new MapObjects();
+		for(TiledMapTile t : tile)
+			for(MapObject obj : t.getObjects())
+				if(obj instanceof RectangleMapObject){
+					Tenebrae.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, x, y);
+					rtn.add(obj);
+				}
+		return rtn;
+	}
 
 	public void triggerAction(){
 		Log.verbose2("Wanting an action from", this, ", Was", currentAction);
@@ -265,7 +276,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			currentAction = null;
 		}
 		if(hasAction())
-			Log.debug("Triggerboi", actions, stop);
+			Log.debug("Triggerboi", this, actions, stop);
 		if(!Tenebrae.doneLoading || delay != 0 || !stop){
 			//Log.debug("..But nobody came.");
 			return;
@@ -396,6 +407,9 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	}
 	public boolean hasAction(){
 		return !actions.isEmpty();
+	}
+	public boolean hasAnyAction(){
+		return currentAction != null || hasAction();
 	}
 	public Action getAction(){
 		return actions.get(0);

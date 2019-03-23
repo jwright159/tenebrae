@@ -31,7 +31,7 @@ public class Player extends Character{
 	private Table uiTable;
 	public String trueName;
 	public Rectangle activeDeadzone;
-	private Array<RectangleMapObject> ptriggers;
+	private MapObjects ptriggers;
 	public Vector3 lastCameraPos;
 	private static Rectangle dzRect, bigdzRect;
 	public Table table;
@@ -40,7 +40,6 @@ public class Player extends Character{
 		super("player");
 		Log.verbose("Making Player");
 		getGlobals().load(new PlayerLib());
-		ptriggers = new Array<RectangleMapObject>();
 		lastCameraPos = new Vector3();
 
 		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = Tenebrae.t.getSkin();
@@ -160,25 +159,6 @@ public class Player extends Character{
 		Log.debug("SetName", name, box.name.getText());
 	}
 
-	@Override
-	public void move(float newX, float newY, float speed, boolean relative){
-		//if(Tenebrae.fight != null)
-		//	Tenebrae.fight.sprite.moveBy(newX, newY);
-		//else
-		super.move(newX, newY, speed, relative);
-	}
-
-	public static RectangleMapObject copy(RectangleMapObject o){
-		RectangleMapObject r = new RectangleMapObject();
-		r.setColor(o.getColor());
-		r.setName(o.getName());
-		r.setOpacity(o.getOpacity());
-		r.setVisible(o.isVisible());
-		r.getRectangle().set(o.getRectangle());
-		r.getProperties().putAll(o.getProperties());
-		return r;
-	}
-
 	public boolean isColliding(){
 		for(int i = (int)x; i <= x + width; i++)
 			for(int j = (int)y; j <= y + height; j++)
@@ -211,6 +191,8 @@ public class Player extends Character{
 	}
 	public MapObjects getCollidingTriggerObjects(){
 		MapObjects rtn = map.getCollidingTriggerObjects(toTilePixRect());
+		for(MapObject obj : getCollidingNPCTriggerObjects("onTrigger"))
+			rtn.add(obj);
 		//Log.debug("Requesting triggers! " + rtn.getCount());
 		return rtn;
 	}
@@ -223,33 +205,25 @@ public class Player extends Character{
 	}
 	public MapObjects getCollidingNPCTriggerObjects(String prop){
 		MapObjects rtn = new MapObjects();
-		Rectangle player = new Rectangle(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		for(NPC npc : Tenebrae.mp.npcs){
-			MapObjects objs = npc.tile.get(0).getObjects();
+			MapObjects objs = npc.getRectObjects();
 			for(MapObject obj : objs){
 				if(obj.getProperties().get(prop, "", String.class).isEmpty())
 					continue;
 				Log.verbose2("NPC trigger", npc, npc.tile.get(0).getId(), objs.getCount(), obj);
-				if(obj != null){
-					RectangleMapObject r = copy((RectangleMapObject)obj);
-					Log.verbose2("NPC Raw", r.getRectangle());
-					r.getRectangle().setPosition(npc.x * map.tileWidth + r.getRectangle().getX(), npc.y * map.tileHeight + r.getRectangle().getY());
-					Log.verbose2("NPC Scaled", r.getRectangle());
-					Log.verbose2("NPC Player", player);
-					r.getProperties().put("__npc", npc);
-					if(r.getRectangle().overlaps(player))
-						rtn.add(r);
-				}
+				RectangleMapObject r = (RectangleMapObject)obj;
+				Log.verbose2("NPC Rect", r.getRectangle());
+				Log.verbose2("NPC Player", toTilePixRect());
+				r.getProperties().put("__npc", npc);
+				if(r.getRectangle().overlaps(toTilePixRect()))
+					rtn.add(r);
 			}
 		}
 		return rtn;
 	}
 	public RectangleMapObject getBestTrigger(){
 		MapObjects objs = getCollidingTriggerObjects();
-		for(MapObject obj : getCollidingNPCTriggerObjects("onTrigger"))
-			objs.add(obj);
 		RectangleMapObject rtn = null;
-		Rectangle player = new Rectangle(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
 		float best = 0;
 		Rectangle inter = new Rectangle();
 
@@ -259,8 +233,8 @@ public class Player extends Character{
 			boolean disabled = obj.getProperties().get("disabled", false, Boolean.class);
 			Rectangle rect = obj.getRectangle();
 			Log.verbose("Obj", rect);
-			Log.verbose("Player", player);
-			Intersector.intersectRectangles(rect, player, inter);
+			Log.verbose("Player", toTilePixRect());
+			Intersector.intersectRectangles(rect, toTilePixRect(), inter);
 			Log.verbose("Intersect", inter);
 			//Log.verbose("Intersecting triggers! " + obj.getName() + " " + rect + " " + player + " " + inter + " " + disabled);
 			//rect.set(rect.getX() * map.tilebasewidth, rect.getY() * map.tilebaseheight, rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
@@ -545,7 +519,7 @@ public class Player extends Character{
 
 	@Override
 	public void act(float delta){
-		boolean moved = targetX != -1 || targetY != -1;
+		boolean moved = targetX != -1 || targetY != -1; // back here bc triggerAction() kills them
 		super.act(delta);
 
 		if(dzRect == null){
@@ -574,13 +548,11 @@ public class Player extends Character{
 			 }
 			 }*/
 
-			MapObjects triggersInMapObj = getCollidingEnteranceObjects();
-			Array<RectangleMapObject> triggersIn = new Array<RectangleMapObject>();
-			for(RectangleMapObject obj : triggersInMapObj)
-				triggersIn.add(obj);
+			MapObjects triggersIn = getCollidingEnteranceObjects();
+			Log.verbose2("In:", triggersIn.getCount() == 0 ? 0 : triggersIn.get(0), "Out:", ptriggers == null ? null : ptriggers.getCount() == 0 ? 0 : ptriggers.get(0));
 			for(RectangleMapObject obj : triggersIn){
-				Log.verbose2("Found an enter/exit object inside! " + obj.getName());
-				if(!ptriggers.contains(obj, true) && !obj.getProperties().get("onEnter", "", String.class).isEmpty()){
+				Log.verbose2("Found an enter/exit object inside!", obj.getName());
+				if((ptriggers == null || ptriggers.getIndex(obj) == -1) && !obj.getProperties().get("onEnter", "", String.class).isEmpty()){
 					Log.verbose2("It was an enter object!");
 					LuaValue call;
 					if(obj.getProperties().containsKey("__npc"))
@@ -591,16 +563,16 @@ public class Player extends Character{
 						call.call();
 				}
 			}
-			if(!firstFrame)
+			if(!firstFrame && ptriggers != null)
 				for(RectangleMapObject obj : ptriggers){
-					Log.verbose2("Found an enter/exit object outside! " + obj.getName());
-					if(!triggersIn.contains(obj, true) && !obj.getProperties().get("onExit", "", String.class).isEmpty()){
+					Log.verbose2("Found an enter/exit object outside!", obj.getName());
+					if(triggersIn.getIndex(obj) == -1 && !obj.getProperties().get("onExit", "", String.class).isEmpty()){
 						Log.verbose2("It was an exit object!");
 						LuaValue call;
 						if(obj.getProperties().containsKey("__npc"))
-							call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onEnter", String.class));
+							call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onExit", String.class));
 						else
-							call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onEnter", String.class));
+							call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onExit", String.class));
 						if(!call.isnil())
 							call.call();
 					}

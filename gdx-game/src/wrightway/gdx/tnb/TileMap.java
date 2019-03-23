@@ -77,13 +77,13 @@ public class TileMap extends WActor{
 					Tenebrae.player.draw(getBatch(), 1);
 			}
 			/*@Override
-			public void renderTileLayer(TiledMapTileLayer layer){
-				super.renderTileLayer(layer);
-				Array<Character> npcs = this.npcs.get(layer);
-				if(npcs != null)
-					for(Character npc : npcs)
-						npc.draw(getBatch(), 1);
-			}*/
+			 public void renderTileLayer(TiledMapTileLayer layer){
+			 super.renderTileLayer(layer);
+			 Array<Character> npcs = this.npcs.get(layer);
+			 if(npcs != null)
+			 for(Character npc : npcs)
+			 npc.draw(getBatch(), 1);
+			 }*/
 		};
 		hasNpcObj = getObject("npcs") != null;
 
@@ -94,13 +94,13 @@ public class TileMap extends WActor{
 					tilelayer.getCell(i, j).setFlipVertically(true);
 					tilelayer.getCell(i, j).setFlipHorizontally(true);
 				}
-				Log.verbose2("Found tile! "+t+" "+i+" "+j);
+				//Log.verbose2("Found tile! "+t+" "+i+" "+j);
 			}
 		}
 
 		for(TiledMapTileSet tileset : map.getTileSets())
 			Log.verbose2("Found tileset! " + tileset.getName());
-		
+
 		trigScriptFile.call();
 
 		//Tenebrar.debug("Map made! "+toString());
@@ -121,42 +121,59 @@ public class TileMap extends WActor{
 		for(MapObject obj : cell.getTile().getObjects())
 			if(obj instanceof RectangleMapObject){
 				RectangleMapObject robj = (RectangleMapObject)obj;
-				Rectangle r = robj.getRectangle();
-				RectangleMapObject robj2 = Player.copy(robj);
-				relateRectMapObjToMap(robj, robj2, x, y);
-				rtn.add(robj2);
-				Log.verbose2("Found collision object! " + r);
+				relateRectMapObjToMap(robj, x, y);
+				rtn.add(robj);
+				Log.verbose2("Found collision object!", robj.getRectangle());
 			}
 		return rtn;
 	}
-	public void relateRectMapObjToMap(RectangleMapObject from, RectangleMapObject to, int x, int y){
-		Rectangle r = from.getRectangle();
-		to.getRectangle().set(x + r.getX() / tileWidth, y + r.getY() / tileHeight, r.getWidth() / tileWidth, r.getHeight() / tileHeight);
+	/*public static RectangleMapObject copy(RectangleMapObject o){ // Bad flex
+	 RectangleMapObject r = new RectangleMapObject();
+	 r.setColor(o.getColor());
+	 r.setName(o.getName());
+	 r.setOpacity(o.getOpacity());
+	 r.setVisible(o.isVisible());
+	 r.getRectangle().set(o.getRectangle());
+	 r.getProperties().putAll(o.getProperties());
+	 return r;
+	 }*/
+	public void relateRectMapObjToMap(RectangleMapObject obj, float x, float y){
+		Rectangle r = obj.getRectangle();
+		if(!obj.getProperties().containsKey("__x")){
+			obj.getProperties().put("__x", r.getX());
+			obj.getProperties().put("__y", r.getY());
+		}
+		if(!obj.getProperties().containsKey("__w")){
+			obj.getProperties().put("__w", r.getWidth());
+			obj.getProperties().put("__h", r.getHeight());
+		}
+		r.set(x + obj.getProperties().get("__x", Float.class) / tileWidth, y + obj.getProperties().get("__y", Float.class) / tileHeight, obj.getProperties().get("__w", Float.class) / tileWidth, obj.getProperties().get("__h", Float.class) / tileHeight);
+	}
+	public void relateRectMapObjToMapPix(RectangleMapObject obj, float x, float y){
+		if(!obj.getProperties().containsKey("__x")){
+			obj.getProperties().put("__x", obj.getRectangle().getX());
+			obj.getProperties().put("__y", obj.getRectangle().getY());
+		}
+		obj.getRectangle().setPosition(x * tileWidth + obj.getProperties().get("__x", Float.class), y * tileHeight + obj.getProperties().get("__y", Float.class));
 	}
 	public MapObjects getCollidingTriggerObjects(Rectangle player){
-		//Tenebrae.debug("Getting colliding trigger objects! "+player);
+		Log.verbose2("Getting colliding trigger objects!", player);
 		MapObjects objs = new MapObjects();
 		MapObjects trigs = getTriggerObjects();
 		for(RectangleMapObject obj : trigs){
-			//Tenebrae.debug("Test colliding triggers! "+obj.getName()+" "+obj.getRectangle());
-			if(obj.getRectangle().overlaps(player)){
+			Log.verbose2("Test colliding triggers!", obj, obj.getName(), obj.getRectangle());
+			if(obj.getRectangle().overlaps(player))
 				objs.add(obj);
-			}
 		}
 		return objs;
 	}
 	public MapObjects getTriggerObjects(){
 		MapObjects objs = new MapObjects();
-		for(MapLayer layer : map.getLayers()){
-			for(MapObject obj : layer.getObjects()){
-				if(obj instanceof RectangleMapObject){
-					//RectangleMapObject rob = (RectangleMapObject)obj;
-					if(!obj.getProperties().get("onTrigger", "", String.class).isEmpty()){
+		for(MapLayer layer : map.getLayers())
+			for(MapObject obj : layer.getObjects())
+				if(obj instanceof RectangleMapObject)
+					if(!obj.getProperties().get("onTrigger", "", String.class).isEmpty())
 						objs.add(obj);
-					}
-				}
-			}
-		}
 		return objs;
 	}
 	public MapObjects getCollidingEnteranceObjects(Rectangle player){
@@ -165,24 +182,18 @@ public class TileMap extends WActor{
 		MapObjects trigs = getEnteranceObjects();
 		for(RectangleMapObject obj : trigs){
 			//Tenebrae.debug("Test colliding enters! "+obj.getName()+" "+obj.getRectangle());
-			if(obj.getRectangle().overlaps(player)){
+			if(obj.getRectangle().overlaps(player))
 				objs.add(obj);
-			}
 		}
 		return objs;
 	}
 	public MapObjects getEnteranceObjects(){
 		MapObjects objs = new MapObjects();
-		for(MapLayer layer : map.getLayers()){
-			for(MapObject obj : layer.getObjects()){
-				if(obj instanceof RectangleMapObject){
-					//RectangleMapObject rob = (RectangleMapObject)obj;
-					if(!obj.getProperties().get("onEnter", "", String.class).isEmpty() || !obj.getProperties().get("onExit", "", String.class).isEmpty()){
+		for(MapLayer layer : map.getLayers())
+			for(MapObject obj : layer.getObjects())
+				if(obj instanceof RectangleMapObject)
+					if(!obj.getProperties().get("onEnter", "", String.class).isEmpty() || !obj.getProperties().get("onExit", "", String.class).isEmpty())
 						objs.add(obj);
-					}
-				}
-			}
-		}
 		return objs;
 	}
 	public Cell getCell(int x, int y){
@@ -207,7 +218,7 @@ public class TileMap extends WActor{
 		for(String line : tileenemies){
 			line = line.trim();
 			String[] parts = line.split(",");
-			Log.debug("Finding enemy on tile! "+line+" "+parts[0]);
+			Log.debug("Finding enemy on tile! " + line + " " + parts[0]);
 			enemap.put(parts[0], Float.parseFloat(parts[1]));
 		}
 		if(enemap.size == 0)
@@ -280,7 +291,7 @@ public class TileMap extends WActor{
 	public String toString(){
 		return super.toString() + "§" + filename + "{" + filepath + ", " + width + "x" + height + "}";
 	}
-	
+
 	public static class WOrthogonalTiledMapRenderer extends OrthogonalTiledMapRenderer{
 		public ArrayMap<TiledMapTileLayer,Array<Character>> npcs = new ArrayMap<TiledMapTileLayer,Array<Character>>();
 		public WOrthogonalTiledMapRenderer(TiledMap map, float scale){

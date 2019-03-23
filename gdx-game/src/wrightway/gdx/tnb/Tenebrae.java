@@ -24,7 +24,7 @@ public class Tenebrae extends WScreen{
 	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	public static final float margin = 30f;
 	public static boolean doneLoading = false;
-	public static final boolean tableDebug = true, showEmpty = false;
+	public static final boolean tableDebug = false, showEmpty = false;
 
 	public static Tenebrae t;
 	public static Player player;
@@ -93,7 +93,7 @@ public class Tenebrae extends WScreen{
 					}
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
-						if(doneLoading && player.buttonBox.getActiveBox() == null && !player.dialogBox.isVisible())
+						if(doneLoading && player.buttonBox.getActiveBox() == null && !player.hasAnyAction())
 							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true);
 						return true;
 					}
