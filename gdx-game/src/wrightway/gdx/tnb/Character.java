@@ -412,10 +412,16 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 			addAction(new FunctionAction(funcToRun));
 	}
 
-	Rectangle rectBuffer = new Rectangle();
+	private Rectangle tileRect = new Rectangle();
 	public Rectangle toTileRect(){
-		rectBuffer.set(x, y, width, height);
-		return rectBuffer;
+		tileRect.set(x, y, width, height);
+		return tileRect;
+	}
+	private Rectangle tilePixRect = new Rectangle();
+	public Rectangle toTilePixRect(){
+		TileMap map = Tenebrae.player.map;
+		tilePixRect.set(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
+		return tilePixRect;
 	}
 
 	@Override

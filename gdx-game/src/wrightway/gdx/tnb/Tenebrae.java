@@ -24,7 +24,7 @@ public class Tenebrae extends WScreen{
 	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	public static final float margin = 30f;
 	public static boolean doneLoading = false;
-	public static final boolean tableDebug = false, showEmpty = false;
+	public static final boolean tableDebug = true, showEmpty = false;
 
 	public static Tenebrae t;
 	public static Player player;

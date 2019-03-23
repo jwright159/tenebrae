@@ -113,30 +113,27 @@ public class TileMap extends WActor{
 				rtn.add(layer);
 		return rtn;
 	}
-	public MapObjects getCollisionObjects(float x, float y){
+	public MapObjects getCollisionObjects(int x, int y){
 		Cell cell = getCell(x, y);
 		if(cell == null || cell.getTile().getObjects().getCount() == 0)
 			return null;
 		MapObjects rtn = new MapObjects();
 		for(MapObject obj : cell.getTile().getObjects())
 			if(obj instanceof RectangleMapObject){
-				Rectangle r = ((RectangleMapObject)obj).getRectangle();
-				RectangleMapObject robj = Player.copy((RectangleMapObject)obj);
-				robj.getRectangle().set(relateRectMapObjToMap(obj, x, y));
-				rtn.add(robj);
+				RectangleMapObject robj = (RectangleMapObject)obj;
+				Rectangle r = robj.getRectangle();
+				RectangleMapObject robj2 = Player.copy(robj);
+				relateRectMapObjToMap(robj, robj2, x, y);
+				rtn.add(robj2);
 				Log.verbose2("Found collision object! " + r);
 			}
 		return rtn;
 	}
-	public Rectangle relateRectMapObjToMap(MapObject mapobj, float x, float y){
-		if(!(mapobj instanceof RectangleMapObject))
-			return null;
-		RectangleMapObject obj = (RectangleMapObject)mapobj;
-		Rectangle r = obj.getRectangle();
-		return new Rectangle((int)x + r.getX() / tileWidth, (int)y + r.getY() / tileHeight, r.getWidth() / tileWidth, r.getHeight() / tileHeight);
+	public void relateRectMapObjToMap(RectangleMapObject from, RectangleMapObject to, int x, int y){
+		Rectangle r = from.getRectangle();
+		to.getRectangle().set(x + r.getX() / tileWidth, y + r.getY() / tileHeight, r.getWidth() / tileWidth, r.getHeight() / tileHeight);
 	}
-	public MapObjects getCollidingTriggerObjects(float x, float y, float width, float height){
-		Rectangle player = new Rectangle(x, y, width, height);
+	public MapObjects getCollidingTriggerObjects(Rectangle player){
 		//Tenebrae.debug("Getting colliding trigger objects! "+player);
 		MapObjects objs = new MapObjects();
 		MapObjects trigs = getTriggerObjects();
@@ -162,8 +159,7 @@ public class TileMap extends WActor{
 		}
 		return objs;
 	}
-	public MapObjects getCollidingEnteranceObjects(float x, float y, float width, float height){
-		Rectangle player = new Rectangle(x, y, width, height);
+	public MapObjects getCollidingEnteranceObjects(Rectangle player){
 		//Tenebrae.debug("Getting colliding enterance objects! "+player);
 		MapObjects objs = new MapObjects();
 		MapObjects trigs = getEnteranceObjects();
@@ -189,18 +185,18 @@ public class TileMap extends WActor{
 		}
 		return objs;
 	}
-	public Cell getCell(float x, float y){
+	public Cell getCell(int x, int y){
 		MapLayers layers = getCollisionLayers();
 		int size = layers.getCount() - 1;
 		for(int i = size; i >= 0; i--){
 			//Tenebrae.debug("Layers for getting cells! "+i+" "+size);
 			TiledMapTileLayer layer = ((TiledMapTileLayer)layers.get(i));
-			if(layer.getCell((int)x, (int)y) != null)
-				return layer.getCell((int)x, (int)y);
+			if(layer.getCell(x, y) != null)
+				return layer.getCell(x, y);
 		}
 		return null;
 	}
-	public Enemy getTileEnemy(float x, float y){
+	public Enemy getTileEnemy(int x, int y){
 		//return enemies.getValueAt(0);
 		TiledMapTile tile = getCell(x, y).getTile();
 		String eneprop = tile.getProperties().get("enemies", "", String.class);

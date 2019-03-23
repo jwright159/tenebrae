@@ -186,7 +186,7 @@ public class Player extends Character{
 					return true;
 		return false;
 	}
-	public boolean isColliding(float tilex, float tiley){
+	public boolean isColliding(int tilex, int tiley){
 		MapObjects objs = map.getCollisionObjects(tilex, tiley);
 		if(objs != null){
 			for(RectangleMapObject obj : objs)
@@ -210,12 +210,12 @@ public class Player extends Character{
 		return new Vector2(rx, ry);
 	}
 	public MapObjects getCollidingTriggerObjects(){
-		MapObjects rtn = map.getCollidingTriggerObjects(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
+		MapObjects rtn = map.getCollidingTriggerObjects(toTilePixRect());
 		//Log.debug("Requesting triggers! " + rtn.getCount());
 		return rtn;
 	}
 	public MapObjects getCollidingEnteranceObjects(){
-		MapObjects rtn = map.getCollidingEnteranceObjects(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
+		MapObjects rtn = map.getCollidingEnteranceObjects(toTilePixRect());
 		for(MapObject obj : getCollidingNPCTriggerObjects("onEnter"))
 			rtn.add(obj);
 		//Log.debug("Requesting enters! " + rtn.getCount());
