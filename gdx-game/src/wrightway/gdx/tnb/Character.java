@@ -71,12 +71,13 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		}
 		rect = new Rectangle(oRect.getX() / map.tileWidth, oRect.getY() / map.tileHeight, oRect.getWidth() / map.tileWidth, oRect.getHeight() / map.tileHeight);
 
-		Log.debug("Changing map!", this, spawnx, spawny, rect);
+		Log.debug("Changing map!", this, spawnx, spawny, rect, currentAction);
 		if(spawnx == -1 || spawny == -1){//for spawnpoint
 			x = rect.getX(); y = rect.getY();
 		}else{//for doors and things
 			x = spawnx; y = spawny;
 		}
+		currentAction = null;
 
 		width = rect.getWidth(); height = rect.getHeight();
 		setSize(width * map.tileWidth, height * map.tileHeight);
@@ -86,6 +87,9 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	public void move(float newX, float newY, float speed, boolean relative){
 		addAction(new Action.MoveAction(this, newX, newY, speed, relative, false));
 		triggerAction();
+	}
+	public boolean hasTarget(){
+		return targetX != -1 || targetY != -1;
 	}
 
 	public float calcDamage(Character enemy, boolean magic){
@@ -288,10 +292,10 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
-			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
+			Log.verbose2("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
 			//if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 			//	map.cover();
-			if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts
+			if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts // interesting, because they  w e r e n ' t  and I just fixed it
 				return;
 			else
 				triggerAction();
@@ -458,7 +462,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		doMovement();
 	}
 	public void doMovement(){
-		if(targetX != -1 || targetY != -1){
+		if(hasTarget()){
 			float adx = (targetX - x) / Player.actstep, ady = (targetY - y) / Player.actstep;
 			targetX = targetY = -1;
 			float ppx = x, ppy = y;

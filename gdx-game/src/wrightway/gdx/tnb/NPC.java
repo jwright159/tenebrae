@@ -16,7 +16,7 @@ public class NPC extends Character{
 	public static final Prototype setup;
 	static{
 		try{
-			setup = Tenebrae.globals.compilePrototype(new StringReader("function setup(x, y, trigger_, enter_, exit_, idleRoutine) \n moveTo(x, y, 0) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n if idleRoutine then setIdleRoutine(idleRoutine) end \n end"), "setup"); // x, y, trigger, enter, exit, idleRoutine
+			setup = Tenebrae.globals.compilePrototype(new StringReader("function setupMap(trigger_, enter_, exit_, idleRoutine) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n setIdleRoutine(idleRoutine) \n end"), "setup");
 		}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 	}
 
@@ -26,12 +26,13 @@ public class NPC extends Character{
 		new LuaClosure(script, getGlobals()).call();
 		hp = maxhp();
 		mp = maxmp();
+		idleRoutine = new Array<FunctionAction>();
 		//box.updateHP(this);
 	}
 
 	@Override
 	public boolean doDefaultAction(){
-		if(idleRoutine == null || idleRoutine.isEmpty())
+		if(idleRoutine.isEmpty() || hasTarget())
 			return false;
 		FunctionAction a;
 		addAction(a = idleRoutine.removeIndex(0));
@@ -59,15 +60,16 @@ public class NPC extends Character{
 			library.set("setIdleRoutine", new OneArgFunction(){
 							@Override
 							public LuaValue call(LuaValue routine){
-								idleRoutine = new Array<FunctionAction>();
+								idleRoutine.clear();
 								LuaValue k = LuaValue.NIL;
-								while(true){
+								while(!routine.isnil()){
 									Varargs en = routine.checktable().next(k);
 									if((k = en.arg1()).isnil())
 										break;
 									LuaValue v = en.arg(2);
 									idleRoutine.add(new FunctionAction(v.checkfunction()));
 								}
+								Log.debug("Set idle routine", idleRoutine);
 								return NONE;
 							}
 						});

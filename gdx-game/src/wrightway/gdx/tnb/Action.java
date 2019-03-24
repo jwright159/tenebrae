@@ -175,5 +175,9 @@ public abstract class Action implements Runnable{
 			done = chara.delay == 0;
 			return false;
 		}
+		@Override
+		public String toString(){
+			return super.toString()+"§"+x+","+y;
+		}
 	}
 }

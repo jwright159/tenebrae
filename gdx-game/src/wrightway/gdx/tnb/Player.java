@@ -290,7 +290,7 @@ public class Player extends Character{
 		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
-			Log.verbose2("Current action!", currentAction, delay, currentAction.manualOverride);
+			Log.verbose2("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
 			if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 				;//map.cover();
 			else if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts
@@ -519,7 +519,7 @@ public class Player extends Character{
 
 	@Override
 	public void act(float delta){
-		boolean moved = targetX != -1 || targetY != -1; // back here bc triggerAction() kills them
+		boolean moved = hasTarget(); // back here bc triggerAction() kills them and moves us
 		super.act(delta);
 
 		if(dzRect == null){
@@ -586,7 +586,7 @@ public class Player extends Character{
 	}
 	@Override
 	public void doMovement(){
-		if(targetX != -1 || targetY != -1){
+		if(hasTarget()){
 			float adx = (targetX - x) / actstep, ady = (targetY - y) / actstep;
 			targetX = targetY = -1;
 			float ppx = x, ppy = y;
