@@ -490,7 +490,7 @@ public class Player extends Character{
 	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle();
 	public void moveCamera(boolean force){
 		//Log.debug("Moving camera! currentAction", currentAction);
-		if(!force && currentAction != null)
+		if(!force && !firstFrame && currentAction != null)
 			return;
 
 		OrthographicCamera cam = Tenebrae.t.getCamera();
