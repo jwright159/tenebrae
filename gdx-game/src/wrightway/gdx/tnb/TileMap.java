@@ -16,11 +16,12 @@ import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import org.luaj.vm2.*;
+import java.util.*;
 
 public class TileMap extends WActor{
 	String filepath,filename;
 	TiledMap map;
-	WOrthogonalTiledMapRenderer maprenderer;
+	OrthogonalTiledMapRenderer maprenderer;
 	float tileWidth, tileHeight;
 	int width, height;
 	boolean hasNpcObj;
@@ -36,27 +37,26 @@ public class TileMap extends WActor{
 		map = new TmxMapLoader(new ExternalFileHandleResolver()).load(filepath, params);
 		//Tenebrae.debug("Making map! "+file.nameWithoutExtension());
 
-		Rectangle pRect = null;
-		for(MapLayer layer : map.getLayers()){
-			Log.verbose2("Layer found! " + layer.getName() + " " + layer instanceof TiledMapTileLayer);
-			//for(MapObject obj : layer.getObjects())
-			//Tenebrae.debug("Object found! "+obj.getName()+" "+obj.getProperties().get("gid"));
+		/*Rectangle pRect = null;
+		 for(MapLayer layer : map.getLayers()){
+		 Log.verbose2("Layer found! " + layer.getName() + " " + layer instanceof TiledMapTileLayer);
+		 //for(MapObject obj : layer.getObjects())
+		 //Tenebrae.debug("Object found! "+obj.getName()+" "+obj.getProperties().get("gid"));
 
-			for(MapObject obj : layer.getObjects()){
-				if(obj.getName().equals("player")){
-					if(obj instanceof RectangleMapObject){
-						RectangleMapObject player = (RectangleMapObject)obj;
-						pRect = player.getRectangle();
-					}else if(obj instanceof TiledMapTileMapObject){
-						TiledMapTileMapObject player = (TiledMapTileMapObject)obj;
-						pRect = new Rectangle(player.getX(), player.getY(), player.getTextureRegion().getRegionWidth() * player.getScaleX(), player.getTextureRegion().getRegionHeight() * player.getScaleY());
-					}
-				}
-			}
-		}
-		//Tenebrae.debug(pRect.toString());
+		 for(MapObject obj : layer.getObjects()){
+		 if(obj.getName().equals("player")){
+		 if(obj instanceof RectangleMapObject){
+		 RectangleMapObject player = (RectangleMapObject)obj;
+		 pRect = player.getRectangle();
+		 }else if(obj instanceof TiledMapTileMapObject){
+		 TiledMapTileMapObject player = (TiledMapTileMapObject)obj;
+		 pRect = new Rectangle(player.getX(), player.getY(), player.getTextureRegion().getRegionWidth() * player.getScaleX(), player.getTextureRegion().getRegionHeight() * player.getScaleY());
+		 }
+		 }
+		 }
+		 }
+		 //Tenebrae.debug(pRect.toString());*/
 
-		//mapRect must stay same size for this code to work not in orient() (bc of scale in constructor)
 		TiledMapTileLayer tilelayer = (TiledMapTileLayer)getCollisionLayers().get(0);
 		tileWidth = tilelayer.getTileWidth();
 		tileHeight = tilelayer.getTileHeight();
@@ -67,23 +67,15 @@ public class TileMap extends WActor{
 		setSize(width * tileWidth, height * tileHeight);
 
 		//final WRect objRenderer = new WRect(new Rectangle(), Color.WHITE, Color.BLACK, 1);
-		maprenderer = new WOrthogonalTiledMapRenderer(map, 1){
+		maprenderer = new OrthogonalTiledMapRenderer(map, 1){
 			@Override
-			public void renderObject(MapObject object){
-				for(NPC npc : Tenebrae.mp.npcs)
-					if(object == npc.mapobj && hasOnMap(npc))
-						npc.draw(getBatch(), 1);
-				if(object.getName().equals("player"))
-					Tenebrae.player.draw(getBatch(), 1);
+			public void renderObjects(MapLayer layer){
+				Tenebrae.mp.charas.sort();
+				for(Character c : Tenebrae.mp.charas)
+					for(MapObject o : layer.getObjects())
+						if(o == c.mapobj && hasOnMap(c))
+							c.draw(getBatch(), 1);
 			}
-			/*@Override
-			 public void renderTileLayer(TiledMapTileLayer layer){
-			 super.renderTileLayer(layer);
-			 Array<Character> npcs = this.npcs.get(layer);
-			 if(npcs != null)
-			 for(Character npc : npcs)
-			 npc.draw(getBatch(), 1);
-			 }*/
 		};
 		hasNpcObj = getObject("npcs") != null;
 
@@ -264,8 +256,8 @@ public class TileMap extends WActor{
 		boolean changed = false;
 		if(i < getZIndex())
 			changed = super.setZIndex(i);
-		for(NPC npc : Tenebrae.mp.npcs)
-			npc.setZIndex(i);
+		for(Character c : Tenebrae.mp.charas)
+			c.setZIndex(i);
 		if(i >= getZIndex())
 			changed = super.setZIndex(i);
 		return changed;
@@ -290,12 +282,5 @@ public class TileMap extends WActor{
 	@Override
 	public String toString(){
 		return super.toString() + "§" + filename + "{" + filepath + ", " + width + "x" + height + "}";
-	}
-
-	public static class WOrthogonalTiledMapRenderer extends OrthogonalTiledMapRenderer{
-		public ArrayMap<TiledMapTileLayer,Array<Character>> npcs = new ArrayMap<TiledMapTileLayer,Array<Character>>();
-		public WOrthogonalTiledMapRenderer(TiledMap map, float scale){
-			super(map, scale);
-		}
 	}
 }

@@ -57,10 +57,8 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 		Rectangle rect, oRect = null;
 		mapobj = map.getObject(filename);
 		if(mapobj == null)
-			mapobj = map.getObject("npcs");
-		if(mapobj == null)
-			mapobj = map.getObject("player");
-		if(mapobj instanceof RectangleMapObject){
+			oRect = new Rectangle(-map.tileWidth, -map.tileHeight, map.tileWidth, map.tileHeight);
+		else if(mapobj instanceof RectangleMapObject){
 			RectangleMapObject obj = (RectangleMapObject)mapobj;
 			oRect = obj.getRectangle();
 			//Log.debug("Entity is a rectangle! "+pRect);

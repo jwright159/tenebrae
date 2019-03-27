@@ -41,11 +41,12 @@ public class Player extends Character{
 		Log.verbose("Making Player");
 		getGlobals().load(new PlayerLib());
 		lastCameraPos = new Vector3();
+		Tenebrae.mp.charas.add(this);
 
 		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = Tenebrae.t.getSkin();
 		table = Tenebrae.t.getTable();
 		table.setDebug(Tenebrae.tableDebug);
-		
+
 		Stack stack = new Stack();
 		Container<Table> uiRect = new Container<Table>();
 		uiTable = new Table(skin);
@@ -58,7 +59,7 @@ public class Player extends Character{
 		stack.add(dialogTable);
 		dialogTable.setFillParent(true);
 		table.add(stack).grow();
-		
+
 		Table buttonPane = new Table(skin);
 		buttonPane.setDebug(Tenebrae.tableDebug);
 		buttonPane.background("window");
@@ -80,10 +81,10 @@ public class Player extends Character{
 		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.margin).grow();
 		uiTable.add(playerPane).padLeft(Tenebrae.margin).grow().uniform();
 
-		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.margin*5, 0, Tenebrae.margin*5).expandX().fill().height(Tenebrae.margin * 2);
+		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.margin * 5, 0, Tenebrae.margin * 5).expandX().fill().height(Tenebrae.margin * 2);
 		dialogTable.row();
 		dialogTable.add().grow();
-		
+
 		final Table dialogBoxBox = new Table(skin);
 		dialogBox = new Label("", skin, "dialog"){
 			@Override
@@ -106,19 +107,19 @@ public class Player extends Character{
 		dialogBoxBox.add(dialogBox).pad(Tenebrae.margin).grow();
 		dialogTable.row();
 		dialogTable.add(dialogBoxBox).pad(Tenebrae.margin).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
-		
+
 		/*Table zoomt = new Table();
-		Tenebrae.t.getUiStage().addActor(zoomt);
-		zoomt.setFillParent(true);
-		zoomt.setDebug(true);
-		for(int i = 0; i < 12; i++){
-			for(int j = 0; j < 16; j++)
-				zoomt.add().grow();
-			zoomt.row();
-		}
-		((OrthographicCamera)Tenebrae.t.getUiStage().getCamera()).zoom = 0.25f;*/
+		 Tenebrae.t.getUiStage().addActor(zoomt);
+		 zoomt.setFillParent(true);
+		 zoomt.setDebug(true);
+		 for(int i = 0; i < 12; i++){
+		 for(int j = 0; j < 16; j++)
+		 zoomt.add().grow();
+		 zoomt.row();
+		 }
+		 ((OrthographicCamera)Tenebrae.t.getUiStage().getCamera()).zoom = 0.25f;*/
 		// What have we learned? zoom=1/4 means width and height are 1/4th
-		
+
 		table.validate();
 
 		statTable = new ArrayMap<Float, ArrayMap<Stats, Float>>();
@@ -141,10 +142,11 @@ public class Player extends Character{
 		}
 		this.map = map;
 		Tenebrae.t.getStage().addActor(map);
-		
+
 		super.changeMap(map, spawnx, spawny);
-		for(NPC npc : Tenebrae.mp.npcs)
-			npc.changeMap(map, -1, -1);
+		for(Character c : Tenebrae.mp.charas)
+			if(c != this)
+				c.changeMap(map, -1, -1);
 
 		setExpanded(isExpanded());
 
@@ -205,20 +207,21 @@ public class Player extends Character{
 	}
 	public MapObjects getCollidingNPCTriggerObjects(String prop){
 		MapObjects rtn = new MapObjects();
-		for(NPC npc : Tenebrae.mp.npcs){
-			MapObjects objs = npc.getRectObjects();
-			for(MapObject obj : objs){
-				if(obj.getProperties().get(prop, "", String.class).isEmpty())
-					continue;
-				Log.verbose2("NPC trigger", npc, npc.tile.get(0).getId(), objs.getCount(), obj);
-				RectangleMapObject r = (RectangleMapObject)obj;
-				Log.verbose2("NPC Rect", r.getRectangle());
-				Log.verbose2("NPC Player", toTilePixRect());
-				r.getProperties().put("__npc", npc);
-				if(r.getRectangle().overlaps(toTilePixRect()))
-					rtn.add(r);
+		for(Character c : Tenebrae.mp.charas)
+			if(c != this){
+				MapObjects objs = c.getRectObjects();
+				for(MapObject obj : objs){
+					if(obj.getProperties().get(prop, "", String.class).isEmpty())
+						continue;
+					Log.verbose2("NPC trigger", c, c.tile.get(0).getId(), objs.getCount(), obj);
+					RectangleMapObject r = (RectangleMapObject)obj;
+					Log.verbose2("NPC Rect", r.getRectangle());
+					Log.verbose2("NPC Player", toTilePixRect());
+					r.getProperties().put("__npc", c);
+					if(r.getRectangle().overlaps(toTilePixRect()))
+						rtn.add(r);
+				}
 			}
-		}
 		return rtn;
 	}
 	public RectangleMapObject getBestTrigger(){

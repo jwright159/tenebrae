@@ -77,9 +77,9 @@ public class NPC extends Character{
 							@Override
 							public LuaValue call(){
 								enabled = true;
-								boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
+								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
 								if(!had)
-									Tenebrae.mp.npcs.add(NPC.this);
+									Tenebrae.mp.charas.add(NPC.this);
 								return valueOf(!had);
 							}
 						});
@@ -87,9 +87,9 @@ public class NPC extends Character{
 							@Override
 							public LuaValue call(){
 								enabled = false;
-								boolean had = Tenebrae.mp.npcs.contains(NPC.this, true);
+								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
 								if(had)
-									return valueOf(Tenebrae.mp.npcs.removeValue(NPC.this, true));
+									return valueOf(Tenebrae.mp.charas.removeValue(NPC.this, true));
 								return valueOf(had);
 							}
 						});

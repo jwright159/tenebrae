@@ -17,16 +17,30 @@ import com.leff.midi.util.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.*;
+import java.util.*;
+import com.badlogic.gdx.maps.objects.*;
+import com.badlogic.gdx.maps.tiled.objects.*;
 
 public class Mappack implements ScriptGlob{
 	public FileHandle folder;
 	public String name = "Mapppack lololol", description, startMap;
 	private Globals globals;
-	public Array<NPC> npcs;
+	public Array<Character> charas;
+	private static final Comparator<Character> charaComp = new Comparator<Character>(){
+		@Override
+		public int compare(Character p1, Character p2){
+			return p1.y > p2.y ? -1 : 1;
+		}
+	};
 
 	public Mappack(String folderpath){
 		folder = Gdx.files.external(folderpath);
-		npcs = new Array<NPC>();
+		charas = new Array<Character>(){
+			@Override
+			public void sort(){
+				sort(charaComp);
+			}
+		};
 		globals = new StdGlobals();
 		globals.load(new MappackLib());
 	}
@@ -62,7 +76,7 @@ public class Mappack implements ScriptGlob{
 	}
 	public NPC loadNPC(String name, Stage stage){
 		NPC npc = new NPC(name, Tenebrae.t.getProto(name));
-		npcs.add(npc);
+		charas.add(npc);
 		stage.addActor(npc);
 		if(Tenebrae.player.map != null)
 			npc.changeMap(Tenebrae.player.map, -1, -1);
