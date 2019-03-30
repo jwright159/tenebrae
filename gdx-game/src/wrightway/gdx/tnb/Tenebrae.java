@@ -16,13 +16,13 @@ import java.io.*;
 import com.badlogic.gdx.utils.viewport.*;
 
 public class Tenebrae extends WScreen{
-	public static final String PAKPATH = "WrightWay/Tenebrae/pak/";
+	public static final FileHandle PAKPATH = MainMenu.GAMEPATH.child("pak");
 
-	public static final float deadzone = 0.7f;//0.45f;//0 is at edge, 1 is at center
-	public static final float tiles = 7.5f;//number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
+	public static final float DEADZONE = 0.7f;//0.45f;//0 is at edge, 1 is at center
+	public static final float TILES = 7.5f;//number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
 
 	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-	public static final float margin = 30f;
+	public static final float MARGIN = 30f;
 	public static boolean doneLoading = false;
 	public static final boolean tableDebug = false, showEmpty = false;
 
@@ -35,8 +35,7 @@ public class Tenebrae extends WScreen{
 	public Tenebrae(){
 		doneLoading = false;
 		t = this;
-		Log.setVerbosity(Gdx.files.external(PAKPATH).child("v").readString());
-		Log.setLogFile(Gdx.files.external(PAKPATH).child("debug.log"));
+		Log.setLogFile(PAKPATH.child("debug.log"));
 
 		loadSkin();
 
@@ -152,7 +151,7 @@ public class Tenebrae extends WScreen{
 		getSkin().addRegions(ta1 = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas")));
 		getSkin().load(Gdx.files.internal("tnbskin.json"));
 
-		FileHandle folder = Gdx.files.external(PAKPATH).child("skin");
+		FileHandle folder = PAKPATH.child("skin");
 		FileHandle[] atlas = folder.list("atlas");
 		if(atlas.length > 0)
 			getSkin().addRegions(ta2 = new NineRegionTextureAtlas(atlas[0]));
@@ -196,8 +195,7 @@ public class Tenebrae extends WScreen{
 				Log.debug("Starting loading scripts!");
 				loadedScripts = false;
 				mp = new Mappack(PAKPATH);
-				FileHandle folder = Gdx.files.external(PAKPATH);
-				final FileHandle[] flist = folder.list("lua");
+				final FileHandle[] flist = PAKPATH.list("lua");
 				if(flist.length == 0)
 					throw new RuntimeException("no .lua files found");
 				if(loadbar == null){
@@ -210,7 +208,7 @@ public class Tenebrae extends WScreen{
 					title.setWrap(true);
 					title.setAlignment(Align.bottom);
 					splash.row();
-					splash.add(new Label("Loading scripts...", getSkin())).pad(margin * 0.25f).expandX();
+					splash.add(new Label("Loading scripts...", getSkin())).pad(MARGIN * 0.25f).expandX();
 					splash.row();
 					splash.add(loadbar = new EntityBox.TextBar("Loadin", 0, flist.length - 1, 1, false, getSkin())).size(500f, 100f).expand().top();
 				}

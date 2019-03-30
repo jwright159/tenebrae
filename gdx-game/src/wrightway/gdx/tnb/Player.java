@@ -52,7 +52,7 @@ public class Player extends Character{
 		uiTable = new Table(skin);
 		uiTable.setDebug(Tenebrae.tableDebug);
 		uiRect.setActor(uiTable);
-		uiRect.pad(Tenebrae.margin).fill();
+		uiRect.pad(Tenebrae.MARGIN).fill();
 		stack.add(uiRect);
 		Table dialogTable = new Table(skin);
 		dialogTable.setDebug(Tenebrae.tableDebug);
@@ -63,12 +63,12 @@ public class Player extends Character{
 		Table buttonPane = new Table(skin);
 		buttonPane.setDebug(Tenebrae.tableDebug);
 		buttonPane.background("window");
-		buttonPane.add(buttonBox = new ButtonBox(this, skin)).pad(Tenebrae.margin).grow();
+		buttonPane.add(buttonBox = new ButtonBox(this, skin)).pad(Tenebrae.MARGIN).grow();
 		uiTable.add(buttonPane).grow().uniform();
 
 		mapRect = new Container<Stack>().fill();
 		mapRect.setDebug(Tenebrae.tableDebug);
-		uiTable.add(mapRect).padLeft(Tenebrae.margin).growY().width(Value.percentHeight(1f, mapRect));
+		uiTable.add(mapRect).padLeft(Tenebrae.MARGIN).growY().width(Value.percentHeight(1f, mapRect));
 		Stack menuStack = new Stack();
 		mapRect.setActor(menuStack);
 		menuStack.setFillParent(true);
@@ -78,10 +78,10 @@ public class Player extends Character{
 		Table playerPane = new Table(skin);
 		playerPane.setDebug(Tenebrae.tableDebug);
 		playerPane.background("window");
-		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.margin).grow();
-		uiTable.add(playerPane).padLeft(Tenebrae.margin).grow().uniform();
+		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.MARGIN).grow();
+		uiTable.add(playerPane).padLeft(Tenebrae.MARGIN).grow().uniform();
 
-		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.margin * 5, 0, Tenebrae.margin * 5).expandX().fill().height(Tenebrae.margin * 2);
+		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.MARGIN * 5, 0, Tenebrae.MARGIN * 5).expandX().fill().height(Tenebrae.MARGIN * 2);
 		dialogTable.row();
 		dialogTable.add().grow();
 
@@ -104,9 +104,9 @@ public class Player extends Character{
 		dialogBox.setText(null);
 		dialogBoxBox.setDebug(Tenebrae.tableDebug);
 		dialogBoxBox.background("window");
-		dialogBoxBox.add(dialogBox).pad(Tenebrae.margin).grow();
+		dialogBoxBox.add(dialogBox).pad(Tenebrae.MARGIN).grow();
 		dialogTable.row();
-		dialogTable.add(dialogBoxBox).pad(Tenebrae.margin).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
+		dialogTable.add(dialogBoxBox).pad(Tenebrae.MARGIN).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
 
 		/*Table zoomt = new Table();
 		 Tenebrae.t.getUiStage().addActor(zoomt);
@@ -502,7 +502,7 @@ public class Player extends Character{
 		Log.verbose2("CamRect:", camRect, "Cam:", cam);
 
 		//float smolestWidth = Math.min(dz.width, dz.height);
-		float dzx = (dz.width / 2 - getTrueWidth() / 2) * Tenebrae.deadzone, dzy = (dz.height / 2 - getTrueHeight() / 2) * Tenebrae.deadzone;
+		float dzx = (dz.width / 2 - getTrueWidth() / 2) * Tenebrae.DEADZONE, dzy = (dz.height / 2 - getTrueHeight() / 2) * Tenebrae.DEADZONE;
 		dzr.set(dz.x + dzx, dz.y + dzy, dz.width - dzx * 2, dz.height - dzy * 2);
 		camRect.x = MathUtils.clamp(camRect.x, getX() + getTrueWidth()  - (dzr.x + dzr.width),  getX() - dzr.x);
 		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
@@ -532,9 +532,9 @@ public class Player extends Character{
 			bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
 			setExpanded(isExpanded());
-			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.tiles / dzRect.getHeight();
+			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
 			Tenebrae.t.updateZoom();
-			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.tiles, dzRect.getHeight());
+			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
 			moveCamera(true);
 		}
 

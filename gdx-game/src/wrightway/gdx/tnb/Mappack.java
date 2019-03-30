@@ -33,8 +33,8 @@ public class Mappack implements ScriptGlob{
 		}
 	};
 
-	public Mappack(String folderpath){
-		folder = Gdx.files.external(folderpath);
+	public Mappack(FileHandle folder){
+		this.folder = folder;
 		charas = new Array<Character>(){
 			@Override
 			public void sort(){

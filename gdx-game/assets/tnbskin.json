@@ -73,6 +73,28 @@ com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator: {
 		incremental: false
 		hinting: AutoSlight
 	}
+	title: {
+		font: 8bitoperator.ttf
+		size: 50
+		mono: false
+		color: white
+		gamma: 1
+		renderCount: 2
+		borderWidth: 0
+		borderColor: black
+		borderStraight: false
+		borderGamma: 1.7999999523162842
+		shadowOffsetX: 0
+		shadowOffsetY: 0
+		shadowColor: shadow
+		spaceX: 1
+		spaceY: 1
+		kerning: true
+		flip: false
+		genMipMaps: false
+		incremental: false
+		hinting: AutoSlight
+	}
 }
 BitmapFont: {
 	default-font: { file: default.fnt }
@@ -83,10 +105,12 @@ TintedDrawable: {
 ButtonStyle: {
 	default: { down: default-round-down, up: default-round, disabled: default-round-down },
 	toggle: { parent: default, checked: default-round-down }
+	disabled: { parent: default, up: default-round-down }
 },
 TextButtonStyle: {
-	default: { parent: default, font: default-font, fontColor: white },
+	default: { parent: default, font: default, fontColor: white },
 	toggle: { parent: default, checked: default-round-down, downFontColor: red }
+	disabled: { parent: disabled, font: default, fontColor: shadow }
 },
 ScrollPaneStyle: {
 	default: { vScroll: default-scroll, hScrollKnob: default-round-large, background: default-rect, hScroll: default-scroll, vScrollKnob: default-round-large }
@@ -115,9 +139,10 @@ SliderStyle: {
 	default-vertical: { parent: default-vertical }
 },
 LabelStyle: {
-	default: { font: default-font }
+	default: { font: default }
 	dialog: { font: dialog }
 	bar: { font: bar }
+	title: { font: title }
 },
 TextFieldStyle: {
 	default: { selection: selection, background: textfield, font: default-font, fontColor: white, cursor: cursor }

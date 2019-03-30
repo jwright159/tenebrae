@@ -31,7 +31,7 @@ public interface ScriptGlob{
 					try{
 						if(name.startsWith("assets/"))
 							return Gdx.files.internal(name.substring(name.indexOf('/') + 1)).read();
-						return Gdx.files.external(Tenebrae.PAKPATH).child(name).read();
+						return Tenebrae.PAKPATH.child(name).read();
 					}
 					catch(GdxRuntimeException e){return null;}
 				}

@@ -15,7 +15,7 @@ public class MainActivity extends AndroidApplication{
     @Override
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-
+		
 		/*try{
 		 Runtime.getRuntime().exec("logcat -c");
 		 }catch(IOException e){}*/

@@ -30,7 +30,7 @@ public class EntityBox extends Table{
 		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.getRegions()))).size(128, 128);
 		pic.row();
 		pic.add(name = new Label(parent.name, skin));
-		this.add(pic).pad(0, 0, vertical ? Tenebrae.margin : 0, vertical ? 0 : Tenebrae.margin);
+		this.add(pic).pad(0, 0, vertical ? Tenebrae.MARGIN : 0, vertical ? 0 : Tenebrae.MARGIN);
 		if(vertical) this.row();
 		bars = new Table(skin);
 		bars.setDebug(Tenebrae.tableDebug);
@@ -195,7 +195,7 @@ public class EntityBox extends Table{
 		public TextBar(String text, float min, float max, float step, boolean vertical, Skin skin){
 			setDebug(Tenebrae.tableDebug);
 			this.add(bar = new SizableProgressBar(min, max, step, vertical, skin));
-			this.add(new Container<Label>(this.text = new Label(text, skin, "bar")).padLeft(Tenebrae.margin / 2f).padRight(Tenebrae.margin / 2f).fill());
+			this.add(new Container<Label>(this.text = new Label(text, skin, "bar")).padLeft(Tenebrae.MARGIN / 2f).padRight(Tenebrae.MARGIN / 2f).fill());
 			this.text.setAlignment(Align.left);
 		}
 	}
@@ -309,10 +309,10 @@ public class EntityBox extends Table{
 			super.layout();
 			Drawable bg = getBackground();
 			text.setBounds(
-				bg.getLeftWidth()+Tenebrae.margin*0.5f,
-				bg.getBottomHeight()+Tenebrae.margin*0.25f,
-				getWidth()-bg.getLeftWidth()-bg.getRightWidth()-Tenebrae.margin,
-				getHeight()-bg.getBottomHeight()-bg.getTopHeight()-Tenebrae.margin*0.5f
+				bg.getLeftWidth()+Tenebrae.MARGIN*0.5f,
+				bg.getBottomHeight()+Tenebrae.MARGIN*0.25f,
+				getWidth()-bg.getLeftWidth()-bg.getRightWidth()-Tenebrae.MARGIN,
+				getHeight()-bg.getBottomHeight()-bg.getTopHeight()-Tenebrae.MARGIN*0.5f
 			);
 		}
 		@Override
@@ -444,10 +444,10 @@ public class EntityBox extends Table{
 					for(int k = 0; k < 2; k++){
 						MenuOption opt = list.get(i * itemsPerHeight * 2 + j * 2 + k);
 						final Cell c = page.add(opt).pad(
-							j == 0 ? Tenebrae.margin - bg.getTopHeight() : 0,
-							k == 0 ? Tenebrae.margin - bg.getLeftWidth() : 0,
-							Tenebrae.margin - (j == itemsPerHeight - 1 ? bg.getBottomHeight() : 0),
-							Tenebrae.margin - (k == 1 ? bg.getRightWidth() : 0)
+							j == 0 ? Tenebrae.MARGIN - bg.getTopHeight() : 0,
+							k == 0 ? Tenebrae.MARGIN - bg.getLeftWidth() : 0,
+							Tenebrae.MARGIN - (j == itemsPerHeight - 1 ? bg.getBottomHeight() : 0),
+							Tenebrae.MARGIN - (k == 1 ? bg.getRightWidth() : 0)
 						).grow();
 						/*c.width(new Value(){
 								@Override
@@ -631,7 +631,7 @@ public class EntityBox extends Table{
 			MenuBox itemsBox = new MenuBox("ItemsBox", skin);
 			items = new MenuOption("Items", itemsBox, Align.center, true, skin);
 			items.addListener(click);
-			this.add(items).padTop(Tenebrae.margin).grow();
+			this.add(items).padTop(Tenebrae.MARGIN).grow();
 		}
 		public static final Prototype killScript, healScript, tireScript, invigorScript;
 		static{
