@@ -33,6 +33,7 @@ public class Tenebrae extends WScreen{
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
 	public Tenebrae(){
+		super(new FitViewport(1920, 1080));
 		doneLoading = false;
 		t = this;
 		Log.setLogFile(PAKPATH.child("debug.log"));

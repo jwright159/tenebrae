@@ -20,6 +20,7 @@ public class MainMenu extends WScreen{
 	private float bgRatio, t = 0;
 	
 	public MainMenu(){
+		super();
 		Log.setVerbosity(GAMEPATH.child("v").readString());
 		Log.setLogFile(GAMEPATH.child("debug.log"));
 		
