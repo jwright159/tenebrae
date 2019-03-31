@@ -26,21 +26,10 @@ public class Mappack implements ScriptGlob{
 	public String name = "Mapppack lololol", description, startMap;
 	private Globals globals;
 	public Array<Character> charas;
-	private static final Comparator<Character> charaComp = new Comparator<Character>(){
-		@Override
-		public int compare(Character p1, Character p2){
-			return p1.y > p2.y ? -1 : 1;
-		}
-	};
 
 	public Mappack(FileHandle folder){
 		this.folder = folder;
-		charas = new Array<Character>(){
-			@Override
-			public void sort(){
-				sort(charaComp);
-			}
-		};
+		charas = new Array<Character>();
 		globals = new StdGlobals();
 		globals.load(new MappackLib());
 	}

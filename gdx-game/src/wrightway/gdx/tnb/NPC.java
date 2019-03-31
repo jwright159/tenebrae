@@ -89,7 +89,7 @@ public class NPC extends Character{
 								enabled = false;
 								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
 								if(had)
-									return valueOf(Tenebrae.mp.charas.removeValue(NPC.this, true));
+									Tenebrae.mp.charas.removeValue(NPC.this, true);
 								return valueOf(had);
 							}
 						});

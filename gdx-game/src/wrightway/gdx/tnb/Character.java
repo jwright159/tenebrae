@@ -17,7 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 
-abstract public class Character extends WActor.WTexture implements ScriptGlob{
+abstract public class Character extends WActor.WTexture implements ScriptGlob,Comparable<Character>{
 	public String name, filename;
 	public float x,y,width,height,px,py,targetX=-1,targetY=-1;//in tiles
 	public float exp, g, hp, mp;
@@ -443,6 +443,11 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob{
 	@Override
 	public Globals getGlobals(){
 		return globals;
+	}
+	
+	@Override
+	public int compareTo(Character c){
+		return y > c.y ? -1 : 1;
 	}
 
 	@Override

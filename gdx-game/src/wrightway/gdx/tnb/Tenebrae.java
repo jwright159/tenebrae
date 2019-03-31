@@ -299,8 +299,9 @@ public class Tenebrae extends WScreen{
 
 	@Override
 	public void resize(int x, int y){
-		screenRect.setSize(x, y);
 		super.resize(x, y);
+		screenRect.setSize(getStage().getViewport().getScreenWidth(), getStage().getViewport().getScreenHeight());
+		Log.debug("Actual size:", screenRect);
 	}
 
 	@Override

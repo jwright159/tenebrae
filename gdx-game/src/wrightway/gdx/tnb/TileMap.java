@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.*;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.*;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
 import com.badlogic.gdx.maps.tiled.renderers.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
@@ -37,26 +37,6 @@ public class TileMap extends WActor{
 		map = new TmxMapLoader(new ExternalFileHandleResolver()).load(filepath, params);
 		//Tenebrae.debug("Making map! "+file.nameWithoutExtension());
 
-		/*Rectangle pRect = null;
-		 for(MapLayer layer : map.getLayers()){
-		 Log.verbose2("Layer found! " + layer.getName() + " " + layer instanceof TiledMapTileLayer);
-		 //for(MapObject obj : layer.getObjects())
-		 //Tenebrae.debug("Object found! "+obj.getName()+" "+obj.getProperties().get("gid"));
-
-		 for(MapObject obj : layer.getObjects()){
-		 if(obj.getName().equals("player")){
-		 if(obj instanceof RectangleMapObject){
-		 RectangleMapObject player = (RectangleMapObject)obj;
-		 pRect = player.getRectangle();
-		 }else if(obj instanceof TiledMapTileMapObject){
-		 TiledMapTileMapObject player = (TiledMapTileMapObject)obj;
-		 pRect = new Rectangle(player.getX(), player.getY(), player.getTextureRegion().getRegionWidth() * player.getScaleX(), player.getTextureRegion().getRegionHeight() * player.getScaleY());
-		 }
-		 }
-		 }
-		 }
-		 //Tenebrae.debug(pRect.toString());*/
-
 		TiledMapTileLayer tilelayer = (TiledMapTileLayer)getCollisionLayers().get(0);
 		tileWidth = tilelayer.getTileWidth();
 		tileHeight = tilelayer.getTileHeight();
@@ -67,14 +47,13 @@ public class TileMap extends WActor{
 		setSize(width * tileWidth, height * tileHeight);
 
 		//final WRect objRenderer = new WRect(new Rectangle(), Color.WHITE, Color.BLACK, 1);
-		maprenderer = new OrthogonalTiledMapRenderer(map, 1){
+		maprenderer = new OrthogonalExtendedTiledMapRenderer(map){
 			@Override
 			public void renderObjects(MapLayer layer){
 				Tenebrae.mp.charas.sort();
 				for(Character c : Tenebrae.mp.charas)
-					for(MapObject o : layer.getObjects())
-						if(o == c.mapobj && hasOnMap(c))
-							c.draw(getBatch(), 1);
+					if(c.mapobj != null && hasOnMap(c))
+						c.draw(getBatch(), 1);
 			}
 		};
 		hasNpcObj = getObject("npcs") != null;
