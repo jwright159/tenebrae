@@ -484,12 +484,6 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 	}
 
 	@Override
-	public void draw(Batch batch, float parentAlpha){
-		if(Tenebrae.player.map.hasOnMap(this))
-			super.draw(batch, parentAlpha);
-	}
-
-	@Override
 	public String toString(){
 		return super.toString() + "§" + filename + "{" + x + "x" + y + ", " + width + "x" + height + ", " + getScaleX() + "x" + getScaleY() + ", " + tile + "}";
 	}

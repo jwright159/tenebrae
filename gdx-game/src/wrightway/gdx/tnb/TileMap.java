@@ -19,14 +19,13 @@ import org.luaj.vm2.*;
 import java.util.*;
 
 public class TileMap extends WActor{
-	String filepath,filename;
-	TiledMap map;
-	OrthogonalTiledMapRenderer maprenderer;
-	float tileWidth, tileHeight;
-	int width, height;
-	boolean hasNpcObj;
+	private String filepath,filename;
+	private TiledMap map;
+	private OrthogonalTiledMapRenderer maprenderer;
+	public float tileWidth, tileHeight;
+	public int width, height;
 
-	public TileMap(FileHandle mapFile, LuaFunction trigScriptFile){
+	public TileMap(FileHandle mapFile, LuaFunction trigScriptFile, Batch batch){
 		//stage.addActor(debug());
 
 		filepath = mapFile.path();
@@ -47,16 +46,15 @@ public class TileMap extends WActor{
 		setSize(width * tileWidth, height * tileHeight);
 
 		//final WRect objRenderer = new WRect(new Rectangle(), Color.WHITE, Color.BLACK, 1);
-		maprenderer = new OrthogonalExtendedTiledMapRenderer(map){
+		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
 				Tenebrae.mp.charas.sort();
 				for(Character c : Tenebrae.mp.charas)
-					if(c.mapobj != null && hasOnMap(c))
+					if(c.mapobj != null)
 						c.draw(getBatch(), 1);
 			}
 		};
-		hasNpcObj = getObject("npcs") != null;
 
 		for(int i = 0; i < tilelayer.getWidth(); i++){
 			for(int j = 0; j < tilelayer.getHeight(); j++){
@@ -168,6 +166,8 @@ public class TileMap extends WActor{
 		return objs;
 	}
 	public Cell getCell(int x, int y){
+		x = clampX(x);
+		y = clampY(y);
 		MapLayers layers = getCollisionLayers();
 		int size = layers.getCount() - 1;
 		for(int i = size; i >= 0; i--){
@@ -230,6 +230,13 @@ public class TileMap extends WActor{
 		((TiledMapTileLayer)map.getLayers().get(z)).getCell(x, y).setTile(map.getTileSets().getTileSet(tileset).getTile(id));
 	}
 
+	public int clampX(int x){
+		return MathUtils.clamp(x, 0, width-1);
+	}
+	public int clampY(int y){
+		return MathUtils.clamp(y, 0, height-1);
+	}
+	
 	@Override
 	public boolean setZIndex(int i){
 		boolean changed = false;

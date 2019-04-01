@@ -483,10 +483,10 @@ public class Player extends Character{
 		equippedItems.removeKey(item.type);
 	}
 
-	public void constrain(){
+	/*public void constrain(){
 		x = MathUtils.clamp(x, 0f, map.width - width);
 		y = MathUtils.clamp(y, 0f, map.height - height);
-	}
+	}*/
 	public void moveCamera(){
 		moveCamera(false);
 	}
@@ -508,14 +508,14 @@ public class Player extends Character{
 		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
 		Log.verbose2("DZ:", dz, "DZR:", dzr, "CamRect:", camRect, "Player:", toRect());
 
-		float d = map.getWidth() <= dz.width ? map.getWidth() / 2 - dz.width / 2 - dz.x : MathUtils.clamp(camRect.x, -dz.x, map.getWidth() - (dz.x + dz.width));
-		cam.position.x = d + camRect.width / 2;
-		Log.verbose2("x:", d, "Mapw:", map.getWidth(), "Cam:", cam);
+		//float d = map.getWidth() <= dz.width ? map.getWidth() / 2 - dz.width / 2 - dz.x : MathUtils.clamp(camRect.x, -dz.x, map.getWidth() - (dz.x + dz.width));
+		cam.position.x = camRect.x + camRect.width / 2;
+		Log.verbose2("x:", "Mapw:", map.getWidth(), "Cam:", cam);
 
-		d = map.getHeight() <= dz.height ? map.getHeight() / 2 - dz.height / 2 - dz.y : MathUtils.clamp(camRect.y, -dz.y, map.getHeight() - (dz.y + dz.height));
-		cam.position.y = d + camRect.height / 2;
+		//d = map.getHeight() <= dz.height ? map.getHeight() / 2 - dz.height / 2 - dz.y : MathUtils.clamp(camRect.y, -dz.y, map.getHeight() - (dz.y + dz.height));
+		cam.position.y = camRect.y + camRect.height / 2;
 		Log.verbose2("cr.y", camRect.y, "dz.y", dz.y, "dz.h", dz.height, "top", camRect.y + (dz.y + dz.height), "map.h", map.getHeight());
-		Log.verbose2("y:", d, "Maph:", map.getHeight(), "Cam:", cam);
+		Log.verbose2("y:", "Maph:", map.getHeight(), "Cam:", cam);
 
 		lastCameraPos.set(cam.position.x, cam.position.y, cam.zoom);
 	}
@@ -532,6 +532,8 @@ public class Player extends Character{
 			bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
 			setExpanded(isExpanded());
+			Tenebrae.t.getCamera().position.x = getX() + getTrueWidth()/2;
+			Tenebrae.t.getCamera().position.y = getY() + getTrueHeight()/2;
 			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
 			Tenebrae.t.updateZoom();
 			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
@@ -596,11 +598,11 @@ public class Player extends Character{
 			for(int i = 0; i < actstep; i++){
 				float px = x, py = y;
 				x += adx;
-				constrain();
+				//constrain();
 				if(isColliding() && currentAction == null)
 					x = px;
 				y += ady;
-				constrain();
+				//constrain();
 				if(isColliding() && currentAction == null)
 					y = py;
 			}

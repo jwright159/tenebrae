@@ -34,14 +34,14 @@ public class Mappack implements ScriptGlob{
 		globals.load(new MappackLib());
 	}
 	public TileMap loadMap(String name){
-		return new TileMap(folder.child(name + ".tmx"), Tenebrae.t.getScript(name, globals));
+		return new TileMap(folder.child(name + ".tmx"), Tenebrae.t.getScript(name, globals), Tenebrae.t.getStage().getBatch());
 	}
 	public TileMap loadMap(){
 		return loadMap(startMap);
 	}
 	public Enemy loadEnemy(String name){
 		//return new Enemy(folder.child(name + ".tnb"), this);
-		throw new UnsupportedOperationException("Not usin this rn");
+		throw new UnsupportedOperationException("Enemies not supported");
 	}
 	public MenuItem.GameItem loadItem(String name, Character owner){
 		return new MenuItem.GameItem(name, Tenebrae.t.getProto(name), owner, Tenebrae.t.getSkin());
