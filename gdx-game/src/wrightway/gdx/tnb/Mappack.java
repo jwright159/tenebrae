@@ -183,14 +183,21 @@ public class Mappack implements ScriptGlob{
 				});
 			library.set("panTo", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
+					public Varargs invoke(Varargs args){ // [x, y | entity], time, interpolation, tapOverride
 						OrthographicCamera cam = Tenebrae.t.getCamera();
-						Tenebrae.player.addAction(new Action.CameraAction(cam,
-								(float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth - Tenebrae.player.activeDeadzone.width / 2 - Tenebrae.player.activeDeadzone.x + Tenebrae.screenRect.width / 2,
-								(float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight - Tenebrae.player.activeDeadzone.height / 2 - Tenebrae.player.activeDeadzone.y + Tenebrae.screenRect.height / 2,
-								Utils.getInterpolation(args.optjstring(4, "constant")),
-								(float)args.optdouble(3, 0),
-								args.optboolean(5, false)));
+						if(args.isnumber(0))
+							Tenebrae.player.addAction(new Action.CameraAction(cam,
+									(float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth,
+									(float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight,
+									Utils.getInterpolation(args.optjstring(4, "constant")),
+									(float)args.optdouble(3, 0),
+									args.optboolean(5, false)));
+						else
+							Tenebrae.player.addAction(new Action.CameraAction(cam,
+									(Character)args.checktable(1).get("__this").checkuserdata(Character.class),
+									Utils.getInterpolation(args.optjstring(3, "constant")),
+									(float)args.optdouble(2, 0),
+									args.optboolean(4, false)));
 						return NONE;
 					}
 				});

@@ -104,6 +104,7 @@ public abstract class Action implements Runnable{
 		private float x, y, z, oldx, oldy, oldz;
 		private Interpolation interpx, interpy, interpz;
 		private OrthographicCamera cam;
+		private Character charaPos;
 		public CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interpx, Interpolation interpy, Interpolation interpz, float time, boolean tap){
 			super(Tenebrae.player, time, tap);
 			this.cam = cam;
@@ -117,19 +118,27 @@ public abstract class Action implements Runnable{
 			this.interpy = interpy;
 			this.interpz = interpz;
 		}
-		CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interp, float time, boolean tap){
+		public CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interp, float time, boolean tap){
 			this(cam, x, y, z, interp, interp, interp, time, tap);
 		}
-		CameraAction(OrthographicCamera cam, float x, float y, Interpolation interp, float time, boolean tap){
+		public CameraAction(OrthographicCamera cam, float x, float y, Interpolation interp, float time, boolean tap){
 			this(cam, x, y, cam.zoom, interp, interp, interp, time, tap);
 		}
-		CameraAction(OrthographicCamera cam, float z, Interpolation interp, float time, boolean tap){
+		public CameraAction(OrthographicCamera cam, float z, Interpolation interp, float time, boolean tap){
 			this(cam, cam.position.x, cam.position.y, z, interp, interp, interp, time, tap);
+		}
+		public CameraAction(OrthographicCamera cam, Character charaPos, Interpolation interp, float time, boolean tap){
+			this(cam, cam.zoom, interp, time, tap);
+			this.charaPos = charaPos;
 		}
 		@Override
 		public boolean stop(boolean touched){
 			boolean rtn = super.stop(touched); //might set player.delay to 0
 			float a = delay == 0 ? 1 : (delay - chara.delay) / delay;
+			if(charaPos != null){
+				x = (charaPos.x + charaPos.width/2) * Tenebrae.player.map.tileWidth;
+				y = (charaPos.y + charaPos.height/2) * Tenebrae.player.map.tileHeight;
+			}
 			cam.position.x = interpx.apply(oldx, x, a);
 			cam.position.y = interpy.apply(oldy, y, a);
 			cam.zoom = interpz.apply(oldz, z, a);

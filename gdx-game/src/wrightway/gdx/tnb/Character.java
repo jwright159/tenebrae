@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
+import org.luaj.vm2.lib.jse.*;
 
 abstract public class Character extends WActor.WTexture implements ScriptGlob,Comparable<Character>{
 	public String name, filename;
@@ -650,6 +651,8 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 								return valueOf(y);
 							case "enemy":
 								return enemy == null ? NIL : enemy.getGlobals();
+							case "__this":
+								return CoerceJavaToLua.coerce(Character.this);
 							default:
 								return NIL;
 						}
@@ -694,6 +697,9 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 								break;
 							case "enemy":
 								self.error("enemy is read-only");
+								break;
+							case "__this":
+								self.error("__this is read-only");
 								break;
 							default:
 								return TRUE;
