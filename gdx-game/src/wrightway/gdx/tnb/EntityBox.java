@@ -573,7 +573,7 @@ public class EntityBox extends Table{
 		box.addOption(cat);//down here bc box will detect as empty otherwise and get removed
 	}
 
-	public static class StatBox extends Button{
+	public static class StatBox extends Table{
 		MiniHealthBar health,mana;
 		StatBox(HealthBar health, HealthBar mana, Skin skin){
 			super(skin);
@@ -581,23 +581,12 @@ public class EntityBox extends Table{
 			//setClip(true);
 			this.health = new MiniHealthBar(health, skin);
 			this.mana = new MiniHealthBar(mana, skin);
-			addListener(new ChangeListener(){
-					@Override
-					public void changed(ChangeEvent event, Actor a){
-						Tenebrae.player.setExpanded(!Tenebrae.player.isExpanded());
-					}
-				});
+			setBackground("window-small");
+			pad(Tenebrae.MARGIN*0.25f);
 
-			Stack stack = new Stack();
-			Table bars = new Table(skin);
-			bars.add(this.health).grow();
-			bars.row();
-			bars.add(this.mana).grow();
-			stack.add(bars);
-			Label label;
-			stack.add(label = new Label("MENU", skin));
-			label.setAlignment(Align.center);
-			this.add(stack).grow();
+			add(this.health).grow();
+			row();
+			add(this.mana).grow();
 		}
 
 		public void updateHP(){

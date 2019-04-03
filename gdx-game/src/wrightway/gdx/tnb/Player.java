@@ -16,6 +16,8 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.*;
+import com.badlogic.gdx.graphics.glutils.*;
+import com.badlogic.gdx.*;
 
 public class Player extends Character{
 	public TileMap map;
@@ -81,8 +83,40 @@ public class Player extends Character{
 		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.MARGIN).grow();
 		uiTable.add(playerPane).padLeft(Tenebrae.MARGIN).grow().uniform();
 
-		dialogTable.add(smolStatBox = new StatBox(box.healthBar, box.manaBar, skin)).pad(0, Tenebrae.MARGIN * 5, 0, Tenebrae.MARGIN * 5).expandX().fill().height(Tenebrae.MARGIN * 2);
-		dialogTable.row();
+		smolStatBox = new StatBox(box.healthBar, box.manaBar, skin){
+			private float visTimer = 0;
+			private static final float visMin = 2, visMax = 5;
+			private static final Interpolation interp = Interpolation.fade;
+			@Override
+			public void act(float delta){
+				super.act(delta);
+				
+				visTimer += delta;
+				if(visTimer < visMin){
+					setColor(Color.WHITE);
+				}else if(visTimer >= visMax){
+					setColor(Color.CLEAR);
+				}else{
+					setColor(1, 1, 1, 1 - interp.apply((visTimer-visMin)/(visMax-visMin)));
+				}
+				
+				moveSmolStatBox();
+			}
+			@Override
+			public void setVisible(boolean visible){
+				super.setVisible(visible);
+				visTimer = visible ? 0 : visMax;
+			}
+			@Override
+			public void updateHP(){
+				super.updateHP();
+				setVisible(true);
+			}
+		};
+		smolStatBox.setSize(Tenebrae.MARGIN*10.0f, Tenebrae.MARGIN*2.0f);
+		Tenebrae.t.getUiStage().addActor(smolStatBox);
+		//dialogTable.add(smolStatBox).pad(0, Tenebrae.MARGIN * 5, 0, Tenebrae.MARGIN * 5).expandX().fill().height(Tenebrae.MARGIN * 2);
+		//dialogTable.row();
 		dialogTable.add().grow();
 
 		final Table dialogBoxBox = new Table(skin);
@@ -342,7 +376,6 @@ public class Player extends Character{
 	public void setUiDisabled(boolean disabled){
 		buttonBox.menu.setDisabled(disabled);
 		buttonBox.items.setDisabled(disabled);
-		smolStatBox.setDisabled(disabled);
 	}
 
 	public void addG(float g){
@@ -518,6 +551,19 @@ public class Player extends Character{
 		Log.verbose2("y:", "Maph:", map.getHeight(), "Cam:", cam);
 
 		lastCameraPos.set(cam.position.x, cam.position.y, cam.zoom);
+		cam.update();
+	}
+	
+	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
+	public void moveSmolStatBox(){
+		localToScreenCoordinates(coordBuffer.set(0, 0));
+		localToScreenCoordinates(sizeBuffer.set(getTrueWidth(), getTrueHeight()));
+		//Log.debug(coordBuffer, sizeBuffer);
+		sizeBuffer.sub(coordBuffer); // sizeBuffer gives top-right point
+		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
+		sizeBuffer.scl(1, -1);
+		//smolStatBox.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
+		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x/2 - smolStatBox.getWidth()/2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
 	}
 
 	@Override
