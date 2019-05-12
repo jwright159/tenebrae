@@ -24,16 +24,30 @@ public class TileMap extends WActor{
 	private OrthogonalTiledMapRenderer maprenderer;
 	public float tileWidth, tileHeight;
 	public int width, height;
+	private Group ents;
+	public static String EMPTY_PREFIX = "__empty_", EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 
 	public TileMap(FileHandle mapFile, LuaFunction trigScriptFile, Batch batch){
-		//stage.addActor(debug());
+		ents = new Group(){
+			@Override
+			public void act(float delta){
+				super.act(delta);
+				getChildren().sort();
+			}
 
-		filepath = mapFile.path();
+			@Override
+			public void drawChildren(Batch batch, float parentAlpha){
+				// We do this
+			}
+		};
+
+		boolean exists = mapFile.exists();
+		filepath = exists ? mapFile.path() : EMPTY_PATH;
 		filename = mapFile.nameWithoutExtension();
 
 		TmxMapLoader.Parameters params = new TmxMapLoader.Parameters();
 		params.generateMipMaps = true;
-		map = new TmxMapLoader(new ExternalFileHandleResolver()).load(filepath, params);
+		map = new TmxMapLoader(exists ? new ExternalFileHandleResolver() : new InternalFileHandleResolver()).load(filepath, params);
 		//Tenebrae.debug("Making map! "+file.nameWithoutExtension());
 
 		TiledMapTileLayer tilelayer = (TiledMapTileLayer)getCollisionLayers().get(0);
@@ -49,23 +63,11 @@ public class TileMap extends WActor{
 		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
-				Tenebrae.mp.charas.sort();
-				for(Character c : Tenebrae.mp.charas)
-					if(c.mapobj != null)
-						c.draw(getBatch(), 1);
+				for(Entity ent : ents.getChildren())
+					if(ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
+						ent.draw(getBatch(), 1);
 			}
 		};
-
-		for(int i = 0; i < tilelayer.getWidth(); i++){
-			for(int j = 0; j < tilelayer.getHeight(); j++){
-				boolean t;
-				if(t = tilelayer.getCell(i, j).getTile().getProperties().get("collide", false, Boolean.class)){
-					tilelayer.getCell(i, j).setFlipVertically(true);
-					tilelayer.getCell(i, j).setFlipHorizontally(true);
-				}
-				//Log.verbose2("Found tile! "+t+" "+i+" "+j);
-			}
-		}
 
 		for(TiledMapTileSet tileset : map.getTileSets())
 			Log.verbose2("Found tileset! " + tileset.getName());
@@ -125,45 +127,34 @@ public class TileMap extends WActor{
 		}
 		obj.getRectangle().setPosition(x * tileWidth + obj.getProperties().get("__x", Float.class), y * tileHeight + obj.getProperties().get("__y", Float.class));
 	}
-	public MapObjects getCollidingTriggerObjects(Rectangle player){
-		Log.verbose2("Getting colliding trigger objects!", player);
-		MapObjects objs = new MapObjects();
-		MapObjects trigs = getTriggerObjects();
-		for(RectangleMapObject obj : trigs){
-			Log.verbose2("Test colliding triggers!", obj, obj.getName(), obj.getRectangle());
-			if(obj.getRectangle().overlaps(player))
-				objs.add(obj);
+	public Array<Trigger> getCollidingObjects(Rectangle player, String prop){
+		Log.verbose2("Getting colliding objects!", player);
+		Array<Trigger> trigs = getTriggerObjects(prop);
+		Iterator<Trigger> iter = trigs.iterator();
+		while(iter.hasNext()){
+			//Log.verbose2("Test colliding triggers!", trig, trig.getName(), trig.getRectangle());
+			if(!iter.next().getRectangle().overlaps(player))
+				iter.remove();
 		}
-		return objs;
+		return trigs;
 	}
-	public MapObjects getTriggerObjects(){
-		MapObjects objs = new MapObjects();
+	public Array<Trigger> getTriggerObjects(String prop){
+		Array<Trigger> trigs = new Array<Trigger>();
 		for(MapLayer layer : map.getLayers())
 			for(MapObject obj : layer.getObjects())
 				if(obj instanceof RectangleMapObject)
-					if(!obj.getProperties().get("onTrigger", "", String.class).isEmpty())
-						objs.add(obj);
-		return objs;
-	}
-	public MapObjects getCollidingEnteranceObjects(Rectangle player){
-		//Tenebrae.debug("Getting colliding enterance objects! "+player);
-		MapObjects objs = new MapObjects();
-		MapObjects trigs = getEnteranceObjects();
-		for(RectangleMapObject obj : trigs){
-			//Tenebrae.debug("Test colliding enters! "+obj.getName()+" "+obj.getRectangle());
-			if(obj.getRectangle().overlaps(player))
-				objs.add(obj);
-		}
-		return objs;
-	}
-	public MapObjects getEnteranceObjects(){
-		MapObjects objs = new MapObjects();
-		for(MapLayer layer : map.getLayers())
-			for(MapObject obj : layer.getObjects())
-				if(obj instanceof RectangleMapObject)
-					if(!obj.getProperties().get("onEnter", "", String.class).isEmpty() || !obj.getProperties().get("onExit", "", String.class).isEmpty())
-						objs.add(obj);
-		return objs;
+					if(!obj.getProperties().get(prop, "", String.class).isEmpty())
+						trigs.add(new Trigger(((RectangleMapObject)obj).getRectangle(), obj.getProperties()));
+		
+		for(Entity ent : ents.getChildren())
+			if(ent != Tenebrae.player){
+				Trigger trig = ent.getTrigger(prop);
+				if(trig == null)
+					continue;
+				trig.getProperties().put(Entity.ENTITY, ent);
+				trigs.add(trig);
+			}
+		return trigs;
 	}
 	public Cell getCell(int x, int y){
 		x = clampX(x);
@@ -171,14 +162,13 @@ public class TileMap extends WActor{
 		MapLayers layers = getCollisionLayers();
 		int size = layers.getCount() - 1;
 		for(int i = size; i >= 0; i--){
-			//Tenebrae.debug("Layers for getting cells! "+i+" "+size);
 			TiledMapTileLayer layer = ((TiledMapTileLayer)layers.get(i));
 			if(layer.getCell(x, y) != null)
 				return layer.getCell(x, y);
 		}
 		return null;
 	}
-	public Enemy getTileEnemy(int x, int y){
+	public Character getTileEnemy(int x, int y){
 		//return enemies.getValueAt(0);
 		TiledMapTile tile = getCell(x, y).getTile();
 		String eneprop = tile.getProperties().get("enemies", "", String.class);
@@ -211,32 +201,47 @@ public class TileMap extends WActor{
 		enemy = enemy.trim();
 		//Tenebrae.debug( "Chancing enemy! "+enemy+" "+checkchance+" "+random);
 		//Tenebrae.debug( "Enemy list! "+enemies.firstKey()+" "+enemy+" "+enemies.containsKey(enemy));
-		return Tenebrae.mp.loadEnemy(enemy);
+		return null;
 	}
-	public MapObject getObject(String name){
+	public MapObject getMapObject(String name){
 		for(MapLayer layer : map.getLayers())
 			for(MapObject obj : layer.getObjects()){
-				Log.debug("Looking for mapobj", name, "and found", obj.getName(), "on", layer.getName());
 				if(obj.getName().equals(name))
 					return obj;
 			}
 		return null;
 	}
-	public boolean hasOnMap(Character chara){
-		return chara.x >= 0 && chara.x <= width - chara.width && chara.y >= 0 && chara.y <= height - chara.height;
+	public boolean hasOnMap(Entity ent){
+		return ent.getX() >= 0 && ent.getX(Align.right) <= width && ent.getY() >= 0 && ent.getY(Align.top) <= height;
 	}
 
 	public void changeTile(int x, int y, String z, String tileset, int id){
 		((TiledMapTileLayer)map.getLayers().get(z)).getCell(x, y).setTile(map.getTileSets().getTileSet(tileset).getTile(id));
 	}
 
+	public void addEntity(Entity ent, MapObject obj){
+		ents.addActor(ent);
+	}
+	public void addEntity(Entity ent){
+		addEntity(ent, null);
+	}
+
+	@Override
+	protected void setStage(Stage stage){
+		super.setStage(stage);
+		if(stage != null)
+			stage.addActor(ents);
+		else
+			ents.remove();
+	}
+
 	public int clampX(int x){
-		return MathUtils.clamp(x, 0, width-1);
+		return MathUtils.clamp(x, 0, width - 1);
 	}
 	public int clampY(int y){
-		return MathUtils.clamp(y, 0, height-1);
+		return MathUtils.clamp(y, 0, height - 1);
 	}
-	
+
 	@Override
 	public boolean setZIndex(int i){
 		boolean changed = false;
@@ -253,9 +258,13 @@ public class TileMap extends WActor{
 	@Override
 	public void draw(Batch batch, float parentAlpha){
 		batch.end();
+		//Tenebrae.mp.charas.sort();
 		maprenderer.setView((OrthographicCamera)getStage().getCamera());
 		maprenderer.render();
 		batch.begin();
+		for(Entity ent : ents.getChildren())
+			if(!ent.hasMapObject() && ent.isVisible())
+				ent.draw(batch, parentAlpha);
 	}
 
 	@Override
@@ -263,6 +272,9 @@ public class TileMap extends WActor{
 		super.dispose();
 		map.dispose();
 		maprenderer.dispose();
+		for(Entity ent : ents.getChildren())
+		 	if(!(ent instanceof Character))
+				ent.dispose();
 	}
 
 	@Override

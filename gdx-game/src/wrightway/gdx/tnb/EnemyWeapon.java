@@ -31,16 +31,16 @@ public class EnemyWeapon implements Disposable,ScriptGlob{
 
 	public void spawn(){
 		globals.get("onSpawn").checkfunction().call();
-		Projectile proj;
+		Entity proj = null;
 		if(type.equals("linear")){
 			float velX = targetX - spawnX;
 			float velY = targetY - spawnY;
 			float mag = (float)Math.hypot(velX, velY);
 			velX = velX / mag * speed;
 			velY = velY / mag * speed;
-			proj = new Projectile.LinearProjectile(tileset.getTile(1), spawnX, spawnY, velX, velY, touch, id++, this);
+			//proj = new Projectile.LinearProjectile(tileset.getTile(1), spawnX, spawnY, velX, velY, touch, id++, this);
 		}else{
-			proj = new Projectile(tileset.getTile(1), spawnX, spawnY, touch, id++, this);
+			//proj = new Projectile(tileset.getTile(1), spawnX, spawnY, touch, id++, this);
 		}
 		proj.setScale(scale);
 		Log.debug("Spawning", spawnX, spawnY, proj);

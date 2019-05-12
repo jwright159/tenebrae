@@ -91,9 +91,9 @@ public interface ScriptGlob{
 		public static void setLibToEnv(final LuaTable lib, final LuaValue env){
 			for(LuaValue key : lib.keys())
 				env.set(key, lib.get(key));
-			if(env.getmetatable() == null){
-				env.setmetatable(lib.getmetatable());
-			}else if(lib.getmetatable() != null){
+			if(env.getmetatable() == null)
+				env.setmetatable(LuaValue.tableOf());
+			if(lib.getmetatable() != null){
 				final LuaValue oldmt = env.getmetatable();
 				LuaTable newmt = LuaValue.tableOf();
 				final LuaValue libmt = lib.getmetatable();

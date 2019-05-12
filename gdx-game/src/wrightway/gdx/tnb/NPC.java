@@ -23,6 +23,7 @@ public class NPC extends Character{
 	public NPC(String name, Prototype script){
 		super(name);
 		getGlobals().load(new NPCLib());
+		new LuaClosure(setup, getGlobals()).call();
 		new LuaClosure(script, getGlobals()).call();
 		hp = maxhp();
 		mp = maxmp();
@@ -43,13 +44,19 @@ public class NPC extends Character{
 
 	@Override
 	public void die(){
-		throw new UnsupportedOperationException("...How?");
+		throw new UnsupportedOperationException("I'm a bad bitch, you can't kill me");
 	}
 
 	@Override
 	public void draw(Batch batch, float parentAlpha){
+		//Log.debug("Drawing", this);
 		if(enabled)
 			super.draw(batch, parentAlpha);
+	}
+
+	@Override
+	public String toString(){
+		return super.toString()+","+enabled;
 	}
 	
 	public class NPCLib extends TwoArgFunction{
@@ -116,7 +123,6 @@ public class NPC extends Character{
 						//return NONE;
 					}
 				});*/
-			new LuaClosure(setup, getGlobals()).call();
 			
 			ScriptGlob.S.setLibToEnv(library, env);
 			return env;

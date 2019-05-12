@@ -602,10 +602,17 @@ public class EntityBox extends Table{
 
 			MenuBox menuBox = new MenuBox("MenuBox", skin);
 			//might want to delete these at some point
-			addItemToBox(new MenuItem("Player", "Kill", killScript, player), menuBox);
-			addItemToBox(new MenuItem("Player", "Heal", healScript, player), menuBox);
-			addItemToBox(new MenuItem("Player", "Tire", tireScript, player), menuBox);
-			addItemToBox(new MenuItem("Player", "Invigor", invigorScript, player), menuBox);
+			addItemToBox(new MenuItem("Settings", "Quit"){
+				@Override
+				public void run(String funcName){
+					if(funcName.equals("onUse"))
+						Gdx.app.exit();
+				}
+			}, menuBox);
+			addItemToBox(new MenuItem.ScriptItem("Player", "Kill", player, killScript), menuBox);
+			addItemToBox(new MenuItem.ScriptItem("Player", "Heal", player, healScript), menuBox);
+			addItemToBox(new MenuItem.ScriptItem("Player", "Tire", player, tireScript), menuBox);
+			addItemToBox(new MenuItem.ScriptItem("Player", "Invigor", player, invigorScript), menuBox);
 			menu = new MenuOption("Menu", menuBox, Align.center, true, skin);
 			ChangeListener click = new ChangeListener(){
 				@Override
@@ -625,10 +632,10 @@ public class EntityBox extends Table{
 		public static final Prototype killScript, healScript, tireScript, invigorScript;
 		static{
 			try{
-				killScript = Tenebrae.globals.compilePrototype(new StringReader("function kill() player.affect(-player.hp,0) end"), "kill");
-				healScript = Tenebrae.globals.compilePrototype(new StringReader("function heal() player.affect(player.maxhp-player.hp,0) end"), "heal");
-				tireScript = Tenebrae.globals.compilePrototype(new StringReader("function tire() player.affect(0,-player.mp) end"), "tire");
-				invigorScript = Tenebrae.globals.compilePrototype(new StringReader("function invigor() player.affect(0,player.maxmp-player.mp) end"), "invigor");
+				killScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(-player.hp,0)"), "kill");
+				healScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(player.maxhp-player.hp,0)"), "heal");
+				tireScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(0,-player.mp)"), "tire");
+				invigorScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(0,player.maxmp-player.mp)"), "invigor");
 			}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 		}
 

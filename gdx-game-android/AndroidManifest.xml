@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="wrightway.gdx.tnb"
     android:versionCode="1"
-    android:versionName="0.12.0" >
+    android:versionName="0.13.0" >
 
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -11,12 +11,12 @@
 
     <application
         android:icon="@drawable/ic_launcher"
-        android:label="Tenebrae"
-		android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" >
+        android:label="Tenebrae" >
         <activity
             android:name=".MainActivity"
 			android:screenOrientation="userLandscape"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+			android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

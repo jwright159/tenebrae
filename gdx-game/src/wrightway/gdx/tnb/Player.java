@@ -33,15 +33,17 @@ public class Player extends Character{
 	private Table uiTable;
 	public String trueName;
 	public Rectangle activeDeadzone;
-	private MapObjects ptriggers;
+	private Rectangle bounds;
+	private PatchActor boundsActor;
+	private Array<Trigger> ptriggers;
 	public Vector3 lastCameraPos;
-	private static Rectangle dzRect, bigdzRect;
+	public static Rectangle dzRect, bigdzRect;
 	public Table table;
+	public float deadzone = Tenebrae.DEADZONE_DEFAULT;
 
 	public Player(){
 		super("player");
 		Log.verbose("Making Player");
-		getGlobals().load(new PlayerLib());
 		lastCameraPos = new Vector3();
 		Tenebrae.mp.charas.add(this);
 
@@ -90,16 +92,16 @@ public class Player extends Character{
 			@Override
 			public void act(float delta){
 				super.act(delta);
-				
+
 				visTimer += delta;
 				if(visTimer < visMin){
 					setColor(Color.WHITE);
 				}else if(visTimer >= visMax){
 					setColor(Color.CLEAR);
 				}else{
-					setColor(1, 1, 1, 1 - interp.apply((visTimer-visMin)/(visMax-visMin)));
+					setColor(1, 1, 1, 1 - interp.apply((visTimer - visMin) / (visMax - visMin)));
 				}
-				
+
 				moveSmolStatBox();
 			}
 			@Override
@@ -113,7 +115,7 @@ public class Player extends Character{
 				setVisible(true);
 			}
 		};
-		smolStatBox.setSize(Tenebrae.MARGIN*10.0f, Tenebrae.MARGIN*2.0f);
+		smolStatBox.setSize(Tenebrae.MARGIN * 10.0f, Tenebrae.MARGIN * 2.0f);
 		Tenebrae.t.getUiStage().addActor(smolStatBox);
 		//dialogTable.add(smolStatBox).pad(0, Tenebrae.MARGIN * 5, 0, Tenebrae.MARGIN * 5).expandX().fill().height(Tenebrae.MARGIN * 2);
 		//dialogTable.row();
@@ -163,12 +165,18 @@ public class Player extends Character{
 		exp = 0;
 		g = 0;
 		box.updateHP();
+		bounds = new Rectangle();
+		boundsActor = new PatchActor(bounds, skin.getPatch("wrect"), 1);
+		boundsActor.setBorderAlignment(Align.left);
+		//boundsActor.setDebug(true);
+		setBound(-1, -1, -1, -1);
+		getGlobals().load(new PlayerLib());
 
 		setExpanded(false);
 	}
 	@Override
-	public void changeMap(TileMap map, float spawnx, float spawny){
-		Log.debug("Changing map!", map, spawnx, spawny);
+	public void changeMap(TileMap map){
+		Log.debug("Changing map!", map);
 		firstFrame = true;
 		if(this.map != null){
 			this.map.dispose();
@@ -176,17 +184,22 @@ public class Player extends Character{
 		}
 		this.map = map;
 		Tenebrae.t.getStage().addActor(map);
+		
+		boundsActor.setScale(map.tileWidth, map.tileHeight);
+		if(boundsActor.getStage() == null)
+			map.getStage().addActor(boundsActor);
 
-		super.changeMap(map, spawnx, spawny);
+		super.changeMap(map);
 		for(Character c : Tenebrae.mp.charas)
 			if(c != this)
-				c.changeMap(map, -1, -1);
-
-		setExpanded(isExpanded());
+				c.changeMap(map);
 
 		//Log.debug("Changing player! " + toString());
 
 		Tenebrae.mp.getGlobals().get("onCreate").call();
+		
+		if(bounds.getWidth() > 0 && bounds.getHeight() > 0)
+			setTilePosition(bounds.getWidth() / 2 - getTileWidth() / 2, bounds.getHeight() / 2 - getTileHeight() / 2);
 	}
 
 	public void setPlayerName(String name){
@@ -196,10 +209,15 @@ public class Player extends Character{
 	}
 
 	public boolean isColliding(){
-		for(int i = (int)x; i <= x + width; i++)
-			for(int j = (int)y; j <= y + height; j++)
+		for(int i = (int)getTileX(); i <= getTileX(Align.right); i++)
+			for(int j = (int)getTileY(); j <= getTileY(Align.top); j++)
 				if(isColliding(i, j))
 					return true;
+		/*if((bounds.getWidth() > 0 &&
+			(getTileX() < bounds.getX() || bounds.getX() + bounds.getWidth() < getTileX(Align.right))) ||
+			(bounds.getHeight() > 0 &&
+			(getTileY() < bounds.getY() || bounds.getY() + bounds.getHeight() < getTileY(Align.top))))
+			return true;*/
 		return false;
 	}
 	public boolean isColliding(int tilex, int tiley){
@@ -215,63 +233,34 @@ public class Player extends Character{
 	}
 	public Vector2 getClosestCell(){
 		int rx,ry;
-		if(Math.ceil(x) - x >= (x + width) - Math.floor(x + width))
-			rx = (int)x;
+		if(Math.ceil(getX()) - getX() >= getX(Align.right) - Math.floor(getX(Align.right)))
+			rx = (int)getX();
 		else
-			rx = (int)(x + width);
-		if(Math.ceil(y) - y >= (y + height) - Math.floor(y + height))
-			ry = (int)y;
+			rx = (int)getX(Align.right);
+		if(Math.ceil(getY()) - getY() >= getY(Align.top) - Math.floor(getY(Align.top)))
+			ry = (int)getY();
 		else
-			ry = (int)(y + height);
+			ry = (int)getY(Align.top);
 		return new Vector2(rx, ry);
 	}
-	public MapObjects getCollidingTriggerObjects(){
-		MapObjects rtn = map.getCollidingTriggerObjects(toTilePixRect());
-		for(MapObject obj : getCollidingNPCTriggerObjects("onTrigger"))
-			rtn.add(obj);
-		//Log.debug("Requesting triggers! " + rtn.getCount());
-		return rtn;
+	private Array<Trigger> getCollidingTriggerObjects(){
+		return map.getCollidingObjects(toRect(), "onTrigger");
 	}
-	public MapObjects getCollidingEnteranceObjects(){
-		MapObjects rtn = map.getCollidingEnteranceObjects(toTilePixRect());
-		for(MapObject obj : getCollidingNPCTriggerObjects("onEnter"))
-			rtn.add(obj);
-		//Log.debug("Requesting enters! " + rtn.getCount());
-		return rtn;
+	private Array<Trigger> getCollidingEnteranceObjects(){
+		return map.getCollidingObjects(toRect(), "onEnter");
 	}
-	public MapObjects getCollidingNPCTriggerObjects(String prop){
-		MapObjects rtn = new MapObjects();
-		for(Character c : Tenebrae.mp.charas)
-			if(c != this){
-				MapObjects objs = c.getRectObjects();
-				for(MapObject obj : objs){
-					if(obj.getProperties().get(prop, "", String.class).isEmpty())
-						continue;
-					Log.verbose2("NPC trigger", c, c.tile.get(0).getId(), objs.getCount(), obj);
-					RectangleMapObject r = (RectangleMapObject)obj;
-					Log.verbose2("NPC Rect", r.getRectangle());
-					Log.verbose2("NPC Player", toTilePixRect());
-					r.getProperties().put("__npc", c);
-					if(r.getRectangle().overlaps(toTilePixRect()))
-						rtn.add(r);
-				}
-			}
-		return rtn;
-	}
-	public RectangleMapObject getBestTrigger(){
-		MapObjects objs = getCollidingTriggerObjects();
-		RectangleMapObject rtn = null;
+	private Trigger getBestTrigger(){
+		Array<Trigger> trigs = getCollidingTriggerObjects();
+		Trigger rtn = null;
 		float best = 0;
 		Rectangle inter = new Rectangle();
 
-		for(MapObject mapobj : objs){
-			Log.verbose(mapobj);
-			RectangleMapObject obj = (RectangleMapObject)mapobj;
-			boolean disabled = obj.getProperties().get("disabled", false, Boolean.class);
-			Rectangle rect = obj.getRectangle();
+		for(Trigger trig : trigs){
+			boolean disabled = trig.getProperties().get("disabled", false, Boolean.class);
+			Rectangle rect = trig.getRectangle();
 			Log.verbose("Obj", rect);
-			Log.verbose("Player", toTilePixRect());
-			Intersector.intersectRectangles(rect, toTilePixRect(), inter);
+			Log.verbose("Player", toRect());
+			Intersector.intersectRectangles(rect, toRect(), inter);
 			Log.verbose("Intersect", inter);
 			//Log.verbose("Intersecting triggers! " + obj.getName() + " " + rect + " " + player + " " + inter + " " + disabled);
 			//rect.set(rect.getX() * map.tilebasewidth, rect.getY() * map.tilebaseheight, rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
@@ -279,23 +268,17 @@ public class Player extends Character{
 
 			if(inter.area() > best && !disabled){
 				best = inter.area();
-				rtn = obj;
+				rtn = trig;
 			}
 		}
 
 		return rtn;
 	}
 	public void triggerBestTrigger(){
-		RectangleMapObject obj = getBestTrigger();
-		Log.verbose("Requesting trigger! " + (obj != null ? obj.getName() : obj));
-		if(obj != null){
-			LuaValue call;
-			if(obj.getProperties().containsKey("__npc"))
-				call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onTrigger", String.class));
-			else
-				call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onTrigger", String.class));
-			if(!call.isnil())
-				call.call();
+		Trigger trig = getBestTrigger();
+		Log.verbose("Requesting trigger!", trig);
+		if(trig != null){
+			trig.trigger("onTrigger");
 		}
 	}
 
@@ -371,6 +354,8 @@ public class Player extends Character{
 	public void setExpanded(boolean expanded){
 		activeDeadzone = expanded ? dzRect : bigdzRect;
 		uiTable.setVisible(expanded);
+		if(dzRect != null)
+			moveCamera();
 		//Log.debug("Expanding! " + expanded);
 	}
 	public void setUiDisabled(boolean disabled){
@@ -480,19 +465,8 @@ public class Player extends Character{
 	 //okay so i /might/ have rewritten actions again, but its still mostly just run on the fly
 	 //News flash: rewriting actions again to run simultaneously for camera movements (not even doing anything with enemies, why is this here)
 	 //News flash 2: not doing that, just adding more generalized actions. might still be a good idea tho.
-	 //Most of this convo is invalid, not using this turn-based thing anymore. Keeping this for postarity
+	 //Most of this convo is invalid, not using this turn-based thing anymore. Keeping this for postarity or whatever
 	 */
-
-	public void encounter(Enemy enemy){
-		this.enemy = enemy;
-		//Tenebrae.setFight(new Fight(this, enemy, Tenebrae.t.uiStage));
-	}
-	public void endEncounter(){
-		//Tenebrae.removeFight();
-		addExp(enemy.exp);
-		enemy.endSelf();
-		this.enemy = null;
-	}
 
 	@Override
 	public void die(){
@@ -501,6 +475,25 @@ public class Player extends Character{
 		addAction(new Action(){public void run(){
 					Tenebrae.t.loadSave();
 				}});
+	}
+	
+	public void setBound(float x, float y, float width, float height){
+		bounds.set(x, y, width, height);
+		boundsActor.setBounds(x, y, width, height);
+		if(width <= 0 || height <= 0)
+			boundsActor.setVisible(false);
+		else
+			boundsActor.setVisible(true);
+		clamp();
+	}
+	public Rectangle getBound(){
+		return bounds;
+	}
+	public void clamp(){
+		if(bounds.getWidth() > 0)
+			setTileX(MathUtils.clamp(getTileX(), bounds.getX(), bounds.getX()+bounds.getWidth()-getTileWidth()));
+		if(bounds.getHeight() > 0)
+			setTileY(MathUtils.clamp(getTileY(), bounds.getY(), bounds.getY()+bounds.getHeight()-getTileHeight()));
 	}
 
 	@Override
@@ -516,44 +509,45 @@ public class Player extends Character{
 		equippedItems.removeKey(item.type);
 	}
 
-	/*public void constrain(){
-		x = MathUtils.clamp(x, 0f, map.width - width);
-		y = MathUtils.clamp(y, 0f, map.height - height);
-	}*/
+	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle(), b = new Rectangle();
 	public void moveCamera(){
-		moveCamera(false);
-	}
-	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle();
-	public void moveCamera(boolean force){
 		//Log.debug("Moving camera! currentAction", currentAction);
-		if(!force && !firstFrame && currentAction != null)
-			return;
-
 		OrthographicCamera cam = Tenebrae.t.getCamera();
+		if(firstFrame){
+			cam.position.x = getX(Align.center);
+			cam.position.y = getY(Align.center);
+		}
 		camRect.set(cam.position.x - Tenebrae.screenRect.width * cam.zoom / 2, cam.position.y - Tenebrae.screenRect.height * cam.zoom / 2, Tenebrae.screenRect.width * cam.zoom, Tenebrae.screenRect.height * cam.zoom);
 		dz.set(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
+		if(bounds.getWidth() > 0 || bounds.getHeight() > 0)
+			b.set(bounds.x * map.tileWidth, bounds.y * map.tileHeight, bounds.width * map.tileWidth, bounds.height * map.tileHeight);
 		Log.verbose2("CamRect:", camRect, "Cam:", cam);
 
-		//float smolestWidth = Math.min(dz.width, dz.height);
-		float dzx = (dz.width / 2 - getTrueWidth() / 2) * Tenebrae.DEADZONE, dzy = (dz.height / 2 - getTrueHeight() / 2) * Tenebrae.DEADZONE;
+		float dzx = (dz.width / 2 - getTrueWidth() / 2) * deadzone, dzy = (dz.height / 2 - getTrueHeight() / 2) * deadzone;
 		dzr.set(dz.x + dzx, dz.y + dzy, dz.width - dzx * 2, dz.height - dzy * 2);
 		camRect.x = MathUtils.clamp(camRect.x, getX() + getTrueWidth()  - (dzr.x + dzr.width),  getX() - dzr.x);
 		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
-		Log.verbose2("DZ:", dz, "DZR:", dzr, "CamRect:", camRect, "Player:", toRect());
+		Log.verbose2("Deadzone:", deadzone, "DZ:", dz, "DZR:", dzr, "B:", b, "CamRect:", camRect, "Player:", toRect());
 
-		//float d = map.getWidth() <= dz.width ? map.getWidth() / 2 - dz.width / 2 - dz.x : MathUtils.clamp(camRect.x, -dz.x, map.getWidth() - (dz.x + dz.width));
+		if(bounds.width > 0)
+			if(b.width <= dzr.width)
+				camRect.x = b.x + b.width / 2 - camRect.width / 2;
+			else
+				camRect.x = MathUtils.clamp(camRect.x, b.x - dz.x, b.x + b.width - (dz.x + dz.width));
+		if(bounds.height > 0)
+			if(b.height <= dzr.height)
+				camRect.y = b.y + b.height / 2 - camRect.height / 2;
+			else
+				camRect.y = MathUtils.clamp(camRect.y, b.y - dz.y, b.y + b.height - (dz.y + dz.height));
+		Log.verbose2("CamRect:", camRect);
+
 		cam.position.x = camRect.x + camRect.width / 2;
-		Log.verbose2("x:", "Mapw:", map.getWidth(), "Cam:", cam);
-
-		//d = map.getHeight() <= dz.height ? map.getHeight() / 2 - dz.height / 2 - dz.y : MathUtils.clamp(camRect.y, -dz.y, map.getHeight() - (dz.y + dz.height));
 		cam.position.y = camRect.y + camRect.height / 2;
-		Log.verbose2("cr.y", camRect.y, "dz.y", dz.y, "dz.h", dz.height, "top", camRect.y + (dz.y + dz.height), "map.h", map.getHeight());
-		Log.verbose2("y:", "Maph:", map.getHeight(), "Cam:", cam);
 
 		lastCameraPos.set(cam.position.x, cam.position.y, cam.zoom);
 		cam.update();
 	}
-	
+
 	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
 	public void moveSmolStatBox(){
 		localToScreenCoordinates(coordBuffer.set(0, 0));
@@ -563,7 +557,29 @@ public class Player extends Character{
 		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
 		sizeBuffer.scl(1, -1);
 		//smolStatBox.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
-		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x/2 - smolStatBox.getWidth()/2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
+		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
+	}
+
+	@Override
+	public void doMovement(){
+		if(hasTarget()){
+			float ppx = getTileX(), ppy = getTileY();
+			float adx = (targetX - ppx) / actstep, ady = (targetY - ppy) / actstep;
+			targetX = targetY = -1;
+			for(int i = 0; i < actstep; i++){
+				float px = getTileX(), py = getTileY();
+				moveTileBy(adx, 0);
+				if(isColliding() && currentAction == null)
+					setTileX(px);
+				moveTileBy(0, ady);
+				if(isColliding() && currentAction == null)
+					setTileY(py);
+			}
+			clamp();
+			updateSkins(getTileX() - ppx, getTileY() - ppy);
+		}else{
+			updateSkins(0, 0);
+		}
 	}
 
 	@Override
@@ -575,15 +591,13 @@ public class Player extends Character{
 			Vector2 mapCoords = new Vector2();
 			mapRect.localToStageCoordinates(mapCoords);
 			dzRect = new Rectangle(mapCoords.x, mapCoords.y, mapRect.getWidth(), mapRect.getHeight());
-			bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
+			//bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
+			bigdzRect = new Rectangle(0, 0, Tenebrae.screenRect.getWidth(), Tenebrae.screenRect.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
 			setExpanded(isExpanded());
-			Tenebrae.t.getCamera().position.x = getX() + getTrueWidth()/2;
-			Tenebrae.t.getCamera().position.y = getY() + getTrueHeight()/2;
 			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
 			Tenebrae.t.updateZoom();
 			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
-			moveCamera(true);
 		}
 
 		if(moved || firstFrame){
@@ -599,71 +613,38 @@ public class Player extends Character{
 			 }
 			 }*/
 
-			MapObjects triggersIn = getCollidingEnteranceObjects();
-			Log.verbose2("In:", triggersIn.getCount() == 0 ? 0 : triggersIn.get(0), "Out:", ptriggers == null ? null : ptriggers.getCount() == 0 ? 0 : ptriggers.get(0));
-			for(RectangleMapObject obj : triggersIn){
-				Log.verbose2("Found an enter/exit object inside!", obj.getName());
-				if((ptriggers == null || ptriggers.getIndex(obj) == -1) && !obj.getProperties().get("onEnter", "", String.class).isEmpty()){
+			Array<Trigger> triggersIn = getCollidingEnteranceObjects();
+			Log.verbose2("In:", triggersIn.size == 0 ? 0 : triggersIn.get(0), "Out:", ptriggers == null ? null : ptriggers.size == 0 ? 0 : ptriggers.get(0));
+			for(Trigger trig : triggersIn){
+				Log.verbose2("Found an enter/exit object inside!", trig);
+				if((ptriggers == null || !ptriggers.contains(trig, false)) && trig.hasProperty("onEnter")){
 					Log.verbose2("It was an enter object!");
-					LuaValue call;
-					if(obj.getProperties().containsKey("__npc"))
-						call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onEnter", String.class));
-					else
-						call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onEnter", String.class));
-					if(!call.isnil())
-						call.call();
+					trig.trigger("onEnter");
 				}
 			}
 			if(!firstFrame && ptriggers != null)
-				for(RectangleMapObject obj : ptriggers){
-					Log.verbose2("Found an enter/exit object outside!", obj.getName());
-					if(triggersIn.getIndex(obj) == -1 && !obj.getProperties().get("onExit", "", String.class).isEmpty()){
+				for(Trigger trig : ptriggers){
+					Log.verbose2("Found an enter/exit object outside!", trig);
+					if(!triggersIn.contains(trig, false) && trig.hasProperty("onExit")){
 						Log.verbose2("It was an exit object!");
-						LuaValue call;
-						if(obj.getProperties().containsKey("__npc"))
-							call = obj.getProperties().get("__npc", NPC.class).getGlobals().get(obj.getProperties().get("onExit", String.class));
-						else
-							call = Tenebrae.mp.getGlobals().get(obj.getProperties().get("onExit", String.class));
-						if(!call.isnil())
-							call.call();
+						trig.trigger("onExit");
 					}
 				}
 			ptriggers = triggersIn;
+			
+			if(firstFrame || currentAction == null)
+				moveCamera();
 		}
-
-		moveCamera();
 
 		firstFrame = false;
-	}
-	@Override
-	public void doMovement(){
-		if(hasTarget()){
-			float adx = (targetX - x) / actstep, ady = (targetY - y) / actstep;
-			targetX = targetY = -1;
-			float ppx = x, ppy = y;
-			for(int i = 0; i < actstep; i++){
-				float px = x, py = y;
-				x += adx;
-				//constrain();
-				if(isColliding() && currentAction == null)
-					x = px;
-				y += ady;
-				//constrain();
-				if(isColliding() && currentAction == null)
-					y = py;
-			}
-			updateSkins(x - ppx, y - ppy);
-		}else{
-			updateSkins(0, 0);
-		}
-
-		setPosition(x * map.tileWidth, y * map.tileWidth);
 	}
 
 	@Override
 	public void endSelf(){
 		super.endSelf();
-		table.remove();
+		map.dispose();
+		table.clear();
+		smolStatBox.remove();
 	}
 
 	public class PlayerLib extends TwoArgFunction{
@@ -671,14 +652,6 @@ public class Player extends Character{
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
 
-			library.set("encounter", new OneArgFunction(){
-					@Override
-					public LuaValue call(LuaValue filename){
-						Enemy enemy = Tenebrae.mp.loadEnemy(filename.checkjstring());
-						encounter(enemy);
-						return enemy.getGlobals();
-					}
-				});
 			library.set("setStatLv", new VarArgFunction(){ // exp, str, intl, def, agl, maxhp, maxmp
 					@Override
 					public Varargs invoke(Varargs args){
@@ -690,12 +663,14 @@ public class Player extends Character{
 			library.getmetatable().set(INDEX, new TwoArgFunction(){
 					@Override
 					public LuaValue call(LuaValue self, LuaValue key){
-						Log.debug("Getting", key.checkjstring());
+						//Log.debug("Getting", key.checkjstring());
 						switch(key.checkjstring()){
 							case "name":
 								return valueOf(trueName);
 							case "speed":
 								return valueOf(speedMult);
+							case "deadzone":
+								return valueOf(deadzone);
 							default:
 								return NIL;
 						}
@@ -711,6 +686,9 @@ public class Player extends Character{
 								break;
 							case "speed":
 								speedMult = (float)value.checkdouble();
+								break;
+							case "deadzone":
+								deadzone = (float)value.checkdouble();
 								break;
 							default:
 								return TRUE;

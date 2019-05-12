@@ -18,9 +18,9 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.*;
 
-abstract public class Character extends WActor.WTexture implements ScriptGlob,Comparable<Character>{
+abstract public class Character extends Entity implements ScriptGlob{
 	public String name, filename;
-	public float x,y,width,height,px,py,targetX=-1,targetY=-1;//in tiles
+	public float targetX=-1,targetY=-1;//in tiles
 	public float exp, g, hp, mp;
 	public ArrayMap<String,ArrayMap<Stats,Float>> stats;
 	protected Array<MenuItem.GameItem> items;
@@ -28,23 +28,25 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 	public EntityBox box;
 	public Character enemy;
 	private ArrayMap<String,Skin> skinList;
-	private Globals globals;
 	private Array<Action> actions;
 	protected Action currentAction;
 	public float delay;//Using Delay Action keeps me from using only RunnableActions //But now it doesn't matter anyway as I'm not using Actions //Well i was just using Runnables with a boolean property but now i need more properties so i renamed it to Action
-	public MapObject mapobj;
 	protected LayeredTile tile;
-
-	public static final String baseStats = "_base", atkMod = "_attackMod", itemMod = "_itemMod";
+	private Globals globals;
+	
+	public static final String baseStats = "__base", atkMod = "__attackMod", itemMod = "__itemMod";
 	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
 	public Character(String filename){
+		super(0, 0, 1, 1, 1, 1);
 		tile = new LayeredTile();
 		stats = new ArrayMap<String,ArrayMap<Stats,Float>>();
 		items = new Array<MenuItem.GameItem>();
 		equippedItems = new ArrayMap<String,MenuItem.GameItem>();
 		skinList = new ArrayMap<String,Skin>();
 		globals = new Tenebrae.StdEntGlobals();
+		vars = globals;
+		globals.load(new EntityLib());
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
@@ -54,33 +56,34 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 		g = 0;
 		setDebug(Tenebrae.tableDebug);
 	}
-	public void changeMap(TileMap map, float spawnx, float spawny){
+	public void changeMap(TileMap map){
 		Rectangle rect, oRect = null;
-		mapobj = map.getObject(filename);
-		if(mapobj == null)
+		MapObject mapobj = map.getMapObject(filename);
+		setMapObject(mapobj);
+		
+		if(mapobj == null){
 			oRect = new Rectangle(-map.tileWidth, -map.tileHeight, map.tileWidth, map.tileHeight);
-		else if(mapobj instanceof RectangleMapObject){
-			RectangleMapObject obj = (RectangleMapObject)mapobj;
-			oRect = obj.getRectangle();
-			//Log.debug("Entity is a rectangle! "+pRect);
-		}else if(mapobj instanceof TiledMapTileMapObject){
-			TiledMapTileMapObject obj = (TiledMapTileMapObject)mapobj;
-			oRect = new Rectangle(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
-			//Log.debug("Entity is a tile! "+pRect);
+		}else{
+			if(mapobj instanceof RectangleMapObject){
+				RectangleMapObject obj = (RectangleMapObject)mapobj;
+				oRect = obj.getRectangle();
+				//Log.debug("Entity is a rectangle! "+pRect);
+			}else if(mapobj instanceof TiledMapTileMapObject){
+				TiledMapTileMapObject obj = (TiledMapTileMapObject)mapobj;
+				oRect = new Rectangle(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
+				//Log.debug("Entity is a tile! "+pRect);
+			}
+			map.addEntity(this);
 		}
 		rect = new Rectangle(oRect.getX() / map.tileWidth, oRect.getY() / map.tileHeight, oRect.getWidth() / map.tileWidth, oRect.getHeight() / map.tileHeight);
 
-		Log.debug("Changing map!", this, spawnx, spawny, rect, currentAction);
-		if(spawnx == -1 || spawny == -1){//for spawnpoint
-			x = rect.getX(); y = rect.getY();
-		}else{//for doors and things
-			x = spawnx; y = spawny;
-		}
+		Log.debug("Changing map!", this, rect, currentAction);
+		setTilePosition(rect.getX(), rect.getY());
 		currentAction = null;
 
-		width = rect.getWidth(); height = rect.getHeight();
-		setSize(width * map.tileWidth, height * map.tileHeight);
-		Log.debug("scaled", width, height, getWidth(), getHeight());
+		setTileScalar(map.tileWidth, map.tileHeight);
+		setTileSize(rect.getWidth(), rect.getHeight());
+		Log.debug("scaled", getTileWidth(), getTileHeight(), getWidth(), getHeight());
 	}
 
 	public void move(float newX, float newY, float speed, boolean relative){
@@ -193,7 +196,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 				disposed.add(tex);
 			}
 		}
-		
+
 		skinList.put(tilesetName, newSkin);
 		if(!tile.isEmpty()){
 			MapProperties p = null;
@@ -259,16 +262,17 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 		}
 		return rem;
 	}
-	
-	public MapObjects getRectObjects(){
-		MapObjects rtn = new MapObjects();
+
+	@Override
+	public Trigger getTrigger(String prop){
 		for(TiledMapTile t : tile)
 			for(MapObject obj : t.getObjects())
-				if(obj instanceof RectangleMapObject){
-					Tenebrae.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, x, y);
-					rtn.add(obj);
+				if(obj instanceof RectangleMapObject && !obj.getProperties().get(prop, "", String.class).isEmpty()){
+					Tenebrae.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
+					//Log.debug("Got trigger", prop, "from", this, obj);
+					return new Trigger(((RectangleMapObject)obj).getRectangle(), obj.getProperties());
 				}
-		return rtn;
+		return null;
 	}
 
 	public void triggerAction(){
@@ -305,6 +309,11 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 	}
 	public boolean doDefaultAction(){
 		return false;
+	}
+
+	@Override
+	public Globals getGlobals(){
+		return globals;
 	}
 
 	public float str(){
@@ -429,28 +438,6 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 			addAction(new FunctionAction(funcToRun));
 	}
 
-	private Rectangle tileRect = new Rectangle();
-	public Rectangle toTileRect(){
-		tileRect.set(x, y, width, height);
-		return tileRect;
-	}
-	private Rectangle tilePixRect = new Rectangle();
-	public Rectangle toTilePixRect(){
-		TileMap map = Tenebrae.player.map;
-		tilePixRect.set(x * map.tileWidth, y * map.tileHeight, width * map.tileWidth, height * map.tileHeight);
-		return tilePixRect;
-	}
-
-	@Override
-	public Globals getGlobals(){
-		return globals;
-	}
-	
-	@Override
-	public int compareTo(Character c){
-		return y > c.y ? -1 : 1;
-	}
-
 	@Override
 	public void act(float delta){
 		super.act(delta);
@@ -467,25 +454,18 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 	}
 	public void doMovement(){
 		if(hasTarget()){
-			float adx = (targetX - x) / Player.actstep, ady = (targetY - y) / Player.actstep;
+			float px = getTileX(), py = getTileY();
+			setTilePosition(targetX, targetY);
 			targetX = targetY = -1;
-			float ppx = x, ppy = y;
-			for(int i = 0; i < Player.actstep; i++){
-				//float px = x, py = y;
-				x += adx;
-				y += ady;
-			}
-			updateSkins(x - ppx, y - ppy);
+			updateSkins(getTileX() - px, getTileY() - py);
 		}else{
 			updateSkins(0, 0);
 		}
-
-		setPosition(x * Tenebrae.player.map.tileWidth, y * Tenebrae.player.map.tileWidth);
 	}
 
 	@Override
 	public String toString(){
-		return super.toString() + "§" + filename + "{" + x + "x" + y + ", " + width + "x" + height + ", " + getScaleX() + "x" + getScaleY() + ", " + tile + "}";
+		return super.toString() + "§" + filename + "," + tile;
 	}
 
 	public void endSelf(){
@@ -639,10 +619,6 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 								return valueOf(g);
 							case "exp":
 								return valueOf(exp);
-							case "x":
-								return valueOf(x);
-							case "y":
-								return valueOf(y);
 							case "enemy":
 								return enemy == null ? NIL : enemy.getGlobals();
 							case "__this":
@@ -683,12 +659,6 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 							case "maxmp":
 								self.error("maxmp is read-only");
 								break;
-							case "x":
-								move((float)value.checkdouble(), y, 0, false);
-								break;
-							case "y":
-								move(x, (float)value.checkdouble(), 0, false);
-								break;
 							case "enemy":
 								self.error("enemy is read-only");
 								break;
@@ -703,6 +673,7 @@ abstract public class Character extends WActor.WTexture implements ScriptGlob,Co
 				});
 
 			ScriptGlob.S.setLibToEnv(library, env);
+			env.set("setTexture", NIL);
 			return env;
 		}
 	}

@@ -10,33 +10,94 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 
-public class MenuItem implements ScriptGlob{
-	private Globals globals;
+public abstract class MenuItem{
 	public String name, category;
-	public EntityBox.MenuOption option;
-	protected final Character owner;
-	public MenuItem(String category, String name, Prototype onUse, Character owner){
+	
+	public MenuItem(String category, String name){
 		this.category = category;
 		this.name = name;
-		globals = new Tenebrae.StdEntGlobals();
-		if(onUse != null)
-			globals.set("onUse", new LuaClosure(onUse, globals));
-		this.owner = owner;
 	}
-	public void run(String funcName){
-		Tenebrae.player.closeMenus();
-		globals.get(funcName).checkfunction().call();
-	}
-	@Override
-	public Globals getGlobals(){
-		return globals;
-	}
+	
+	public abstract void run(String funcName)
+	
 	@Override
 	public String toString(){
 		return super.toString() + "§" + category + "." + name;
 	}
 
-	public static class GameItem extends MenuItem{
+	public static class ScriptItem extends MenuItem implements ScriptGlob{
+		private Globals globals;
+		public EntityBox.MenuOption option;
+		protected Character owner;
+		
+		public ScriptItem(String category, String name, Character owner, Prototype onUse){
+			super(category, name);
+			this.owner = owner;
+			globals = new Tenebrae.StdEntGlobals();
+			globals.load(new ScriptItemLib());
+			if(onUse != null)
+				globals.set("onUse", new LuaClosure(onUse, globals));
+		}
+		
+		@Override
+		public void run(String funcName){
+			Tenebrae.player.closeMenus();
+			globals.get(funcName).checkfunction().call();
+		}
+		
+		@Override
+		public Globals getGlobals(){
+			return globals;
+		}
+		
+		public class ScriptItemLib extends TwoArgFunction{
+			@Override
+			public LuaValue call(LuaValue modname, LuaValue env){
+				LuaTable library = tableOf();
+
+				library.setmetatable(tableOf());
+				library.getmetatable().set(INDEX, new TwoArgFunction(){
+						@Override
+						public LuaValue call(LuaValue self, LuaValue key){
+							switch(key.checkjstring()){
+								case "owner":
+									return owner.getGlobals();
+								case "name":
+									return valueOf(ScriptItem.this.name);
+								case "category":
+									return valueOf(category);
+								default:
+									return NIL;
+							}
+						}
+					});
+				library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
+						@Override
+						public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+							switch(key.checkjstring()){
+								case "owner":
+									self.error("owner is read-only");
+									break;
+								case "name":
+									ScriptItem.this.name = value.checkjstring();
+									break;
+								case "category":
+									category = value.checkjstring();
+									break;
+								default:
+									return TRUE;
+							}
+							return NONE;
+						}
+					});
+
+				ScriptGlob.S.setLibToEnv(library, env);
+				return env;
+			}
+		}
+	}
+
+	public static class GameItem extends ScriptItem{
 		private ArrayMap<Character.Stats,Float> equip;
 		private int life;
 		public float eChance;
@@ -47,7 +108,7 @@ public class MenuItem implements ScriptGlob{
 		private Skin skin;
 
 		public GameItem(String id, String name, Character owner, ArrayMap<Character.Stats,Float> equip, int life, String catagory, String type, float enemyChance, boolean isMagic, Skin skin){
-			super(catagory, name, null, owner);
+			super(catagory, name, owner, null);
 			this.id = id;
 			this.equip = equip;
 			this.life = life;
@@ -136,12 +197,12 @@ public class MenuItem implements ScriptGlob{
 				run("onDestroy");
 			}
 		}
-
+		
 		public class GameItemLib extends TwoArgFunction{
 			@Override
 			public LuaValue call(LuaValue modname, LuaValue env){
 				LuaTable library = tableOf();
-				
+
 				library.set("decay", new ZeroArgFunction(){
 						@Override
 						public LuaValue call(){
@@ -212,12 +273,6 @@ public class MenuItem implements ScriptGlob{
 						@Override
 						public LuaValue call(LuaValue self, LuaValue key){
 							switch(key.checkjstring()){
-								case "owner":
-									return owner.getGlobals();
-								case "name":
-									return valueOf(GameItem.this.name);
-								case "category":
-									return valueOf(category);
 								case "durability":
 									return valueOf(life);
 								case "enemyUseChance":
@@ -235,15 +290,6 @@ public class MenuItem implements ScriptGlob{
 						@Override
 						public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
 							switch(key.checkjstring()){
-								case "owner":
-									self.error("owner is read-only");
-									break;
-								case "name":
-									GameItem.this.name = value.checkjstring();
-									break;
-								case "category":
-									category = value.checkjstring();
-									break;
 								case "durability":
 									life = value.checkint();
 									break;

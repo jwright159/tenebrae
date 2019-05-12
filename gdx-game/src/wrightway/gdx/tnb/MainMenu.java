@@ -17,7 +17,7 @@ public class MainMenu extends WScreen{
 	private NineRegionTextureAtlas ta1;
 	private TextureRegion bg;
 	private static final float bgScale = 0.5f;
-	private float bgRatio, t = 0;
+	private float bgRatio, t = MathUtils.random(10);
 	
 	public MainMenu(){
 		super();

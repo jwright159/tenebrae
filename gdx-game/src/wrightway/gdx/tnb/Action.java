@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.math.*;
 import wrightway.gdx.*;
 import org.luaj.vm2.*;
+import com.badlogic.gdx.utils.*;
 
 public abstract class Action implements Runnable{
 	protected Character chara;
@@ -136,8 +137,8 @@ public abstract class Action implements Runnable{
 			boolean rtn = super.stop(touched); //might set player.delay to 0
 			float a = delay == 0 ? 1 : (delay - chara.delay) / delay;
 			if(charaPos != null){
-				x = (charaPos.x + charaPos.width/2) * Tenebrae.player.map.tileWidth;
-				y = (charaPos.y + charaPos.height/2) * Tenebrae.player.map.tileHeight;
+				x = charaPos.getX(Align.center);
+				y = charaPos.getY(Align.center);
 			}
 			cam.position.x = interpx.apply(oldx, x, a);
 			cam.position.y = interpy.apply(oldy, y, a);
@@ -161,8 +162,8 @@ public abstract class Action implements Runnable{
 		}
 		@Override
 		public void run(){
-			oldx = chara.x;
-			oldy = chara.y;
+			oldx = chara.getTileX();
+			oldy = chara.getTileY();
 			if(relative){
 				x += oldx;
 				y += oldy;

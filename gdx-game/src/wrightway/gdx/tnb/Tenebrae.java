@@ -18,7 +18,7 @@ import com.badlogic.gdx.utils.viewport.*;
 public class Tenebrae extends WScreen{
 	public static final FileHandle PAKPATH = MainMenu.GAMEPATH.child("pak");
 
-	public static final float DEADZONE = 0.7f;//0.45f;//0 is at edge, 1 is at center
+	public static final float DEADZONE_DEFAULT = 0.7f;//0.45f;//0 is at edge, 1 is at center
 	public static final float TILES = 7.5f;//number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
 
 	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -105,6 +105,7 @@ public class Tenebrae extends WScreen{
 					@Override
 					public boolean zoom(float origdist, float dist){
 						getCamera().zoom = origdist / dist * zoom;
+						player.moveCamera();
 						return true;
 					}
 					@Override
@@ -123,14 +124,14 @@ public class Tenebrae extends WScreen{
 		Log.debug("Loading! " + player);
 
 		doneLoading = false;
-		unload();
+		reload();
 
 		//eventually need to do some saving/loading
 		//use Serializable
 		//or JayVaScript
 		//Serializable on another object
 		getScript("mappack", mp.getGlobals()).call();
-		player.changeMap(mp.loadMap(), -1, -1);
+		player.changeMap(mp.loadMap());
 
 		//debugBox = new WRect(new Rectangle(0, 0, 50, 50), new Color(Color.BLACK));
 		//hudStage.addActor(debugBox);
@@ -140,11 +141,11 @@ public class Tenebrae extends WScreen{
 		Log.debug("Done loading!");
 		doneLoading = true;
 	}
-	public void unload(){
+	public void reload(){
+		mp = new Mappack(PAKPATH);
 		if(player != null)
 			player.endSelf();
 		player = new Player();
-		getStage().addActor(player);
 		Log.verbose("Unloaded, made " + player);
 	}
 	private static TextureAtlas ta1, ta2;
@@ -195,7 +196,6 @@ public class Tenebrae extends WScreen{
 			if(scriptLoader == null){
 				Log.debug("Starting loading scripts!");
 				loadedScripts = false;
-				mp = new Mappack(PAKPATH);
 				final FileHandle[] flist = PAKPATH.list("lua");
 				if(flist.length == 0)
 					throw new RuntimeException("no .lua files found");
