@@ -275,11 +275,12 @@ public class Mappack implements ScriptGlob{
 					public LuaValue call(LuaValue self, LuaValue musicfile, LuaValue midifile){
 						Music music = Gdx.audio.newMusic(folder.child(musicfile.checkjstring()));
 						MidiFile midi = null;
-						try{
-							midi = new MidiFile(folder.child(midifile.checkjstring()).file());
-						}catch(IOException|FileNotFoundException ex){
-							throw new RuntimeException("Unable to load midi file", ex);
-						}
+						if(!midifile.isnil())
+							try{
+								midi = new MidiFile(folder.child(midifile.checkjstring()).file());
+							}catch(IOException|FileNotFoundException ex){
+								throw new RuntimeException("Unable to load midi file", ex);
+							}
 						MusicWrapper wrapper = new MusicWrapper(music, midi);
 						return wrapper.vars;
 					}
@@ -552,7 +553,6 @@ public class Mappack implements ScriptGlob{
 						switch(key.checkjstring()){
 							case "position":
 								music.setPosition((float)value.checkdouble());
-								music.sync();
 								break;
 							case "volume":
 								music.setVolume((float)value.checkdouble());
