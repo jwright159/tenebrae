@@ -20,6 +20,10 @@ import org.luaj.vm2.*;
 import java.util.*;
 import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
+import org.luaj.vm2.lib.jse.*;
+import com.badlogic.gdx.audio.*;
+import com.leff.midi.*;
+import com.leff.midi.event.*;
 
 public class Mappack implements ScriptGlob{
 	public FileHandle folder;
@@ -44,14 +48,6 @@ public class Mappack implements ScriptGlob{
 	}
 	public TiledMapTileSet loadTileset(String name){
 		return TiledMapTileSetLoader.loadTileSet(folder.child(name + ".tsx"), null);
-	}
-	public MidiWavSync loadMidiWav(String name, MidiEventListener listener){
-		return new MidiWavSync(folder.child(name + ".mid"), folder.child(name + ".wav"), listener);
-	}
-	public EnemyWeapon loadEnemyWeapon(String name, Character owner){
-		EnemyWeapon rtn = new EnemyWeapon(owner, name);
-		Tenebrae.t.getScript(name, rtn.getGlobals()).call();
-		return rtn;
 	}
 	public NPC loadNPC(String name){
 		NPC npc = new NPC(name, Tenebrae.t.getProto(name));
@@ -247,7 +243,7 @@ public class Mappack implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
-						Log.debug("Added", e);
+						Log.verbose("Added", e);
 						Tenebrae.player.map.addEntity(e);
 						return NONE;
 					}
@@ -269,6 +265,23 @@ public class Mappack implements ScriptGlob{
 							return varargsOf(args.arg(3), args.arg(4));
 						dx /= mag; dy /= mag;
 						return varargsOf(valueOf(args.checkdouble(1) + dx * args.checkdouble(5) * args.checkdouble(6)), valueOf(args.checkdouble(2) + dy * args.checkdouble(5) * args.checkdouble(6)));
+					}
+				});
+			LuaTable music = tableOf();
+			library.set("Music", music);
+			music.setmetatable(tableOf());
+			music.getmetatable().set(CALL, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue musicfile, LuaValue midifile){
+						Music music = Gdx.audio.newMusic(folder.child(musicfile.checkjstring()));
+						MidiFile midi = null;
+						try{
+							midi = new MidiFile(folder.child(midifile.checkjstring()).file());
+						}catch(IOException|FileNotFoundException ex){
+							throw new RuntimeException("Unable to load midi file", ex);
+						}
+						MusicWrapper wrapper = new MusicWrapper(music, midi);
+						return wrapper.vars;
 					}
 				});
 
@@ -420,6 +433,139 @@ public class Mappack implements ScriptGlob{
 		}
 		public LuaTable getVars(){
 			return vars;
+		}
+	}
+
+	public static class MusicWrapper{
+		public static String MUSIC = "__music";
+
+		public MusicMidiSync music;
+		public LuaTable vars;
+		public MusicWrapper(Music mus, MidiFile midi){
+			this.music = new MusicMidiSync(mus, midi, new MidiEventListener(){
+					@Override
+					public void onStart(boolean fromBeginning){
+						// TODO: Implement this method
+					}
+					@Override
+					public void onEvent(MidiEvent event, long ms){
+						NoteOn note = (NoteOn)event;
+						Log.verbose2("On!", note, note.getChannel(), note.getTick());
+						LuaTable levent = LuaValue.tableOf();
+						levent.set("time", ms/1000f);
+						levent.set("velocity", note.getVelocity());
+						levent.set("note", note.getNoteValue());
+						levent.set("tick", note.getTick());
+						levent.set("channel", note.getChannel());
+						
+						LuaValue onNote = vars.get("onNote");
+						if(!onNote.isnil())
+							onNote.call(vars, levent);
+						
+						onNote = vars.get("onNote"+(note.getChannel()+1));
+						if(!onNote.isnil())
+							onNote.call(vars, levent);
+					}
+					@Override
+					public void onStop(boolean finished){
+						// TODO: Implement this method
+					}
+				}, new MidiEventListener(){
+					@Override
+					public void onStart(boolean fromBeginning){
+						// TODO: Implement this method
+					}
+					@Override
+					public void onEvent(MidiEvent event, long ms){
+						NoteOff note = (NoteOff)event;
+						Log.verbose2("Off!", note, note.getChannel(), note.getTick());
+						LuaTable levent = LuaValue.tableOf();
+						levent.set("time", ms/1000f);
+						levent.set("velocity", note.getVelocity());
+						levent.set("note", note.getNoteValue());
+						levent.set("tick", note.getTick()-note.getDelta());
+						levent.set("channel", note.getChannel());
+						
+						LuaValue offNote = vars.get("offNote");
+						if(!offNote.isnil())
+							offNote.call(vars, levent);
+						
+						offNote = vars.get("offNote"+(note.getChannel()+1));
+						if(!offNote.isnil())
+							offNote.call(vars, levent);
+					}
+					@Override
+					public void onStop(boolean finished){
+						// TODO: Implement this method
+					}
+				});
+
+			vars = LuaValue.tableOf();
+			vars.set("play", new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						music.play();
+						return NONE;
+					}
+				});
+			vars.set("pause", new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						music.pause();
+						return NONE;
+					}
+				});
+			vars.set("stop", new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						music.stop();
+						return NONE;
+					}
+				});
+			vars.set("dispose", new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						music.dispose();
+						return NONE;
+					}
+				});
+			vars.setmetatable(LuaValue.tableOf());
+			vars.getmetatable().set(MUSIC, CoerceJavaToLua.coerce(music));
+			vars.getmetatable().set(LuaValue.INDEX, new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key){
+						switch(key.checkjstring()){
+							case "position":
+								return valueOf(music.getPosition());
+							case "volume":
+								return valueOf(music.getVolume());
+							case "isPlaying":
+								return valueOf(music.isPlaying());
+							default:
+								return self.rawget(key);
+						}
+					}
+				});
+			vars.getmetatable().set(LuaValue.NEWINDEX, new ThreeArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
+						switch(key.checkjstring()){
+							case "position":
+								music.setPosition((float)value.checkdouble());
+								music.sync();
+								break;
+							case "volume":
+								music.setVolume((float)value.checkdouble());
+								break;
+							case "isPlaying":
+								self.error("isPlaying is read-only");
+								break;
+							default:
+								self.rawset(key, value);
+						}
+						return NONE;
+					}
+				});
 		}
 	}
 }

@@ -26,7 +26,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 	protected Array<MenuItem.GameItem> items;
 	public ArrayMap<String,MenuItem.GameItem> equippedItems;
 	public EntityBox box;
-	public Character enemy;
+	public EntityBox.StatBox smolStatBox;
 	private ArrayMap<String,Skin> skinList;
 	private Array<Action> actions;
 	protected Action currentAction;
@@ -50,7 +50,12 @@ abstract public class Character extends Entity implements ScriptGlob{
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
+		
 		box = new EntityBox(this, false, Tenebrae.t.getSkin());
+		smolStatBox = new EntityBox.FadingStatBox(box.healthBar, box.manaBar, Tenebrae.t.getSkin());
+		smolStatBox.setSize(Tenebrae.MARGIN * 10.0f, Tenebrae.MARGIN * 2.0f);
+		Tenebrae.t.getUiStage().addActor(smolStatBox);
+		
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
@@ -84,10 +89,12 @@ abstract public class Character extends Entity implements ScriptGlob{
 		setTileScalar(map.tileWidth, map.tileHeight);
 		setTileSize(rect.getWidth(), rect.getHeight());
 		Log.debug("scaled", getTileWidth(), getTileHeight(), getWidth(), getHeight());
+		
+		smolStatBox.setVisible(false);
 	}
 
-	public void move(float newX, float newY, float speed, boolean relative){
-		addAction(new Action.MoveAction(this, newX, newY, speed, relative, false));
+	public void move(float newX, float newY, float speed, boolean relative, boolean collide){
+		addAction(new Action.MoveAction(this, newX, newY, speed, relative, collide, false));
 		triggerAction();
 	}
 	public boolean hasTarget(){
@@ -124,8 +131,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		if(!stats.containsKey(type))
 			stats.put(type, new ArrayMap<Stats,Float>());
 		stats.get(type).put(stat, value);
-		if(box != null)
-			box.updateHP();
+		updateBoxHP();
 	}
 	public void setStats(String type, float str, float intl, float def, float agl, float maxhp, float maxmp){
 		Log.debug("Updating stats of type " + type + " to " + toString() + "! " + str + " " + intl + " " + def + " " + agl + " " + maxhp + " " + maxmp);
@@ -144,7 +150,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 			damage(stat.get(Stats.maxhp), true, true);
 		if(mp > maxmp())
 			tire(stat.get(Stats.maxmp), true, true);
-		box.updateHP();
+		updateBoxHP();
 	}
 	public void removeTempStats(){
 		for(int i = 0; i < stats.size; i++)
@@ -354,7 +360,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 				rtn += value.get(Stats.maxmp);
 		return rtn;
 	}
-	public void attack(boolean magic){
+	public void attack(Character enemy, boolean magic){
 		if(enemy == null){
 			Tenebrae.player.addDialog(name + " attacked!");
 			Tenebrae.player.addDialog("...But nobody came.");
@@ -404,7 +410,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		Tenebrae.player.addDialog(name + " missed!");
 	}
 	public void finishAffect(){
-		box.updateHP();
+		updateBoxHP();
 		if(isDead())
 			die();
 	}
@@ -437,6 +443,23 @@ abstract public class Character extends Entity implements ScriptGlob{
 		if(funcToRun != null)
 			addAction(new FunctionAction(funcToRun));
 	}
+	
+	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
+	public void moveSmolStatBox(){
+		localToScreenCoordinates(coordBuffer.set(0, 0));
+		localToScreenCoordinates(sizeBuffer.set(getWidth(), getHeight()));
+		//Log.debug(coordBuffer, sizeBuffer);
+		sizeBuffer.sub(coordBuffer).scl(1, -1); // sizeBuffer gives top-right point
+		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
+		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
+	}
+	public void updateBoxHP(){
+		Log.debug("Updating HP", hp, maxhp(), mp, maxmp(), this);
+		if(box != null)
+			box.updateHP();
+		if(smolStatBox != null)
+			smolStatBox.updateHP();
+	}
 
 	@Override
 	public void act(float delta){
@@ -464,6 +487,12 @@ abstract public class Character extends Entity implements ScriptGlob{
 	}
 
 	@Override
+	public void draw(Batch batch, float parentAlpha){
+		moveSmolStatBox();
+		super.draw(batch, parentAlpha);
+	}
+
+	@Override
 	public String toString(){
 		return super.toString() + "§" + filename + "," + tile;
 	}
@@ -472,6 +501,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		for(Skin skin : skinList.values())
 			skin.dispose();
 		dispose();
+		smolStatBox.remove();
 	}
 
 	public class CharacterLib extends TwoArgFunction{
@@ -573,7 +603,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
 						//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
-						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true);
+						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true, false);
 						return NONE;
 					}
 				});
@@ -581,7 +611,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
 						//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
-						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false);
+						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false, false);
 						return NONE;
 					}
 				});
@@ -619,8 +649,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 								return valueOf(g);
 							case "exp":
 								return valueOf(exp);
-							case "enemy":
-								return enemy == null ? NIL : enemy.getGlobals();
 							case "__this":
 								return CoerceJavaToLua.coerce(Character.this);
 							default:
@@ -658,9 +686,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 								break;
 							case "maxmp":
 								self.error("maxmp is read-only");
-								break;
-							case "enemy":
-								self.error("enemy is read-only");
 								break;
 							case "__this":
 								self.error("__this is read-only");

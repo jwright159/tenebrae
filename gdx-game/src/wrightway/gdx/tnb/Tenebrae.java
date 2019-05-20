@@ -94,7 +94,7 @@ public class Tenebrae extends WScreen{
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
 						if(doneLoading && player.buttonBox.getActiveBox() == null && !player.hasAnyAction())
-							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true);
+							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true, true);
 						return true;
 					}
 					@Override
@@ -142,9 +142,9 @@ public class Tenebrae extends WScreen{
 		doneLoading = true;
 	}
 	public void reload(){
-		mp = new Mappack(PAKPATH);
 		if(player != null)
 			player.endSelf();
+		mp = new Mappack(PAKPATH);
 		player = new Player();
 		Log.verbose("Unloaded, made " + player);
 	}
@@ -265,6 +265,10 @@ public class Tenebrae extends WScreen{
 					Log.debug("Done loading save!");
 				}
 			}
+		}else{ // IN-GAME ACT
+		
+			
+			
 		}
 	}
 	private Thread scriptLoader;
@@ -309,7 +313,6 @@ public class Tenebrae extends WScreen{
 		super.dispose();
 		ta1.dispose();
 		ta2.dispose();
-		//music.dispose();
 	}
 
 	public static class StdEntGlobals extends ScriptGlob.StdGlobals{

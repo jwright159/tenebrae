@@ -151,13 +151,14 @@ public abstract class Action implements Runnable{
 	public static class MoveAction extends DelayAction{
 		private float x, y, oldx, oldy;
 		private Interpolation interp;
-		private boolean relative, done;
-		public MoveAction(Character chara, float x, float y, float speed, boolean relative, boolean tap){
+		private boolean relative, done, collide;
+		public MoveAction(Character chara, float x, float y, float speed, boolean relative, boolean collide, boolean tap){
 			super(chara, speed, tap);
 			this.x = x;
 			this.y = y;
 			interp = Interpolation.linear;
 			this.relative = relative;
+			this.collide = collide;
 			//Log.verbose("To move!", x, y, speed);
 		}
 		@Override
@@ -169,12 +170,12 @@ public abstract class Action implements Runnable{
 				y += oldy;
 			}
 			delay = delay == 0 ? 0 : (float)Math.hypot(x - oldx, y - oldy) / delay;
-			//Log.verbose("Moving!", oldx, oldy, x, y, delay);
+			Log.verbose2("Moving!", oldx, oldy, x, y, delay);
 			super.run();
 		}
 		@Override
 		public boolean stop(boolean touched){
-			//Log.verbose("Actually moving.", this, delay, oldx, oldy, x, y, done);
+			Log.verbose2("Actually moving.", this, delay, oldx, oldy, x, y, done);
 			if(done)
 				return true;
 			if(manualOverride && touched)
@@ -182,6 +183,7 @@ public abstract class Action implements Runnable{
 			float a = delay == 0 ? 1 : (delay - chara.delay) / delay;
 			chara.targetX = interp.apply(oldx, x, a);
 			chara.targetY = interp.apply(oldy, y, a);
+			if(chara instanceof Player)((Player)chara).collide = collide;
 			done = chara.delay == 0;
 			return false;
 		}

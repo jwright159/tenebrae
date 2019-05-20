@@ -27,6 +27,7 @@ public class NPC extends Character{
 		new LuaClosure(script, getGlobals()).call();
 		hp = maxhp();
 		mp = maxmp();
+		updateBoxHP();
 		idleRoutine = new Array<FunctionAction>();
 		//box.updateHP(this);
 	}
@@ -44,7 +45,9 @@ public class NPC extends Character{
 
 	@Override
 	public void die(){
-		throw new UnsupportedOperationException("I'm a bad bitch, you can't kill me");
+		LuaValue die = getGlobals().get("onDie");
+		if(!die.isnil())
+			die.call(getGlobals());
 	}
 
 	@Override
@@ -85,8 +88,10 @@ public class NPC extends Character{
 							public LuaValue call(){
 								enabled = true;
 								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
-								if(!had)
+								if(!had){
 									Tenebrae.mp.charas.add(NPC.this);
+									Tenebrae.t.getUiStage().addActor(smolStatBox);
+								}
 								return valueOf(!had);
 							}
 						});
@@ -95,8 +100,10 @@ public class NPC extends Character{
 							public LuaValue call(){
 								enabled = false;
 								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
-								if(had)
+								if(had){
 									Tenebrae.mp.charas.removeValue(NPC.this, true);
+									smolStatBox.remove();
+								}
 								return valueOf(had);
 							}
 						});

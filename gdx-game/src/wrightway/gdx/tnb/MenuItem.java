@@ -238,11 +238,12 @@ public abstract class MenuItem{
 							return NONE;
 						}
 					});
-				library.set("attack", new VarArgFunction(){ // atk, intl, def, agl, maxhp, maxmp
+				library.set("attack", new VarArgFunction(){ // enemy, atk, intl, def, agl, maxhp, maxmp
 						@Override
 						public Varargs invoke(Varargs args){
-							GameItem.this.owner.setStats("_temp" + owner.stats.size, (float)args.optdouble(1, 0), (float)args.optdouble(2, 0), (float)args.optdouble(3, 0), (float)args.optdouble(4, 0), (float)args.optdouble(5, 0), (float)args.optdouble(6, 0));
-							GameItem.this.owner.attack(magic);
+							if(args.narg() > 1)
+								GameItem.this.owner.setStats("_temp" + owner.stats.size, (float)args.optdouble(2, 0), (float)args.optdouble(3, 0), (float)args.optdouble(4, 0), (float)args.optdouble(5, 0), (float)args.optdouble(6, 0), (float)args.optdouble(7, 0));
+							GameItem.this.owner.attack(args.isnil(1) ? null : (Character)args.checktable(1).getmetatable().get(Entity.ENTITY).checkuserdata(Character.class), magic);
 							return NONE;
 						}
 					});

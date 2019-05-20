@@ -69,7 +69,6 @@ public class EntityBox extends Table{
 			super.updateHP();
 			Log.verbose("Lv pts! " + p.expNow());
 			levelBar.setHealth(p.lv, p.expNow(), p.expAtNextLv());
-			p.smolStatBox.updateHP();
 		}
 	}
 
@@ -574,8 +573,8 @@ public class EntityBox extends Table{
 	}
 
 	public static class StatBox extends Table{
-		MiniHealthBar health,mana;
-		StatBox(HealthBar health, HealthBar mana, Skin skin){
+		protected MiniHealthBar health, mana;
+		public StatBox(HealthBar health, HealthBar mana, Skin skin){
 			super(skin);
 			setDebug(Tenebrae.tableDebug);
 			//setClip(true);
@@ -592,6 +591,45 @@ public class EntityBox extends Table{
 		public void updateHP(){
 			health.setHealth();
 			mana.setHealth();
+		}
+	}
+	public static class FadingStatBox extends StatBox{
+		private float visTimer = 0;
+		private static final float visMin = 2, visMax = 5;
+		private static final Interpolation interp = Interpolation.fade;
+		
+		public FadingStatBox(HealthBar health, HealthBar mana, Skin skin){
+			super(health, mana, skin);
+		}
+		public FadingStatBox(StatBox box){
+			this(box.health, box.mana, box.getSkin());
+			if(box.getStage() != null)
+				box.getStage().addActor(this);
+			setSize(box.getWidth(), box.getHeight());
+		}
+		
+		@Override
+		public void act(float delta){
+			super.act(delta);
+
+			visTimer += delta;
+			if(visTimer < visMin){
+				setColor(Color.WHITE);
+			}else if(visTimer >= visMax){
+				setColor(Color.CLEAR);
+			}else{
+				setColor(1, 1, 1, 1 - interp.apply((visTimer - visMin) / (visMax - visMin)));
+			}
+		}
+		@Override
+		public void setVisible(boolean visible){
+			super.setVisible(visible);
+			visTimer = visible ? 0 : visMax;
+		}
+		@Override
+		public void updateHP(){
+			super.updateHP();
+			setVisible(true);
 		}
 	}
 

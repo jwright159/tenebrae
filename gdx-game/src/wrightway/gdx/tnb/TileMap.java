@@ -26,8 +26,10 @@ public class TileMap extends WActor{
 	public int width, height;
 	private Group ents;
 	public static String EMPTY_PREFIX = "__empty_", EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
+	private LuaFunction script;
 
-	public TileMap(FileHandle mapFile, LuaFunction trigScriptFile, Batch batch){
+	public TileMap(FileHandle mapFile, LuaFunction script, Batch batch){
+		this.script = script;
 		ents = new Group(){
 			@Override
 			public void act(float delta){
@@ -64,7 +66,7 @@ public class TileMap extends WActor{
 			@Override
 			public void renderObjects(MapLayer layer){
 				for(Entity ent : ents.getChildren())
-					if(ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
+					if(ent != null && ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
 						ent.draw(getBatch(), 1);
 			}
 		};
@@ -72,9 +74,11 @@ public class TileMap extends WActor{
 		for(TiledMapTileSet tileset : map.getTileSets())
 			Log.verbose2("Found tileset! " + tileset.getName());
 
-		trigScriptFile.call();
-
 		//Tenebrar.debug("Map made! "+toString());
+	}
+	
+	public LuaValue call(){
+		return script.call();
 	}
 
 	public MapLayers getCollisionLayers(){
@@ -263,12 +267,15 @@ public class TileMap extends WActor{
 		maprenderer.render();
 		batch.begin();
 		for(Entity ent : ents.getChildren())
-			if(!ent.hasMapObject() && ent.isVisible())
+			if(ent != null && !ent.hasMapObject() && ent.isVisible())
 				ent.draw(batch, parentAlpha);
 	}
 
 	@Override
 	public void dispose(){
+		LuaValue onDestroy = Tenebrae.mp.getGlobals().get("onDestroy");
+		if(!onDestroy.isnil())
+			onDestroy.call();
 		super.dispose();
 		map.dispose();
 		maprenderer.dispose();

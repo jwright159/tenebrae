@@ -11,6 +11,7 @@ import wrightway.gdx.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
+import com.badlogic.gdx.scenes.scene2d.*;
 
 public class Entity extends TextureActor implements Comparable<Entity>{
 	public static final String ENTITY = "__entity";
@@ -22,6 +23,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	private MapObject mapobj; // Either RectMapObj or TileMapObj
 	//private Array<Trigger> trigs; // Do this if u want the longer prop searching
 	private MapProperties props; // Just for triggers
+	private WActor tap;
 	
 	public Entity(float x, float y, float width, float height, float tileWidth, float tileHeight){
 		vars = LuaValue.tableOf();
@@ -30,6 +32,20 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 		props = new MapProperties();
 		//props.put("onTouch", "onTouch");
 		props.put("onTrigger", "onTrigger");
+		tap = new WActor(){
+			@Override
+			public void tap(float x, float y, int count, int button){
+				super.tap(x, y, count, button);
+				LuaValue tap = vars.get("onTap");
+				if(!tap.isnil())
+					tap.call(vars);
+			}
+			@Override
+			public void draw(Batch batch, float parentAlpha){
+				// Just don't do anything
+			}
+		};
+		//tap.setDebug(true);
 		setTileScalar(tileWidth, tileHeight);
 		setTileBounds(x, y, width, height);
 	}
@@ -170,17 +186,30 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	public int compareTo(Entity c){
 		return y > c.y ? -1 : 1;
 	}
+	
+	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
+	public void moveTapActor(){
+		localToScreenCoordinates(coordBuffer.set(0, 0));
+		localToScreenCoordinates(sizeBuffer.set(getWidth(), getHeight()));
+		sizeBuffer.sub(coordBuffer).scl(1, -1); // sizeBuffer gives top-right point
+		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
+		//Log.debug(getWidth(), getScaleX(), getTileScalarWidth(), getTileX(), getTrueWidth(), coordBuffer, sizeBuffer);
+		tap.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
+	}
 
 	public void act(float delta, float time){
 		LuaValue act = vars.get("act");
-		if(!act.isnil() && act.isfunction())
+		if(!act.isnil())
 			act.call(vars, LuaValue.valueOf(delta), LuaValue.valueOf(time));
 		
-		if(toTileRect().overlaps(Tenebrae.player.toTileRect())){
+		if(Tenebrae.player.collide && toTileRect().overlaps(Tenebrae.player.toTileRect())){
 			LuaValue onTouch = vars.get("onTouch");
-			if(!onTouch.isnil() && onTouch.isfunction())
+			if(!onTouch.isnil())
 				onTouch.call(vars);
 		}
+		
+		if(tap.getStage() != null)
+			moveTapActor();
 		
 		if(tile != null)
 			setRegion(tile.getTextureRegion());
@@ -200,17 +229,10 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	@Override
 	public void dispose(){
 		super.dispose();
+		tap.dispose();
 		if(tile != null)
 			tile.getTextureRegion().getTexture().dispose();
 	}
-
-	@Override
-	public void setVisible(boolean visible){
-		// TODO: Implement this method
-		super.setVisible(visible);
-	}
-	
-	
 
 	public class EntityLib extends TwoArgFunction{
 		@Override
@@ -303,6 +325,12 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 							case "originY":
 								setOriginY((float)value.checkdouble());
 								break;
+							case "onTap":
+								if(!value.isnil())
+									Tenebrae.t.getUiStage().addActor(tap);
+								else
+									tap.remove();
+								return TRUE;
 							default:
 								return TRUE;
 						}

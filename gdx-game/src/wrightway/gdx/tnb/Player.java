@@ -27,7 +27,6 @@ public class Player extends Character{
 	private ArrayMap<Float, ArrayMap<Stats, Float>> statTable;
 	public final static int actstep = 1;
 	public ButtonBox buttonBox;
-	public StatBox smolStatBox;
 	public Label dialogBox;
 	private Container<Stack> mapRect;
 	private Table uiTable;
@@ -40,6 +39,7 @@ public class Player extends Character{
 	public static Rectangle dzRect, bigdzRect;
 	public Table table;
 	public float deadzone = Tenebrae.DEADZONE_DEFAULT;
+	public boolean collide = true;
 
 	public Player(){
 		super("player");
@@ -82,45 +82,17 @@ public class Player extends Character{
 		Table playerPane = new Table(skin);
 		playerPane.setDebug(Tenebrae.tableDebug);
 		playerPane.background("window");
+		box.remove();
 		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.MARGIN).grow();
 		uiTable.add(playerPane).padLeft(Tenebrae.MARGIN).grow().uniform();
 
-		smolStatBox = new StatBox(box.healthBar, box.manaBar, skin){
-			private float visTimer = 0;
-			private static final float visMin = 2, visMax = 5;
-			private static final Interpolation interp = Interpolation.fade;
-			@Override
-			public void act(float delta){
-				super.act(delta);
-
-				visTimer += delta;
-				if(visTimer < visMin){
-					setColor(Color.WHITE);
-				}else if(visTimer >= visMax){
-					setColor(Color.CLEAR);
-				}else{
-					setColor(1, 1, 1, 1 - interp.apply((visTimer - visMin) / (visMax - visMin)));
-				}
-
-				moveSmolStatBox();
-			}
-			@Override
-			public void setVisible(boolean visible){
-				super.setVisible(visible);
-				visTimer = visible ? 0 : visMax;
-			}
-			@Override
-			public void updateHP(){
-				super.updateHP();
-				setVisible(true);
-			}
-		};
-		smolStatBox.setSize(Tenebrae.MARGIN * 10.0f, Tenebrae.MARGIN * 2.0f);
-		Tenebrae.t.getUiStage().addActor(smolStatBox);
-		//dialogTable.add(smolStatBox).pad(0, Tenebrae.MARGIN * 5, 0, Tenebrae.MARGIN * 5).expandX().fill().height(Tenebrae.MARGIN * 2);
-		//dialogTable.row();
+		StatBox prevStatBox = smolStatBox;
+		prevStatBox.remove();
+		Tenebrae.t.getUiStage().addActor(smolStatBox = new FadingStatBox(box.healthBar, box.manaBar, skin));
+		smolStatBox.setSize(prevStatBox.getWidth(), prevStatBox.getHeight());
+		
 		dialogTable.add().grow();
-
+		
 		final Table dialogBoxBox = new Table(skin);
 		dialogBox = new Label("", skin, "dialog"){
 			@Override
@@ -164,7 +136,6 @@ public class Player extends Character{
 		setStats(baseStats, 0, 0, 0, 0, 0, 0);
 		exp = 0;
 		g = 0;
-		box.updateHP();
 		bounds = new Rectangle();
 		boundsActor = new PatchActor(bounds, skin.getPatch("wrect"), 1);
 		boundsActor.setBorderAlignment(Align.left);
@@ -176,7 +147,7 @@ public class Player extends Character{
 	}
 	@Override
 	public void changeMap(TileMap map){
-		Log.debug("Changing map!", map);
+		Log.debug("Changing map!", this.map, map);
 		firstFrame = true;
 		if(this.map != null){
 			this.map.dispose();
@@ -184,6 +155,7 @@ public class Player extends Character{
 		}
 		this.map = map;
 		Tenebrae.t.getStage().addActor(map);
+		map.call();
 		
 		boundsActor.setScale(map.tileWidth, map.tileHeight);
 		if(boundsActor.getStage() == null)
@@ -196,7 +168,9 @@ public class Player extends Character{
 
 		//Log.debug("Changing player! " + toString());
 
-		Tenebrae.mp.getGlobals().get("onCreate").call();
+		LuaValue onCreate = Tenebrae.mp.getGlobals().get("onCreate");
+		if(!onCreate.isnil())
+			onCreate.call();
 		
 		if(bounds.getWidth() > 0 && bounds.getHeight() > 0)
 			setTilePosition(bounds.getWidth() / 2 - getTileWidth() / 2, bounds.getHeight() / 2 - getTileHeight() / 2);
@@ -209,6 +183,8 @@ public class Player extends Character{
 	}
 
 	public boolean isColliding(){
+		if(!collide)
+			return false;
 		for(int i = (int)getTileX(); i <= getTileX(Align.right); i++)
 			for(int j = (int)getTileY(); j <= getTileY(Align.top); j++)
 				if(isColliding(i, j))
@@ -334,7 +310,7 @@ public class Player extends Character{
 			return true;
 		}else if(currentAction != null){
 			triggerAction(true);
-			if(currentAction == null || enemy == null)
+			if(currentAction == null)
 				return true;
 		}else if(isExpanded()){
 			setExpanded(false);
@@ -440,14 +416,6 @@ public class Player extends Character{
 		return statTable.getKeyAt(statTable.size - 1);
 	}
 
-	@Override
-	public void finishAffect(){
-		box.updateHP();
-		smolStatBox.updateHP();
-		if(isDead())
-			die();
-	}
-
 	/*
 	 //NEED SOMETHING TO RUN W/O PRESSING ANYTHING BC THIS HURT TEXT AND GRAPHIC ARE AT DIFF TIMES
 	 //ARRRRGH CAN'T USE TRIGGERACTION() BC WE'RE IN THE MIDDLE OF A TRIGGER, FAILS CHECK!
@@ -471,6 +439,7 @@ public class Player extends Character{
 	@Override
 	public void die(){
 		Log.debug("Dead.");
+		collide = false;
 		addDialog("You have died! :(");
 		addAction(new Action(){public void run(){
 					Tenebrae.t.loadSave();
@@ -548,18 +517,6 @@ public class Player extends Character{
 		cam.update();
 	}
 
-	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
-	public void moveSmolStatBox(){
-		localToScreenCoordinates(coordBuffer.set(0, 0));
-		localToScreenCoordinates(sizeBuffer.set(getTrueWidth(), getTrueHeight()));
-		//Log.debug(coordBuffer, sizeBuffer);
-		sizeBuffer.sub(coordBuffer); // sizeBuffer gives top-right point
-		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
-		sizeBuffer.scl(1, -1);
-		//smolStatBox.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
-		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
-	}
-
 	@Override
 	public void doMovement(){
 		if(hasTarget()){
@@ -580,6 +537,8 @@ public class Player extends Character{
 		}else{
 			updateSkins(0, 0);
 		}
+		
+		moveSmolStatBox();
 	}
 
 	@Override
@@ -644,7 +603,6 @@ public class Player extends Character{
 		super.endSelf();
 		map.dispose();
 		table.clear();
-		smolStatBox.remove();
 	}
 
 	public class PlayerLib extends TwoArgFunction{
