@@ -38,7 +38,7 @@ public class TileMap extends WActor{
 			}
 
 			@Override
-			public void drawChildren(Batch batch, float parentAlpha){
+			public void draw(Batch batch, float parentAlpha){
 				// We do this
 			}
 		};
@@ -66,7 +66,7 @@ public class TileMap extends WActor{
 			@Override
 			public void renderObjects(MapLayer layer){
 				for(Entity ent : ents.getChildren())
-					if(ent != null && ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
+					if(ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
 						ent.draw(getBatch(), 1);
 			}
 		};
@@ -267,7 +267,7 @@ public class TileMap extends WActor{
 		maprenderer.render();
 		batch.begin();
 		for(Entity ent : ents.getChildren())
-			if(ent != null && !ent.hasMapObject() && ent.isVisible())
+			if(!ent.hasMapObject() && ent.isVisible())
 				ent.draw(batch, parentAlpha);
 	}
 

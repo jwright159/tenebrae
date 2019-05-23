@@ -274,6 +274,7 @@ public class Mappack implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue self, LuaValue musicfile, LuaValue midifile){
 						Music music = Gdx.audio.newMusic(folder.child(musicfile.checkjstring()));
+						music.setLooping(true);
 						MidiFile midi = null;
 						if(!midifile.isnil())
 							try{
@@ -450,22 +451,27 @@ public class Mappack implements ScriptGlob{
 					}
 					@Override
 					public void onEvent(MidiEvent event, long ms){
-						NoteOn note = (NoteOn)event;
+						final NoteOn note = (NoteOn)event;
 						Log.verbose2("On!", note, note.getChannel(), note.getTick());
-						LuaTable levent = LuaValue.tableOf();
-						levent.set("time", ms/1000f);
+						final LuaTable levent = LuaValue.tableOf();
+						levent.set("time", ms / 1000f);
 						levent.set("velocity", note.getVelocity());
 						levent.set("note", note.getNoteValue());
 						levent.set("tick", note.getTick());
 						levent.set("channel", note.getChannel());
-						
-						LuaValue onNote = vars.get("onNote");
-						if(!onNote.isnil())
-							onNote.call(vars, levent);
-						
-						onNote = vars.get("onNote"+(note.getChannel()+1));
-						if(!onNote.isnil())
-							onNote.call(vars, levent);
+
+						Gdx.app.postRunnable(new Runnable(){
+								@Override
+								public void run(){
+									LuaValue onNote = vars.get("onNote");
+									if(!onNote.isnil())
+										onNote.call(vars, levent);
+
+									onNote = vars.get("onNote" + (note.getChannel() + 1));
+									if(!onNote.isnil())
+										onNote.call(vars, levent);
+								}
+							});
 					}
 					@Override
 					public void onStop(boolean finished){
@@ -478,22 +484,27 @@ public class Mappack implements ScriptGlob{
 					}
 					@Override
 					public void onEvent(MidiEvent event, long ms){
-						NoteOff note = (NoteOff)event;
+						final NoteOff note = (NoteOff)event;
 						Log.verbose2("Off!", note, note.getChannel(), note.getTick());
-						LuaTable levent = LuaValue.tableOf();
-						levent.set("time", ms/1000f);
+						final LuaTable levent = LuaValue.tableOf();
+						levent.set("time", ms / 1000f);
 						levent.set("velocity", note.getVelocity());
 						levent.set("note", note.getNoteValue());
-						levent.set("tick", note.getTick()-note.getDelta());
+						levent.set("tick", note.getTick() - note.getDelta());
 						levent.set("channel", note.getChannel());
-						
-						LuaValue offNote = vars.get("offNote");
-						if(!offNote.isnil())
-							offNote.call(vars, levent);
-						
-						offNote = vars.get("offNote"+(note.getChannel()+1));
-						if(!offNote.isnil())
-							offNote.call(vars, levent);
+
+						Gdx.app.postRunnable(new Runnable(){
+								@Override
+								public void run(){
+									LuaValue offNote = vars.get("offNote");
+									if(!offNote.isnil())
+										offNote.call(vars, levent);
+
+									offNote = vars.get("offNote" + (note.getChannel() + 1));
+									if(!offNote.isnil())
+										offNote.call(vars, levent);
+								}
+							});
 					}
 					@Override
 					public void onStop(boolean finished){
