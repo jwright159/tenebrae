@@ -63,6 +63,7 @@ public interface ScriptGlob{
 						return NONE;
 					}
 				});
+			env.set("print", env.get("println"));
 			env.set("errorln", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){
