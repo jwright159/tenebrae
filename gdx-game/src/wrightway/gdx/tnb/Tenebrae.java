@@ -130,7 +130,7 @@ public class Tenebrae extends WScreen{
 		//use Serializable
 		//or JayVaScript
 		//Serializable on another object
-		getScript("mappack", mp.getGlobals()).call();
+		getScript("mappack.lua", mp.getGlobals()).call();
 		player.changeMap(mp.loadMap());
 
 		//debugBox = new WRect(new Rectangle(0, 0, 50, 50), new Color(Color.BLACK));
@@ -237,7 +237,7 @@ public class Tenebrae extends WScreen{
 								Gdx.app.postRunnable(new Runnable(){
 										@Override
 										public void run(){
-											scripts.put(f.nameWithoutExtension(), script);
+											scripts.put(f.name(), script);
 											loadbar.bar.setValue(j);
 											loadbar.text.setText(flist[j < flist.length ? j + 1 : 0].nameWithoutExtension());
 										}
@@ -273,8 +273,8 @@ public class Tenebrae extends WScreen{
 	}
 	private Thread scriptLoader;
 	private ArrayMap<String,Prototype> scripts;
-	EntityBox.TextBar loadbar;
-	Table splash;
+	private EntityBox.TextBar loadbar;
+	private Table splash;
 	private boolean loadedScripts;
 	public LuaClosure getScript(String name, Globals env){
 		Log.debug("Getting script", name);

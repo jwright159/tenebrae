@@ -203,7 +203,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 			}
 		}
 
-		skinList.put(tilesetName, newSkin);
+		skinList.put(Utils.filename(tilesetName), newSkin);
 		if(!tile.isEmpty()){
 			MapProperties p = null;
 			for(TiledMapTile t : tile)

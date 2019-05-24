@@ -241,12 +241,12 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 
 			library.set("setTexture", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue name, LuaValue tid){
+					public LuaValue call(LuaValue tsx, LuaValue tid){
 						if(tid.isnil()){
 							tile = null;
-							setRegion(Tenebrae.t.getSkin().getRegion(name.checkjstring()));
+							setRegion(Tenebrae.t.getSkin().getRegion(tsx.checkjstring()));
 						}else{
-							TiledMapTileSet tileset = Tenebrae.mp.loadTileset(name.checkjstring());
+							TiledMapTileSet tileset = Tenebrae.mp.loadTileset(tsx.checkjstring());
 							tile = tileset.getTile(tid.checkint());
 							if(tile == null)
 								env.error("no tile with id "+tid.checkint());

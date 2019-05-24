@@ -9,7 +9,7 @@ import org.luaj.vm2.lib.*;
 
 public class EnemyWeapon implements Disposable,ScriptGlob{
 	public Character owner;
-	public String filename, type;
+	public String type;
 	public float str, spawnX, spawnY, targetX, targetY, speed, scale;
 	public int id = 0;
 	private TiledMapTileSet tileset;
@@ -19,7 +19,6 @@ public class EnemyWeapon implements Disposable,ScriptGlob{
 	EnemyWeapon(Character owner, String filename){
 		globals = new Tenebrae.StdEntGlobals();
 		this.owner = owner;
-		this.filename = filename;
 		tileset = Tenebrae.mp.loadTileset(filename);
 		/*vars.put("spawn", new JSParser.Function("spawn", "projectile"){public Object run(Scope.Scoped scope){
 		 Projectile projectile = (Projectile)scope.get("projectile");

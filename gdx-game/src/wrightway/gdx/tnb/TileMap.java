@@ -19,13 +19,13 @@ import org.luaj.vm2.*;
 import java.util.*;
 
 public class TileMap extends WActor{
-	private String filepath,filename;
+	private String filepath;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer maprenderer;
 	public float tileWidth, tileHeight;
 	public int width, height;
 	private Group ents;
-	public static String EMPTY_PREFIX = "__empty_", EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
+	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
 
 	public TileMap(FileHandle mapFile, LuaFunction script, Batch batch){
@@ -43,9 +43,8 @@ public class TileMap extends WActor{
 			}
 		};
 
-		boolean exists = mapFile.exists();
+		boolean exists = mapFile != null && mapFile.exists();
 		filepath = exists ? mapFile.path() : EMPTY_PATH;
-		filename = mapFile.nameWithoutExtension();
 
 		TmxMapLoader.Parameters params = new TmxMapLoader.Parameters();
 		params.generateMipMaps = true;
@@ -286,6 +285,6 @@ public class TileMap extends WActor{
 
 	@Override
 	public String toString(){
-		return super.toString() + "§" + filename + "{" + filepath + ", " + width + "x" + height + "}";
+		return super.toString() + "{" + filepath + ", " + width + "x" + height + "}";
 	}
 }

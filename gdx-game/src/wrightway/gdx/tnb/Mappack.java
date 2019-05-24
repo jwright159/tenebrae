@@ -27,7 +27,7 @@ import com.leff.midi.event.*;
 
 public class Mappack implements ScriptGlob{
 	public FileHandle folder;
-	public String name = "Mapppack lololol", description, startMap;
+	public String name = "Mapppack lololol", description, startMapTmx, startMapLua;
 	private Globals globals;
 	public Array<Character> charas;
 
@@ -37,20 +37,20 @@ public class Mappack implements ScriptGlob{
 		globals = new StdGlobals();
 		globals.load(new MappackLib());
 	}
-	public TileMap loadMap(String name){
-		return new TileMap(folder.child(name + ".tmx"), Tenebrae.t.getScript(name, globals), Tenebrae.t.getStage().getBatch());
+	public TileMap loadMap(String tmx, String lua){
+		return new TileMap(tmx == null ? null : folder.child(tmx), Tenebrae.t.getScript(lua, globals), Tenebrae.t.getStage().getBatch());
 	}
 	public TileMap loadMap(){
-		return loadMap(startMap);
+		return loadMap(startMapTmx, startMapLua);
 	}
-	public MenuItem.GameItem loadItem(String name, Character owner){
-		return new MenuItem.GameItem(name, Tenebrae.t.getProto(name), owner, Tenebrae.t.getSkin());
+	public MenuItem.GameItem loadItem(String lua, Character owner){
+		return new MenuItem.GameItem(Utils.filename(lua), Tenebrae.t.getProto(lua), owner, Tenebrae.t.getSkin());
 	}
 	public TiledMapTileSet loadTileset(String name){
-		return TiledMapTileSetLoader.loadTileSet(folder.child(name + ".tsx"), null);
+		return TiledMapTileSetLoader.loadTileSet(folder.child(name), null);
 	}
-	public NPC loadNPC(String name){
-		NPC npc = new NPC(name, Tenebrae.t.getProto(name));
+	public NPC loadNPC(String lua){
+		NPC npc = new NPC(Utils.filename(lua), Tenebrae.t.getProto(lua));
 		charas.add(npc);
 		if(Tenebrae.player.map != null)
 			npc.changeMap(Tenebrae.player.map);
@@ -111,12 +111,12 @@ public class Mappack implements ScriptGlob{
 						return NONE;
 					}
 				});
-			library.set("setMap", new OneArgFunction(){
+			library.set("setMap", new TwoArgFunction(){
 					private float deadzone = -1;
 					@Override
-					public LuaValue call(LuaValue mapName){
+					public LuaValue call(LuaValue tmx, LuaValue lua){
 						Player p = Tenebrae.player;
-						if(mapName.checkjstring().startsWith(TileMap.EMPTY_PREFIX)){
+						if(tmx.isnil() || (lua.isnil() && tmx.isstring())){
 							p.setBound(0, 0,
 								p.bigdzRect.width * Tenebrae.t.getCamera().zoom / p.map.tileWidth,
 								p.bigdzRect.height * Tenebrae.t.getCamera().zoom / p.map.tileHeight);
@@ -124,14 +124,17 @@ public class Mappack implements ScriptGlob{
 								deadzone = p.deadzone;
 								p.deadzone = 0;
 							}
-							p.changeMap(Tenebrae.mp.loadMap(mapName.checkjstring().substring(TileMap.EMPTY_PREFIX.length())));
+							p.changeMap(Tenebrae.mp.loadMap(null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
 						}else{
 							p.setBound(-1, -1, -1, -1);
 							if(deadzone != -1){
 								p.deadzone = deadzone;
 								deadzone = -1;
 							}
-							p.changeMap(Tenebrae.mp.loadMap(mapName.checkjstring()));
+							if(lua.isnil() && tmx.istable())
+								p.changeMap(Tenebrae.mp.loadMap(tmx.checkjstring(1), tmx.checkjstring(2)));
+							else
+								p.changeMap(Tenebrae.mp.loadMap(tmx.checkjstring(), lua.checkjstring()));
 						}
 						return NONE;
 					}
@@ -299,7 +302,10 @@ public class Mappack implements ScriptGlob{
 							case "description":
 								return valueOf(description);
 							case "startMap":
-								return valueOf(startMap);
+								LuaTable startMap = tableOf();
+								startMap.set(1, startMapTmx);
+								startMap.set(2, startMapLua);
+								return startMap;
 							case "player":
 								return Tenebrae.player.getGlobals();
 							case "cameraX":
@@ -338,7 +344,13 @@ public class Mappack implements ScriptGlob{
 								description = value.checkjstring();
 								break;
 							case "startMap":
-								startMap = value.checkjstring();
+								if(value.isstring()){
+									startMapTmx = null;
+									startMapLua = value.checkjstring();
+								}else{
+									startMapTmx = value.get(1).checkjstring();
+									startMapLua = value.get(2).checkjstring();
+								}
 								break;
 							case "player":
 								self.error("player is read-only");
