@@ -317,6 +317,7 @@ public class Tenebrae extends WScreen{
 
 	public static class StdEntGlobals extends ScriptGlob.StdGlobals{
 		public StdEntGlobals(){
+			super(PAKPATH);
 			if(getmetatable() == null) setmetatable(tableOf());
 			LuaValue mt = getmetatable();
 			final LuaValue oldind = mt.get(INDEX).isnil() ? ScriptGlob.defindex : mt.get(INDEX),

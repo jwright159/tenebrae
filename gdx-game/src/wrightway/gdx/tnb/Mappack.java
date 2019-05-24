@@ -34,7 +34,7 @@ public class Mappack implements ScriptGlob{
 	public Mappack(FileHandle folder){
 		this.folder = folder;
 		charas = new Array<Character>();
-		globals = new StdGlobals();
+		globals = new StdGlobals(Tenebrae.PAKPATH);
 		globals.load(new MappackLib());
 	}
 	public TileMap loadMap(String tmx, String lua){
