@@ -190,19 +190,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 			}
 		}
 
-		//dispose of the unused skin textures in the new tileset
-		Array<Texture> used = new Array<Texture>();
-		for(TiledMapTile tile : newSkin)
-			used.add(tile.getTextureRegion().getTexture());
-		Array<Texture> disposed = new Array<Texture>();
-		for(TiledMapTile tile : tileset){
-			Texture tex = tile.getTextureRegion().getTexture();
-			if(!used.contains(tex, true) && !disposed.contains(tex, true)){
-				tex.dispose();
-				disposed.add(tex);
-			}
-		}
-
 		skinList.put(Utils.filename(tilesetName), newSkin);
 		if(!tile.isEmpty()){
 			MapProperties p = null;
@@ -264,7 +251,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 				rem = skinList.getKey(skin, true);
 		if(rem != null){
 			tile.removeIndex(z);
-			skinList.removeKey(rem).dispose();
+			skinList.removeKey(rem);
 		}
 		return rem;
 	}
@@ -498,8 +485,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 	}
 
 	public void endSelf(){
-		for(Skin skin : skinList.values())
-			skin.dispose();
 		dispose();
 		smolStatBox.remove();
 	}
@@ -703,7 +688,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		}
 	}
 
-	public static class Skin implements Disposable,Iterable<TiledMapTile>{
+	public static class Skin implements Iterable<TiledMapTile>{
 		private ArrayMap<Float,ArrayMap<String, TiledMapTile>> tileList;
 		private int z;
 
@@ -757,18 +742,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 					if(!tiles.contains(tile, true))
 						tiles.add(tile);
 			return tiles.iterator();
-		}
-
-		@Override
-		public void dispose(){
-			Array<Texture> disposed = new Array<Texture>();
-			for(TiledMapTile tile : this){
-				Texture texture = tile.getTextureRegion().getTexture();
-				if(!disposed.contains(texture, true)){
-					texture.dispose();
-					disposed.add(texture);
-				}
-			}
 		}
 	}
 }

@@ -230,8 +230,6 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	public void dispose(){
 		super.dispose();
 		tap.dispose();
-		if(tile != null)
-			tile.getTextureRegion().getTexture().dispose();
 	}
 
 	public class EntityLib extends TwoArgFunction{
@@ -251,9 +249,6 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 							if(tile == null)
 								env.error("no tile with id "+tid.checkint());
 							setRegion(tile.getTextureRegion());
-							for(TiledMapTile t : tileset)
-								if(t.getTextureRegion().getTexture() != tile.getTextureRegion().getTexture())
-									t.getTextureRegion().getTexture().dispose();
 						}
 						return NONE;
 					}

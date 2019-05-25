@@ -25,15 +25,17 @@ import com.badlogic.gdx.audio.*;
 import com.leff.midi.*;
 import com.leff.midi.event.*;
 
-public class Mappack implements ScriptGlob{
+public class Mappack implements ScriptGlob, Disposable{
 	public FileHandle folder;
 	public String name = "Mapppack lololol", description, startMapTmx, startMapLua;
 	private Globals globals;
 	public Array<Character> charas;
+	private ObjectMap<String,TiledMapTileSet> tilesets;
 
 	public Mappack(FileHandle folder){
 		this.folder = folder;
 		charas = new Array<Character>();
+		tilesets = new ObjectMap<String,TiledMapTileSet>();
 		globals = new StdGlobals(Tenebrae.PAKPATH);
 		globals.load(new MappackLib());
 	}
@@ -46,8 +48,13 @@ public class Mappack implements ScriptGlob{
 	public MenuItem.GameItem loadItem(String lua, Character owner){
 		return new MenuItem.GameItem(Utils.filename(lua), Tenebrae.t.getProto(lua), owner, Tenebrae.t.getSkin());
 	}
-	public TiledMapTileSet loadTileset(String name){
-		return TiledMapTileSetLoader.loadTileSet(folder.child(name), null);
+	public TiledMapTileSet loadTileset(String tsx){
+		TiledMapTileSet tileset = null;
+		if(tilesets.containsKey(tsx))
+			tileset = tilesets.get(tsx);
+		else
+			tilesets.put(tsx, tileset = TiledMapTileSetLoader.loadTileSet(folder.child(tsx), null));
+		return tileset;
 	}
 	public NPC loadNPC(String lua){
 		NPC npc = new NPC(Utils.filename(lua), Tenebrae.t.getProto(lua));
@@ -60,6 +67,20 @@ public class Mappack implements ScriptGlob{
 	@Override
 	public Globals getGlobals(){
 		return globals;
+	}
+
+	@Override
+	public void dispose(){
+		Array<Texture> disposed = new Array<Texture>();
+		ObjectMap.Values<TiledMapTileSet> tilesets = this.tilesets.values();
+		while(tilesets.hasNext())
+			for(TiledMapTile tile : tilesets.next()){
+				Texture tex = tile.getTextureRegion().getTexture();
+				if(!disposed.contains(tex, true)){
+					tex.dispose();
+					disposed.add(tex);
+				}
+			}
 	}
 
 	public class MappackLib extends TwoArgFunction{

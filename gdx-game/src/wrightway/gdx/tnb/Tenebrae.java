@@ -313,6 +313,7 @@ public class Tenebrae extends WScreen{
 		super.dispose();
 		ta1.dispose();
 		ta2.dispose();
+		mp.dispose();
 	}
 
 	public static class StdEntGlobals extends ScriptGlob.StdGlobals{

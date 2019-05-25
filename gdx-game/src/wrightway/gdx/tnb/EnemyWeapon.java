@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 
-public class EnemyWeapon implements Disposable,ScriptGlob{
+public class EnemyWeapon implements ScriptGlob{
 	public Character owner;
 	public String type;
 	public float str, spawnX, spawnY, targetX, targetY, speed, scale;
@@ -52,11 +52,6 @@ public class EnemyWeapon implements Disposable,ScriptGlob{
 	@Override
 	public Globals getGlobals(){
 		return globals;
-	}
-
-	@Override
-	public void dispose(){
-
 	}
 	
 	public class EnenmyWeaponLib extends TwoArgFunction{
