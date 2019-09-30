@@ -40,6 +40,7 @@ public class MainActivity extends AndroidApplication{
 					registerActivity.putExtra("message", message);
 					registerActivity.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 					registerActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+					registerActivity.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 					context.startActivity(registerActivity);
 					
 					//Gdx.files.external("/WrightWay/Tenebrae/error.txt").writeString("did a do2", true);
