@@ -14,9 +14,10 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import java.io.*;
 import com.badlogic.gdx.utils.viewport.*;
+import org.json.*;
 
 public class Tenebrae extends WScreen{
-	public static final FileHandle PAKPATH = MainMenu.GAMEPATH.child("pak");
+	public static FileHandle pakpath;
 
 	public static final float DEADZONE_DEFAULT = 0.7f;//0.45f;//0 is at edge, 1 is at center
 	public static final float TILES = 7.5f;//number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
@@ -32,13 +33,14 @@ public class Tenebrae extends WScreen{
 
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
-	public Tenebrae(){
+	public Tenebrae(FileHandle pakpath){
 		super(new FitViewport(1920, 1080));
+		this.pakpath = pakpath;
 		doneLoading = false;
 		t = this;
-		Log.setLogFile(PAKPATH.child("debug.log"));
+		Log.setLogFile(pakpath.child("debug.log"));
 
-		loadSkin();
+		loadSkin(pakpath);
 
 		getMultiplexer().addProcessor(0, new InputAdapter(){
 				@Override
@@ -53,16 +55,19 @@ public class Tenebrae extends WScreen{
 				}
 				@Override
 				public boolean keyDown(int keycode){
-					if(keycode == Input.Keys.BACK){
-						if(!doneLoading || player == null){
-							Gdx.app.exit();
-						}else if(!player.performBack()){
-							//Gdx.app.exit();
-							player.setExpanded(true);
-						}
-						return true;
+					switch(keycode){
+						case Input.Keys.BACK:
+							if(!doneLoading || player == null){
+								Gdx.app.exit();
+							}else if(!player.performBack()){
+								//Gdx.app.exit();
+								player.setExpanded(true);
+							}
+							return true;
+							
+						default:
+							return false;
 					}
-					return false;
 				}
 			});
 		getMultiplexer().addProcessor(2, new GestureDetector(new GestureListener(){
@@ -144,22 +149,38 @@ public class Tenebrae extends WScreen{
 	public void reload(){
 		if(player != null)
 			player.endSelf();
-		mp = new Mappack(PAKPATH);
+		mp = new Mappack(pakpath);
 		player = new Player();
 		Log.verbose("Unloaded, made " + player);
 	}
-	private static TextureAtlas ta1, ta2;
-	private void loadSkin(){
-		getSkin().addRegions(ta1 = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas")));
-		getSkin().load(Gdx.files.internal("tnbskin.json"));
+	private static TextureAtlas tnbta, mappackta;
+	public void loadSkin(FileHandle mappackpath){
+		if(tnbta != null)
+			tnbta.dispose();
+		if(mappackta != null)
+			mappackta.dispose();
 
-		FileHandle folder = PAKPATH.child("skin");
-		FileHandle[] atlas = folder.list("atlas");
-		if(atlas.length > 0)
-			getSkin().addRegions(ta2 = new NineRegionTextureAtlas(atlas[0]));
-		FileHandle[] json = folder.list("json");
-		if(json.length > 0)
-			getSkin().load(json[0]);
+		String atlas = null, json = null;
+		JSONObject mappack = null;
+		try{
+			mappack = new JSONObject(mappackpath.child("mappack.json").readString());
+		}catch(JSONException ex){
+			mappackpath = null;
+		}
+		if(mappack != null){
+			try{
+				atlas = mappack.getString("skin_atlas");
+				json = mappack.getString("skin_json");
+			}catch(JSONException ex){}
+		}
+
+		Skin skin = getSkin();
+		skin.addRegions(tnbta = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas")));
+		skin.load(Gdx.files.internal("tnbskin.json"));
+		if(atlas != null && json != null){
+			skin.addRegions(mappackta = new NineRegionTextureAtlas(mappackpath.child(atlas)));
+			skin.load(mappackpath.child(json));
+		}
 	}
 
 	//private Array<Character> neworder = new Array<Character>();
@@ -196,7 +217,7 @@ public class Tenebrae extends WScreen{
 			if(scriptLoader == null){
 				Log.debug("Starting loading scripts!");
 				loadedScripts = false;
-				final FileHandle[] flist = PAKPATH.list("lua");
+				final FileHandle[] flist = pakpath.list("lua");
 				if(flist.length == 0)
 					throw new RuntimeException("no .lua files found");
 				if(loadbar == null){
@@ -231,8 +252,7 @@ public class Tenebrae extends WScreen{
 								final Prototype script;
 								try{
 									script = globals.compilePrototype(f.read(), f.nameWithoutExtension());
-								}
-								catch(IOException ex){throw new GdxRuntimeException("Couldn't load script " + f.name(), ex);}
+								}catch(IOException ex){throw new GdxRuntimeException("Couldn't load script " + f.name(), ex);}
 								final int j = i;
 								Gdx.app.postRunnable(new Runnable(){
 										@Override
@@ -266,9 +286,9 @@ public class Tenebrae extends WScreen{
 				}
 			}
 		}else{ // IN-GAME ACT
-		
-			
-			
+
+
+
 		}
 	}
 	private Thread scriptLoader;
@@ -311,14 +331,14 @@ public class Tenebrae extends WScreen{
 	@Override
 	public void dispose(){
 		super.dispose();
-		ta1.dispose();
-		ta2.dispose();
+		tnbta.dispose();
+		mappackta.dispose();
 		mp.dispose();
 	}
 
 	public static class StdEntGlobals extends ScriptGlob.StdGlobals{
 		public StdEntGlobals(){
-			super(PAKPATH);
+			super(pakpath);
 			if(getmetatable() == null) setmetatable(tableOf());
 			LuaValue mt = getmetatable();
 			final LuaValue oldind = mt.get(INDEX).isnil() ? ScriptGlob.defindex : mt.get(INDEX),
