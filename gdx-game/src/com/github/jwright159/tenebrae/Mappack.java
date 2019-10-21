@@ -1,6 +1,7 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.tiled.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.graphics.*;

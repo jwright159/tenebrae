@@ -1,6 +1,8 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.gdx.tiled.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.assets.loaders.resolvers.*;
 import com.badlogic.gdx.files.*;
@@ -18,7 +20,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import org.luaj.vm2.*;
 import java.util.*;
 
-public class TileMap extends WActor{
+public class TileMap extends ScreenActor{
 	private String filepath;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer maprenderer;

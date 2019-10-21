@@ -1,4 +1,4 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.math.*;

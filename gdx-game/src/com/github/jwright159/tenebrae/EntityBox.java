@@ -1,7 +1,8 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
-import wrightway.gdx.WActor.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.scenes.scene2d.actions.*;

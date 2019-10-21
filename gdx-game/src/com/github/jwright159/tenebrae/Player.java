@@ -1,6 +1,10 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.tenebrae.EntityBox.*;
+import com.github.jwright159.tenebrae.MenuItem.*;
+import com.github.jwright159.tenebrae.Action.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
@@ -8,9 +12,6 @@ import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.utils.*;
-import wrightway.gdx.tnb.EntityBox.*;
-import wrightway.gdx.tnb.MenuItem.*;
-import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;

@@ -1,5 +1,8 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.math.*;
@@ -7,7 +10,6 @@ import com.badlogic.gdx.utils.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.*;
-import wrightway.gdx.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
@@ -23,7 +25,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	private MapObject mapobj; // Either RectMapObj or TileMapObj
 	//private Array<Trigger> trigs; // Do this if u want the longer prop searching
 	private MapProperties props; // Just for triggers
-	private WActor tap;
+	private ScreenActor tap;
 	
 	public Entity(float x, float y, float width, float height, float tileWidth, float tileHeight){
 		vars = LuaValue.tableOf();
@@ -32,7 +34,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 		props = new MapProperties();
 		//props.put("onTouch", "onTouch");
 		props.put("onTrigger", "onTrigger");
-		tap = new WActor(){
+		tap = new ScreenActor(){
 			@Override
 			public void tap(float x, float y, int count, int button){
 				super.tap(x, y, count, button);

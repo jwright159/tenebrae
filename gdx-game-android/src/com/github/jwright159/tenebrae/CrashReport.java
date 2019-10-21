@@ -1,4 +1,5 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
+
 import android.app.*;
 import android.content.*;
 import android.os.*;

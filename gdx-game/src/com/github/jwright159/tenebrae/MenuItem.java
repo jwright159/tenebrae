@@ -1,11 +1,11 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.tenebrae.Character.Stats;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.*;
-import wrightway.gdx.tnb.Character.Stats;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;

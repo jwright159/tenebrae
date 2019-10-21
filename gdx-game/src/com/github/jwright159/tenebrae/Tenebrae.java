@@ -1,5 +1,8 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.screen.GameScreen;
+import com.github.jwright159.gdx.graphics.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -9,14 +12,13 @@ import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
 import com.badlogic.gdx.utils.*;
-import wrightway.gdx.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import java.io.*;
 import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
 
-public class Tenebrae extends WScreen{
+public class Tenebrae extends GameScreen{
 	public static FileHandle pakpath;
 
 	public static final float DEADZONE_DEFAULT = 0.7f;//0.45f;//0 is at edge, 1 is at center

@@ -1,18 +1,21 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.screen.GameScreen;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.gdx.graphics.*;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.files.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
-import wrightway.gdx.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.*;
 import org.json.*;
 
-public class MainMenu extends WScreen{
+public class MainMenu extends GameScreen{
 	public static final FileHandle GAMEPATH = Gdx.files.external("WrightWay").child("Tenebrae");
 
 	private NineRegionTextureAtlas tnbta, mappackta;
@@ -181,7 +184,7 @@ public class MainMenu extends WScreen{
 
 		tnbta = new NineRegionTextureAtlas(Gdx.files.internal("tnbskin.atlas"));
 		FileHandle tnbjson = Gdx.files.internal("tnbskin.json");
-		Skin skin = new WSkin(tnbjson, tnbta);
+		Skin skin = new FreeSkin(tnbjson, tnbta);
 		getSkin().dispose();
 		setSkin(skin);
 		if(mpatlas != null && mpjson != null){

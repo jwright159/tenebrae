@@ -1,4 +1,4 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
 import android.content.pm.*;
 import android.os.*;
@@ -30,7 +30,7 @@ public class MainActivity extends AndroidApplication{
 					StringWriter sw = new StringWriter();
 					PrintWriter pw = new PrintWriter(sw);
 					e.printStackTrace(pw);
-					wrightway.gdx.Log.error(message += sw.toString());
+					com.github.jwright159.gdx.Log.error(message += sw.toString());
 					pw.close();
 
 					Gdx.files.external("/WrightWay/Tenebrae/error.txt").writeString(message, false);

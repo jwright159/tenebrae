@@ -1,9 +1,11 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.graphics.*;
+import static com.github.jwright159.tenebrae.EntityBox.HealthBar.f;
+import com.github.jwright159.tenebrae.Action.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
-import static wrightway.gdx.tnb.EntityBox.HealthBar.f;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.maps.tiled.*;
 import com.badlogic.gdx.graphics.*;
@@ -11,7 +13,6 @@ import java.util.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.maps.objects.*;
-import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import org.luaj.vm2.*;

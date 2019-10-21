@@ -1,8 +1,8 @@
-package wrightway.gdx.tnb;
+package com.github.jwright159.tenebrae;
 
-import wrightway.gdx.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.tenebrae.Action.*;
 import com.badlogic.gdx.files.*;
-import wrightway.gdx.tnb.Action.*;
 import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.graphics.g2d.*;
 import java.util.*;
