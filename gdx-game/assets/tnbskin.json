@@ -103,14 +103,12 @@ TintedDrawable: {
 	dialogDim: { name: white, color: { r: 0, g: 0, b: 0, a: 0.45 } },
 },
 ButtonStyle: {
-	default: { down: default-round-down, up: default-round, disabled: default-round-down },
-	toggle: { parent: default, checked: default-round-down }
-	disabled: { parent: default, up: default-round-down }
+	default: { down: default-round-down, up: default-round, disabled: default-round-down, over: default-round-down },
+	toggle: { parent: default, checked: default-round-down, over: default-round-down }
 },
 TextButtonStyle: {
-	default: { parent: default, font: default, fontColor: white },
-	toggle: { parent: default, checked: default-round-down, downFontColor: red }
-	disabled: { parent: disabled, font: default, fontColor: shadow }
+	default: { parent: default, font: default, over: default-round-down, fontColor: white },
+	toggle: { parent: default, checked: default-round-down, over: default-round-down, downFontColor: red }
 },
 ScrollPaneStyle: {
 	default: { vScroll: default-scroll, hScrollKnob: default-round-large, background: default-rect, hScroll: default-scroll, vScrollKnob: default-round-large }

@@ -53,7 +53,7 @@ public class MainMenu extends GameScreen{
 
 		Stack stack = new Stack();
 		getTable().add(stack).grow();
-		final Table table = new Table(skin);
+		final FocusTable table =  new FocusTable(skin);
 		table.setBackground("window");
 		table.pad(Tenebrae.MARGIN);
 		stack.add(new Container<Table>(table).width(Value.percentWidth(.33f, getTable())).height(Value.percentHeight(.67f, getTable())));
@@ -69,15 +69,15 @@ public class MainMenu extends GameScreen{
 		
 		final TextButton play, mp, quit;
 		
-		play = new TextButton("Play", skin){
+		play = new TextButton("Play", skin)/*{
 			@Override
 			public void setDisabled(boolean disabled){
 				super.setDisabled(disabled);
 				setStyle(getSkin().get(disabled ? "disabled" : "default", TextButtonStyle.class));
 			}
-		};
+		}*/;
 		table.row();
-		table.add(play).grow().uniform();
+		table.registerFocus(table.add((Button)play).grow().uniform());
 		if(mappackpath == null)
 			play.setDisabled(true);
 		play.addListener(new ChangeListener(){
@@ -90,19 +90,21 @@ public class MainMenu extends GameScreen{
 			
 		mp = new TextButton("Change Mappack", skin);
 		table.row();
-		table.add(mp).grow().uniform();
+		table.registerFocus(table.add((Button)mp).grow().uniform());
 		
 		quit = new TextButton("Quit", skin);
 		table.row();
-		table.add(quit).grow().uniform();
+		table.registerFocus(table.add((Button)quit).grow().uniform());
 		quit.addListener(new ChangeListener(){
 				@Override
 				public void changed(ChangeEvent event, Actor a){
 					Gdx.app.exit();
 				}
 			});
+
+		setFocusTable(table);
 		
-		final Table mappackselect = new Table(skin);
+		final FocusTable mappackselect = new FocusTable(skin);
 		mappackselect.setBackground("window");
 		mappackselect.pad(Tenebrae.MARGIN);
 		mappackselect.setVisible(false);
@@ -129,13 +131,14 @@ public class MainMenu extends GameScreen{
 							
 							Skin skin = getSkin();
 							Button button = new Button(skin);
-							mappackselect.add(button).growX().fillY();
+							mappackselect.registerFocus(mappackselect.add(button).growX().fillY());
 							mappackselect.row();
 							button.addListener(new ChangeListener(){
 									@Override
 									public void changed(ChangeEvent event, Actor a){
 										mappackselect.setVisible(false);
 										table.setVisible(true);
+										setFocusTable(table);
 										
 										mappackpath = f;
 										try{
@@ -157,6 +160,7 @@ public class MainMenu extends GameScreen{
 								});
 							button.add(new Label(mpname, skin));
 						}
+					setFocusTable(mappackselect);
 				}
 			});
 	}
@@ -217,6 +221,7 @@ public class MainMenu extends GameScreen{
 		super.dispose(disposeUi);
 		if(mappackta != null)
 			mappackta.dispose();
-		bg.getTexture().dispose();
+		if(bg != null)
+			bg.getTexture().dispose();
 	}
 }
