@@ -41,6 +41,9 @@ public class Player extends Character{
 	public Table table;
 	public float deadzone = Tenebrae.DEADZONE_DEFAULT;
 	public boolean collide = true;
+	
+	public static final float JOYSPEED = 2f;
+	public static final float SPRINTMULT = 2f;
 
 	public Player(){
 		super("player");
@@ -54,7 +57,7 @@ public class Player extends Character{
 
 		Stack stack = new Stack();
 		Container<Table> uiRect = new Container<Table>();
-		uiTable = new Table(skin);
+		uiTable = new FocusTable(skin);
 		uiTable.setDebug(Tenebrae.tableDebug);
 		uiRect.setActor(uiTable);
 		uiRect.pad(Tenebrae.MARGIN).fill();
@@ -251,12 +254,14 @@ public class Player extends Character{
 
 		return rtn;
 	}
-	public void triggerBestTrigger(){
+	public boolean triggerBestTrigger(){
 		Trigger trig = getBestTrigger();
 		Log.verbose("Requesting trigger!", trig);
 		if(trig != null){
 			trig.trigger("onTrigger");
-		}
+			return true;
+		}else
+			return false;
 	}
 
 	public void addDialog(String dialog){
@@ -306,8 +311,13 @@ public class Player extends Character{
 			MenuBox active = openedBox.findActiveLeaf();
 			//Log.debug("Backing up from "+active+"!");
 			active.setVisible(false);
-			if(buttonBox.getActiveBox() == null)
+			if(buttonBox.getActiveBox() == null){
 				setUiDisabled(false);
+				Tenebrae.t.setFocusTable(null);
+			}else{
+				active = openedBox.findActiveLeaf();
+				active.setFocusTableToActive();
+			}
 			return true;
 		}else if(currentAction != null){
 			triggerAction(true);
@@ -478,7 +488,7 @@ public class Player extends Character{
 		removeStats(item.type);
 		equippedItems.removeKey(item.type);
 	}
-
+	
 	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle(), b = new Rectangle();
 	public void moveCamera(){
 		//Log.debug("Moving camera! currentAction", currentAction);
@@ -518,6 +528,31 @@ public class Player extends Character{
 		cam.update();
 	}
 
+	public boolean canMove(){
+		return buttonBox.getActiveBox() == null && !hasAnyAction();
+	}
+	public void handleMovementControls(float delta){
+		if(!canMove())
+			return;
+		
+		float x = 0, y = 0;
+		if(Gdx.input.isKeyPressed(Input.Keys.RIGHT))
+			x += JOYSPEED*speedMult*delta;
+		if(Gdx.input.isKeyPressed(Input.Keys.LEFT))
+			x -= JOYSPEED*speedMult*delta;
+		if(Gdx.input.isKeyPressed(Input.Keys.UP))
+			y += JOYSPEED*speedMult*delta;
+		if(Gdx.input.isKeyPressed(Input.Keys.DOWN))
+			y -= JOYSPEED*speedMult*delta;
+		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
+			x *= SPRINTMULT;
+			y *= SPRINTMULT;
+		}
+		
+		if(x != 0 || y != 0)
+			move(x, y, 0, true, true);
+	}
+	
 	@Override
 	public void doMovement(){
 		if(hasTarget()){
@@ -544,6 +579,8 @@ public class Player extends Character{
 
 	@Override
 	public void act(float delta){
+		handleMovementControls(delta);
+		
 		boolean moved = hasTarget(); // back here bc triggerAction() kills them and moves us
 		super.act(delta);
 

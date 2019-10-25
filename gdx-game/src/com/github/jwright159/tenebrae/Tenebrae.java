@@ -59,6 +59,7 @@ public class Tenebrae extends GameScreen{
 				public boolean keyDown(int keycode){
 					switch(keycode){
 						case Input.Keys.BACK:
+						case Input.Keys.ESCAPE:
 							if(!doneLoading || player == null){
 								Gdx.app.exit();
 							}else if(!player.performBack()){
@@ -66,7 +67,44 @@ public class Tenebrae extends GameScreen{
 								player.setExpanded(true);
 							}
 							return true;
-							
+
+						case Input.Keys.Z:
+						case Input.Keys.ENTER:
+							if(doneLoading)
+								if(player.dialogBox.isVisible()){
+									if(player.performBack())
+										return true;
+								}else if(player.buttonBox.getActiveBox() != null){
+									getFocusTable().clickFocus();
+									return true;
+								}else if(player.delay == 0)
+									if(player.triggerBestTrigger())
+										return true;
+							return false;
+						
+						case Input.Keys.X:
+						case Input.Keys.BACKSPACE:
+							if(doneLoading){
+								if(!player.performBack())
+									player.setExpanded(true);
+								return true; // Will definitely either do back or open menu
+							}	
+							return false;
+						
+						case Input.Keys.M:
+							if(doneLoading && player.isExpanded() && !player.buttonBox.menu.isDisabled()){
+								player.buttonBox.menu.toggle();
+								return true;
+							}
+							return false;
+						
+						case Input.Keys.I:
+							if(doneLoading && player.isExpanded() && !player.buttonBox.items.isDisabled()){
+								player.buttonBox.items.toggle();
+								return true;
+							}
+							return false;
+
 						default:
 							return false;
 					}
@@ -100,7 +138,7 @@ public class Tenebrae extends GameScreen{
 					}
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
-						if(doneLoading && player.buttonBox.getActiveBox() == null && !player.hasAnyAction())
+						if(doneLoading && player.canMove())
 							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true, true);
 						return true;
 					}

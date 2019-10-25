@@ -290,8 +290,10 @@ public class EntityBox extends Table{
 			return !(MenuBox.isEmpty(this) || MenuBox.isNextPage(this) || MenuBox.isPrevPage(this) || isEmpty());
 		}
 		public void open(){
-			if(box != null)
+			if(box != null){
 				box.setVisible(true);
+				box.setFocusTableToActive();
+			}
 		}
 		public String getText(){
 			return text.getText().toString();
@@ -309,10 +311,10 @@ public class EntityBox extends Table{
 			super.layout();
 			Drawable bg = getBackground();
 			text.setBounds(
-				bg.getLeftWidth()+Tenebrae.MARGIN*0.5f,
-				bg.getBottomHeight()+Tenebrae.MARGIN*0.25f,
-				getWidth()-bg.getLeftWidth()-bg.getRightWidth()-Tenebrae.MARGIN,
-				getHeight()-bg.getBottomHeight()-bg.getTopHeight()-Tenebrae.MARGIN*0.5f
+				bg.getLeftWidth() + Tenebrae.MARGIN * 0.5f,
+				bg.getBottomHeight() + Tenebrae.MARGIN * 0.25f,
+				getWidth() - bg.getLeftWidth() - bg.getRightWidth() - Tenebrae.MARGIN,
+				getHeight() - bg.getBottomHeight() - bg.getTopHeight() - Tenebrae.MARGIN * 0.5f
 			);
 		}
 		@Override
@@ -325,34 +327,34 @@ public class EntityBox extends Table{
 		}
 	}
 	/*public static void clipWidth(final Actor bounds, final Container cell, float pad){
-		cell.setClip(true);
-		if(pad != -1)cell.padLeft(pad).padRight(pad);
-		cell.width(new Value(){
-				@Override
-				public float get(Actor a){
-					return bounds.getWidth() - cell.getPadX();
-				}
-			});
-	}
-	public static void clipHeight(final Actor bounds, final Container cell, float pad){
-		cell.setClip(true);
-		if(pad != -1)cell.padTop(pad).padBottom(pad);
-		cell.height(new Value(){
-				@Override
-				public float get(Actor a){
-					return bounds.getHeight() - cell.getPadY();
-				}
-			});
-	}
-	public static void clipWidth(final Actor bounds, final Cell cell, float pad){
-		if(pad != -1)cell.padLeft(pad).padRight(pad);
-		cell.width(new Value(){
-				@Override
-				public float get(Actor a){
-					return bounds.getWidth() - cell.getPadX();
-				}
-			});
-	}*/
+	 cell.setClip(true);
+	 if(pad != -1)cell.padLeft(pad).padRight(pad);
+	 cell.width(new Value(){
+	 @Override
+	 public float get(Actor a){
+	 return bounds.getWidth() - cell.getPadX();
+	 }
+	 });
+	 }
+	 public static void clipHeight(final Actor bounds, final Container cell, float pad){
+	 cell.setClip(true);
+	 if(pad != -1)cell.padTop(pad).padBottom(pad);
+	 cell.height(new Value(){
+	 @Override
+	 public float get(Actor a){
+	 return bounds.getHeight() - cell.getPadY();
+	 }
+	 });
+	 }
+	 public static void clipWidth(final Actor bounds, final Cell cell, float pad){
+	 if(pad != -1)cell.padLeft(pad).padRight(pad);
+	 cell.width(new Value(){
+	 @Override
+	 public float get(Actor a){
+	 return bounds.getWidth() - cell.getPadX();
+	 }
+	 });
+	 }*/
 	public static class MenuBox extends Stack{
 		public static float padding = 30f;
 		public static int itemsPerHeight = 5;
@@ -360,11 +362,11 @@ public class EntityBox extends Table{
 		private String id;
 		private Array<MenuOption> list;
 		private Skin skin;
-		private Array<Table> pages;
+		private Array<FocusTable> pages;
 		public MenuBox(String id, Skin skin){
 			this.skin = skin;
 			list = new Array<MenuOption>();
-			pages = new Array<Table>();
+			pages = new Array<FocusTable>();
 			this.id = id;
 		}
 
@@ -433,7 +435,7 @@ public class EntityBox extends Table{
 			clearChildren();
 			this.pages.clear();
 			for(int i = 0; i < pages; i++){
-				final Table page = new Table(skin);
+				final FocusTable page = new FocusTable(skin);
 				page.setDebug(Tenebrae.tableDebug);
 				page.background("window");
 				Drawable bg = page.getBackground();
@@ -443,24 +445,25 @@ public class EntityBox extends Table{
 				for(int j = 0; j < itemsPerHeight; j++){
 					for(int k = 0; k < 2; k++){
 						MenuOption opt = list.get(i * itemsPerHeight * 2 + j * 2 + k);
-						final Cell c = page.add(opt).pad(
+						final Cell<Button> c = page.add((Button)opt).pad(
 							j == 0 ? Tenebrae.MARGIN - bg.getTopHeight() : 0,
 							k == 0 ? Tenebrae.MARGIN - bg.getLeftWidth() : 0,
 							Tenebrae.MARGIN - (j == itemsPerHeight - 1 ? bg.getBottomHeight() : 0),
 							Tenebrae.MARGIN - (k == 1 ? bg.getRightWidth() : 0)
 						).grow();
+						page.registerFocus(c);
 						/*c.width(new Value(){
-								@Override
-								public float get(Actor a){
-									return (page.getWidth() - Tenebrae.margin) * 0.5f - Tenebrae.margin;// (total - middle)/2 - (drawpad+optpad)
-								}
-							});
-						c.height(new Value(){
-								@Override
-								public float get(Actor a){
-									return (page.getHeight() - Tenebrae.margin * (itemsPerHeight + 1)) / (float)itemsPerHeight;
-								}
-							});*/
+						 @Override
+						 public float get(Actor a){
+						 return (page.getWidth() - Tenebrae.margin) * 0.5f - Tenebrae.margin;// (total - middle)/2 - (drawpad+optpad)
+						 }
+						 });
+						 c.height(new Value(){
+						 @Override
+						 public float get(Actor a){
+						 return (page.getHeight() - Tenebrae.margin * (itemsPerHeight + 1)) / (float)itemsPerHeight;
+						 }
+						 });*/
 						if(opt.box != null)
 							this.add(opt.box);
 					}
@@ -488,6 +491,13 @@ public class EntityBox extends Table{
 			active = active == null && isVisible() ? this : active;
 			//Tenebrae.debug("Finding active leaf! "+active+" from "+this);
 			return active;
+		}
+
+		public void setFocusTableToActive(){
+			if(!isVisible())
+				return;
+			Log.debug("Setting focus page to", activePage, pages.get(activePage));
+			Tenebrae.t.setFocusTable(pages.get(activePage));
 		}
 
 		public static final String prevText = "<", nextText = ">", emptyText = Tenebrae.showEmpty ? "[empty]" : "";
@@ -531,6 +541,7 @@ public class EntityBox extends Table{
 			pages.get(activePage).setVisible(false);
 			activePage = page;
 			pages.get(activePage).setVisible(true);
+			setFocusTableToActive();
 		}
 
 		@Override
@@ -582,7 +593,7 @@ public class EntityBox extends Table{
 			this.health = new MiniHealthBar(health, skin);
 			this.mana = new MiniHealthBar(mana, skin);
 			setBackground("window-small");
-			pad(Tenebrae.MARGIN*0.25f);
+			pad(Tenebrae.MARGIN * 0.25f);
 
 			add(this.health).grow();
 			row();
@@ -598,7 +609,7 @@ public class EntityBox extends Table{
 		private float visTimer = 0;
 		private static final float visMin = 2, visMax = 5;
 		private static final Interpolation interp = Interpolation.fade;
-		
+
 		public FadingStatBox(HealthBar health, HealthBar mana, Skin skin){
 			super(health, mana, skin);
 		}
@@ -608,7 +619,7 @@ public class EntityBox extends Table{
 				box.getStage().addActor(this);
 			setSize(box.getWidth(), box.getHeight());
 		}
-		
+
 		@Override
 		public void act(float delta){
 			super.act(delta);
@@ -641,13 +652,21 @@ public class EntityBox extends Table{
 
 			MenuBox menuBox = new MenuBox("MenuBox", skin);
 			//might want to delete these at some point
+			addItemToBox(new MenuItem("Settings", "Main menu"){
+					@Override
+					public void run(String funcName){
+						if(funcName.equals("onUse"))
+							MyGdxGame.game.setScreen(new MainMenu());
+						Tenebrae.t.dispose();
+					}
+				}, menuBox);
 			addItemToBox(new MenuItem("Settings", "Quit"){
-				@Override
-				public void run(String funcName){
-					if(funcName.equals("onUse"))
-						Gdx.app.exit();
-				}
-			}, menuBox);
+					@Override
+					public void run(String funcName){
+						if(funcName.equals("onUse"))
+							Gdx.app.exit();
+					}
+				}, menuBox);
 			addItemToBox(new MenuItem.ScriptItem("Player", "Kill", player, killScript), menuBox);
 			addItemToBox(new MenuItem.ScriptItem("Player", "Heal", player, healScript), menuBox);
 			addItemToBox(new MenuItem.ScriptItem("Player", "Tire", player, tireScript), menuBox);

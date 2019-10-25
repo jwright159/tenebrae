@@ -69,13 +69,7 @@ public class MainMenu extends GameScreen{
 		
 		final TextButton play, mp, quit;
 		
-		play = new TextButton("Play", skin)/*{
-			@Override
-			public void setDisabled(boolean disabled){
-				super.setDisabled(disabled);
-				setStyle(getSkin().get(disabled ? "disabled" : "default", TextButtonStyle.class));
-			}
-		}*/;
+		play = new TextButton("Play", skin);
 		table.row();
 		table.registerFocus(table.add((Button)play).grow().uniform());
 		if(mappackpath == null)
