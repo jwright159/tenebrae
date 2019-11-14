@@ -17,11 +17,14 @@ import org.json.*;
 
 public class MainMenu extends GameScreen{
 	public static final FileHandle GAMEPATH = Gdx.files.external("WrightWay").child("Tenebrae");
+	public static final FileHandle MENUSTATE = Gdx.files.local("menustate.json");
+	
+	private static final String JSON_MAPPACKPATH = "mappackPath";
 
 	private NineRegionTextureAtlas tnbta, mappackta;
 	private TextureActor bgactor;
 	private TextureRegion bg;
-	private FileHandle mappackpath;
+	private FileHandle mappackpath, savestatepath;
 	private float t = MathUtils.random() * 10;
 	private JSONObject mappack;
 
@@ -30,23 +33,36 @@ public class MainMenu extends GameScreen{
 		Log.setVerbosity(GAMEPATH.child("v").readString());
 		Log.setLogFile(GAMEPATH.child("debug.log"));
 
-		FileHandle menustate = Gdx.files.local("menustate");
+		FileHandle menustate = MENUSTATE;
 		if(menustate.exists()){
-			String[] state = menustate.readString().split("\n");
-			int i = 0;
-			long stateversion = Long.parseLong(state[i++]); // for reverse compatibility
-			mappackpath = GAMEPATH.child(state[i++]);
-			if(mappackpath.exists() && mappackpath.child("mappack.json").exists())
-				try{
-					mappack = new JSONObject(mappackpath.child("mappack.json").readString());
-				}catch(JSONException ex){
-					Log.error(ex);
-					mappackpath = null;
-				}
-			else
-				mappackpath = null;
-		}
+			JSONObject state;
+			try{
+				state = new JSONObject(menustate.readString());
+			}catch(JSONException ex){
+				Log.error(ex);
+				menustate = null;
+				return;
+			}
 
+			try{
+				mappackpath = GAMEPATH.child(state.getString(JSON_MAPPACKPATH));
+				savestatepath = GAMEPATH.child(mappackpath.name()+".json");
+				if(mappackpath.exists() && mappackpath.child("mappack.json").exists())
+					mappack = new JSONObject(mappackpath.child("mappack.json").readString());
+				else
+					mappackpath = null;
+			}catch(JSONException ex){
+				Log.error(ex);
+				mappackpath = null;
+			}
+		}
+		String mpname;
+		try{
+			mpname = mappack.getString("name");
+		}catch(JSONException ex){
+			mpname = "Tenebrae Engine";
+		}
+			
 		loadSkin();
 
 		Skin skin = getSkin();
@@ -57,35 +73,48 @@ public class MainMenu extends GameScreen{
 		table.setBackground("window");
 		table.pad(Tenebrae.MARGIN);
 		stack.add(new Container<Table>(table).width(Value.percentWidth(.33f, getTable())).height(Value.percentHeight(.67f, getTable())));
-		
-		final Label name = new Label("Tenebrae Engine", skin, "title");
+
+		final Label name = new Label(mpname, skin, "title");
 		name.setAlignment(Align.center);
 		name.setEllipsis(true);
 		Container<Label> namecont = new Container<Label>(name);
 		namecont.fill();
 		namecont.setClip(true);
-		namecont.maxWidth(Value.percentWidth(1,table));
+		namecont.maxWidth(Value.percentWidth(1, table));
 		table.add(namecont).grow().uniform();
-		
-		final TextButton play, mp, quit;
-		
-		play = new TextButton("Play", skin);
+
+		final TextButton newgame, contgame, mp, quit;
+
+		newgame = new TextButton("New Game", skin);
 		table.row();
-		table.registerFocus(table.add((Button)play).grow().uniform());
+		table.registerFocus(table.add((Button)newgame).grow().uniform());
 		if(mappackpath == null)
-			play.setDisabled(true);
-		play.addListener(new ChangeListener(){
+			newgame.setDisabled(true);
+		newgame.addListener(new ChangeListener(){
 				@Override
 				public void changed(ChangeEvent event, Actor a){
-					MyGdxGame.game.setScreen(new Tenebrae(mappackpath));
+					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, savestatepath, false));
 					dispose();
 				}
 			});
 			
+		contgame = new TextButton("Continue Game", skin);
+		table.row();
+		table.registerFocus(table.add((Button)contgame).grow().uniform());
+		if(mappackpath == null || !savestatepath.exists())
+			contgame.setDisabled(true);
+		contgame.addListener(new ChangeListener(){
+				@Override
+				public void changed(ChangeEvent event, Actor a){
+					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, savestatepath, true));
+					dispose();
+				}
+			});
+
 		mp = new TextButton("Change Mappack", skin);
 		table.row();
 		table.registerFocus(table.add((Button)mp).grow().uniform());
-		
+
 		quit = new TextButton("Quit", skin);
 		table.row();
 		table.registerFocus(table.add((Button)quit).grow().uniform());
@@ -97,63 +126,77 @@ public class MainMenu extends GameScreen{
 			});
 
 		setFocusTable(table);
-		
+
 		final FocusTable mappackselect = new FocusTable(skin);
 		mappackselect.setBackground("window");
 		mappackselect.pad(Tenebrae.MARGIN);
 		mappackselect.setVisible(false);
 		stack.add(new Container<Table>(mappackselect).fill().pad(Tenebrae.MARGIN));
-		
 
-		getTable().setDebug(true, true);
-		
+
+		//getTable().setDebug(true, true);
+
 		mp.addListener(new ChangeListener(){
 				@Override
 				public void changed(ChangeEvent event, Actor a){
 					table.setVisible(false);
 					mappackselect.setVisible(true);
 					mappackselect.clearChildren();
+					Array<TextButton> buttons = new Array<>();
 					for(final FileHandle f : GAMEPATH.list())
 						if(f.isDirectory() && f.child("mappack.json").exists()){
-							String mpname = null;
+							final String newmpname;
 							try{
 								JSONObject newmappack = new JSONObject(f.child("mappack.json").readString());
-								mpname = newmappack.getString("name");
+								newmpname = newmappack.getString("name");
 							}catch(JSONException ex){
 								Log.error(ex);
+								newmpname = null;
 							}
-							
+
 							Skin skin = getSkin();
-							Button button = new Button(skin);
-							mappackselect.registerFocus(mappackselect.add(button).growX().fillY());
-							mappackselect.row();
+							TextButton button = new TextButton(newmpname, skin);
 							button.addListener(new ChangeListener(){
 									@Override
 									public void changed(ChangeEvent event, Actor a){
 										mappackselect.setVisible(false);
 										table.setVisible(true);
 										setFocusTable(table);
-										
+
 										mappackpath = f;
+										savestatepath = GAMEPATH.child(mappackpath.name()+".json");
 										try{
 											mappack = new JSONObject(mappackpath.child("mappack.json").readString());
 										}catch(JSONException ex){
 											mappackpath = null;
 										}
-										
+
 										loadSkin();
 										Skin skin = getSkin();
+										name.setText(newmpname);
 										name.setStyle(skin.get("title", Label.LabelStyle.class));
 										table.setBackground(skin.getDrawable("window"));
-										play.setDisabled(mappackpath == null);
-										play.setStyle(skin.get("default", TextButton.TextButtonStyle.class));
+										newgame.setDisabled(mappackpath == null);
+										newgame.setStyle(skin.get("default", TextButton.TextButtonStyle.class));
+										contgame.setDisabled(mappackpath == null || !savestatepath.exists());
+										contgame.setStyle(skin.get("default", TextButton.TextButtonStyle.class));
 										mp.setStyle(skin.get("default", TextButton.TextButtonStyle.class));
 										quit.setStyle(skin.get("default", TextButton.TextButtonStyle.class));
 										mappackselect.setBackground(skin.getDrawable("window"));
 									}
 								});
-							button.add(new Label(mpname, skin));
+							buttons.add(button);
 						}
+					buttons.sort(new java.util.Comparator<TextButton>(){
+							@Override
+							public int compare(TextButton p1, TextButton p2){
+								return p1.getText().toString().compareTo(p2.getText().toString());
+							}
+						});
+					for(Button button : buttons){
+						mappackselect.registerFocus(mappackselect.add(button).growX().fillY());
+						mappackselect.row();
+					}
 					setFocusTable(mappackselect);
 				}
 			});
@@ -168,7 +211,7 @@ public class MainMenu extends GameScreen{
 			bg.getTexture().dispose();
 			bgactor.dispose();
 		}
-		
+
 		String mpatlas = null, mpjson = null, menubg = null;
 		if(mappack != null){
 			try{
@@ -207,6 +250,19 @@ public class MainMenu extends GameScreen{
 			float y = MathUtils.map(-1, 1, 0, 1, MathUtils.cos(t));
 			float mx = getCamera().zoom * getStage().getViewport().getScreenWidth() / 2, my = getCamera().zoom * getStage().getViewport().getScreenHeight() / 2;
 			getCamera().position.set(MathUtils.map(0, 1, mx, bgactor.getWidth() - mx, x), MathUtils.map(0, 1, my, bgactor.getHeight() - my, y), 0);
+		}
+	}
+
+	@Override
+	public void hide(){
+		super.hide();
+
+		try{
+			JSONObject menustate = new JSONObject();
+			menustate.put(JSON_MAPPACKPATH, mappackpath.name());
+			MENUSTATE.writeString(menustate.toString(), false);
+		}catch(JSONException ex){
+			Log.debug(ex);
 		}
 	}
 

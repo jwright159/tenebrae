@@ -1,24 +1,19 @@
 package com.github.jwright159.tenebrae;
 
-import com.github.jwright159.gdx.*;
-import com.github.jwright159.gdx.actor.*;
-import com.github.jwright159.tenebrae.EntityBox.*;
-import com.github.jwright159.tenebrae.MenuItem.*;
-import com.github.jwright159.tenebrae.Action.*;
-import com.badlogic.gdx.graphics.g2d.*;
+import com.badlogic.gdx.*;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
-import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.math.*;
-import com.badlogic.gdx.scenes.scene2d.*;
-import com.badlogic.gdx.utils.*;
-import com.badlogic.gdx.maps.tiled.*;
-import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import org.luaj.vm2.lib.*;
+import com.badlogic.gdx.utils.*;
+import com.github.jwright159.gdx.*;
+import com.github.jwright159.gdx.actor.*;
+import com.github.jwright159.tenebrae.Action.*;
+import com.github.jwright159.tenebrae.EntityBox.*;
+import com.github.jwright159.tenebrae.MenuItem.*;
 import org.luaj.vm2.*;
-import com.badlogic.gdx.graphics.glutils.*;
-import com.badlogic.gdx.*;
+import org.luaj.vm2.lib.*;
 
 public class Player extends Character{
 	public TileMap map;
@@ -141,7 +136,7 @@ public class Player extends Character{
 		exp = 0;
 		g = 0;
 		bounds = new Rectangle();
-		boundsActor = new PatchActor(bounds, skin.getPatch("wrect"), 1);
+		boundsActor = new PatchActor(bounds, skin.getPatch("bounds"), 1);
 		boundsActor.setBorderAlignment(Align.left);
 		//boundsActor.setDebug(true);
 		setBound(-1, -1, -1, -1);
@@ -587,14 +582,22 @@ public class Player extends Character{
 		if(dzRect == null){
 			Vector2 mapCoords = new Vector2();
 			mapRect.localToStageCoordinates(mapCoords);
-			dzRect = new Rectangle(mapCoords.x, mapCoords.y, mapRect.getWidth(), mapRect.getHeight());
-			//bigdzRect = new Rectangle(uiTable.getX(), uiTable.getY(), uiTable.getWidth(), uiTable.getHeight());
+			dzRect = new Rectangle(
+				Math.max(mapCoords.x - Tenebrae.screenRect.getX(), 0), Math.max(mapCoords.y - Tenebrae.screenRect.getY(), 0),
+				mapRect.getWidth(), mapRect.getHeight());
 			bigdzRect = new Rectangle(0, 0, Tenebrae.screenRect.getWidth(), Tenebrae.screenRect.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
+			
 			setExpanded(isExpanded());
-			Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
-			Tenebrae.t.updateZoom();
-			Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
+			
+			if(firstFrame){
+				Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
+				Tenebrae.t.updateZoom();
+				Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
+			}else{
+				Tenebrae.t.getCamera().zoom = Tenebrae.t.zoom;
+				moveCamera();
+			}
 		}
 
 		if(moved || firstFrame){

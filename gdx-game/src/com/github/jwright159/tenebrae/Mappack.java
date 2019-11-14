@@ -25,6 +25,8 @@ import org.luaj.vm2.lib.jse.*;
 import com.badlogic.gdx.audio.*;
 import com.leff.midi.*;
 import com.leff.midi.event.*;
+import com.badlogic.gdx.utils.viewport.*;
+import org.json.*;
 
 public class Mappack implements ScriptGlob, Disposable{
 	public FileHandle folder;
@@ -68,6 +70,34 @@ public class Mappack implements ScriptGlob, Disposable{
 	@Override
 	public Globals getGlobals(){
 		return globals;
+	}
+	
+	public void loadSaveState(JSONObject savestate){
+		Log.debug("Loading", savestate);
+		LuaTable save = LuaValue.tableOf();
+		Iterator<String> keys = savestate.keys();
+		while(keys.hasNext()){
+			String key = keys.next();
+			try{
+				save.set(key, savestate.get(key).toString());
+			}catch(JSONException ex){
+				Log.error(ex);
+			}
+		}
+		globals.set("savestate", save);
+	}
+	public JSONObject saveSaveState(){
+		LuaTable save = globals.get("savestate").checktable();
+		JSONObject savestate = new JSONObject();
+		for(LuaValue key : save.keys()){
+			try{
+				savestate.put(key.checkjstring(), save.get(key));
+			}catch(JSONException ex){
+				Log.error(ex);
+			}
+		}
+		Log.debug("Saving", savestate);
+		return savestate;
 	}
 
 	@Override
@@ -242,6 +272,21 @@ public class Mappack implements ScriptGlob, Disposable{
 						return NONE;
 					}
 				});
+			library.set("setResolution", new TwoArgFunction(){
+				@Override
+				public LuaValue call(LuaValue width, LuaValue height){
+					Tenebrae.t.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
+					return NONE;
+				}
+			});
+			library.set("savestate", tableOf());
+			library.set("save", new ZeroArgFunction(){
+				@Override
+				public LuaValue call(){
+					Tenebrae.t.savestatepath.writeString(saveSaveState().toString(), false);
+					return NONE;
+				}
+			});
 			library.set("delay", new TwoArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue function){

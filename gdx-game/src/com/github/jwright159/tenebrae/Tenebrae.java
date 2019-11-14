@@ -20,11 +20,13 @@ import org.json.*;
 
 public class Tenebrae extends GameScreen{
 	public static FileHandle pakpath;
+	public static FileHandle savestatepath;
+	private boolean continueGame;
 
-	public static final float DEADZONE_DEFAULT = 0.7f;//0.45f;//0 is at edge, 1 is at center
-	public static final float TILES = 7.5f;//number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
+	public static final float DEADZONE_DEFAULT = 0.7f;// 0 is at edge, 1 is at center
+	public static final float TILES = 7.5f;// number of tiles on the screen by height, only accepts 1 param so deal with it (KQ is 10)
 
-	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Dims of game screen
 	public static final float MARGIN = 30f;
 	public static boolean doneLoading = false;
 	public static final boolean tableDebug = false, showEmpty = false;
@@ -35,9 +37,10 @@ public class Tenebrae extends GameScreen{
 
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
-	public Tenebrae(FileHandle pakpath){
-		super(new FitViewport(1920, 1080));
+	public Tenebrae(FileHandle pakpath, FileHandle savestatepath, boolean load){
 		this.pakpath = pakpath;
+		this.savestatepath = savestatepath;
+		this.continueGame = load;
 		doneLoading = false;
 		t = this;
 		Log.setLogFile(pakpath.child("debug.log"));
@@ -70,6 +73,7 @@ public class Tenebrae extends GameScreen{
 
 						case Input.Keys.Z:
 						case Input.Keys.ENTER:
+						case Input.Keys.SPACE:
 							if(doneLoading)
 								if(player.dialogBox.isVisible()){
 									if(player.performBack())
@@ -165,8 +169,8 @@ public class Tenebrae extends GameScreen{
 				}));
 		Gdx.input.setCatchBackKey(true);
 	}
-	public void loadSave(){
-		Log.debug("Loading! " + player);
+	public void loadSave(JSONObject save){
+		Log.debug("Loading!", player, save);
 
 		doneLoading = false;
 		reload();
@@ -175,6 +179,9 @@ public class Tenebrae extends GameScreen{
 		//use Serializable
 		//or JayVaScript
 		//Serializable on another object
+		// Nope that day is here and I'm doing none of those
+		if(save != null)
+			mp.loadSaveState(save);
 		getScript("mappack.lua", mp.getGlobals()).call();
 		player.changeMap(mp.loadMap());
 
@@ -185,6 +192,16 @@ public class Tenebrae extends GameScreen{
 
 		Log.debug("Done loading!");
 		doneLoading = true;
+	}
+	public void loadSave(){
+		if(savestatepath.exists())
+			try{
+				loadSave(new JSONObject(savestatepath.readString()));
+				return;
+			}catch(JSONException ex){
+				Log.error(ex);
+			}
+		loadSave(null);
 	}
 	public void reload(){
 		if(player != null)
@@ -320,8 +337,12 @@ public class Tenebrae extends GameScreen{
 				else{
 					splash.remove();
 					splash = null;
-					Log.debug("Starting loading the save!");
-					loadSave();
+					
+					Log.debug("Starting loading the save!", continueGame);
+					if(continueGame)
+						loadSave();
+					else
+						loadSave(null);
 					Log.debug("Done loading save!");
 				}
 			}
@@ -364,8 +385,13 @@ public class Tenebrae extends GameScreen{
 	@Override
 	public void resize(int x, int y){
 		super.resize(x, y);
-		screenRect.setSize(getStage().getViewport().getScreenWidth(), getStage().getViewport().getScreenHeight());
-		Log.debug("Actual size:", screenRect);
+		Viewport vp = getViewport(), uvp = getUiViewport();
+		Log.debug("Game", vp.getScreenWidth(), vp.getScreenHeight(), vp.getWorldWidth(), vp.getWorldHeight(),
+			"UI", uvp.getScreenWidth(), vp.getScreenHeight(), uvp.getWorldWidth(), uvp.getWorldHeight());
+		vp.setWorldSize(vp.getScreenWidth(), vp.getScreenHeight());
+		screenRect.set(vp.getScreenX(), vp.getScreenY(), vp.getScreenWidth(), vp.getScreenHeight());
+		Log.debug("ScreenRect", screenRect);
+		player.dzRect = null;
 	}
 
 	@Override
