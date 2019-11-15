@@ -19,11 +19,11 @@ import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
 
 public class Tenebrae extends GameScreen{
-	public FileHandle pakpath;
+	public FileHandle mappackpath;
 	public FileHandle savestatepath;
 	private boolean continueGame;
 	private JSONObject mappackinfo;
-	private String pakname;
+	private String mappackname;
 
 	public static final float DEADZONE_DEFAULT = 0.7f;// 0 is at edge, 1 is at center
 	public static final float TILES = 7.5f;// number of tiles on the screen by height, only accepts 1 param so deal with it (KQ is 10)
@@ -39,14 +39,14 @@ public class Tenebrae extends GameScreen{
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
 	public Tenebrae(FileHandle pakpath, JSONObject mappackinfo, FileHandle savestatepath, boolean load){
-		this.pakpath = pakpath;
+		this.mappackpath = pakpath;
 		this.savestatepath = savestatepath;
 		this.continueGame = load;
 		this.mappackinfo = mappackinfo;
 		try{
-			pakname = mappackinfo.getString("name");
+			mappackname = mappackinfo.getString("name");
 		}catch(JSONException ex){
-			pakname = "Tenebrae RPG Engine";
+			mappackname = "Tenebrae RPG Engine";
 		}
 		
 		doneLoading = false;
@@ -213,7 +213,7 @@ public class Tenebrae extends GameScreen{
 	public void reload(){
 		if(player != null)
 			player.endSelf();
-		mappack = new Mappack(this, pakpath);
+		mappack = new Mappack(this, mappackpath);
 		player = new Player(this);
 		Log.verbose("Unloaded, made " + player);
 	}
@@ -275,7 +275,7 @@ public class Tenebrae extends GameScreen{
 			if(scriptLoader == null){
 				Log.debug("Starting loading scripts!");
 				loadedScripts = false;
-				final FileHandle[] flist = pakpath.list("lua");
+				final FileHandle[] flist = mappackpath.list("lua");
 				if(flist.length == 0)
 					throw new RuntimeException("no .lua files found");
 				if(loadbar == null){
@@ -284,7 +284,7 @@ public class Tenebrae extends GameScreen{
 					splash.setDebug(TABLEDEBUG);
 					splash.background("window");
 					Label title;
-					splash.add(title = new Label("Tenebrae RPG Engine", getSkin(), getSkin().has("title", BitmapFont.class) ? "title" : "default")).grow().bottom();
+					splash.add(title = new Label(mappackname, getSkin(), getSkin().has("title", BitmapFont.class) ? "title" : "default")).grow().bottom();
 					title.setWrap(true);
 					title.setAlignment(Align.bottom);
 					splash.row();
@@ -405,7 +405,7 @@ public class Tenebrae extends GameScreen{
 
 	public class StdEntGlobals extends ScriptGlob.StdGlobals{
 		public StdEntGlobals(){
-			super(pakpath);
+			super(mappackpath);
 			if(getmetatable() == null) setmetatable(tableOf());
 			LuaValue mt = getmetatable();
 			final LuaValue oldind = mt.get(INDEX).isnil() ? ScriptGlob.defindex : mt.get(INDEX),
