@@ -25,16 +25,16 @@ public class EntityBox extends Table{
 	public EntityBox(Character parent, boolean vertical, Skin skin){
 		super(skin);
 		this.parent = parent;
-		this.setDebug(Tenebrae.tableDebug);
+		this.setDebug(Tenebrae.TABLEDEBUG);
 		Table pic = new Table(skin);
-		pic.setDebug(Tenebrae.tableDebug);
+		pic.setDebug(Tenebrae.TABLEDEBUG);
 		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.getRegions()))).size(128, 128);
 		pic.row();
 		pic.add(name = new Label(parent.name, skin));
 		this.add(pic).pad(0, 0, vertical ? Tenebrae.MARGIN : 0, vertical ? 0 : Tenebrae.MARGIN);
 		if(vertical) this.row();
 		bars = new Table(skin);
-		bars.setDebug(Tenebrae.tableDebug);
+		bars.setDebug(Tenebrae.TABLEDEBUG);
 		bars.add(healthBar = new HealthBar("HP", vertical, skin, "health")).grow();
 		if(!vertical) bars.row();
 		bars.add(manaBar = new HealthBar("MP", vertical, skin, "mana")).grow();
@@ -193,7 +193,7 @@ public class EntityBox extends Table{
 				bar.setStyle(skin.get(skinName, ProgressBar.ProgressBarStyle.class));
 		}
 		public TextBar(String text, float min, float max, float step, boolean vertical, Skin skin){
-			setDebug(Tenebrae.tableDebug);
+			setDebug(Tenebrae.TABLEDEBUG);
 			this.add(bar = new SizableProgressBar(min, max, step, vertical, skin));
 			this.add(new Container<Label>(this.text = new Label(text, skin, "bar")).padLeft(Tenebrae.MARGIN / 2f).padRight(Tenebrae.MARGIN / 2f).fill());
 			this.text.setAlignment(Align.left);
@@ -356,6 +356,7 @@ public class EntityBox extends Table{
 	 });
 	 }*/
 	public static class MenuBox extends Stack{
+		private Tenebrae game;
 		public static float padding = 30f;
 		public static int itemsPerHeight = 5;
 		private int activePage;
@@ -363,7 +364,8 @@ public class EntityBox extends Table{
 		private Array<MenuOption> list;
 		private Skin skin;
 		private Array<FocusTable> pages;
-		public MenuBox(String id, Skin skin){
+		public MenuBox(Tenebrae game, String id, Skin skin){
+			this.game = game;
 			this.skin = skin;
 			list = new Array<MenuOption>();
 			pages = new Array<FocusTable>();
@@ -436,7 +438,7 @@ public class EntityBox extends Table{
 			this.pages.clear();
 			for(int i = 0; i < pages; i++){
 				final FocusTable page = new FocusTable(skin);
-				page.setDebug(Tenebrae.tableDebug);
+				page.setDebug(Tenebrae.TABLEDEBUG);
 				page.background("window");
 				Drawable bg = page.getBackground();
 				page.setTouchable(Touchable.enabled);
@@ -497,10 +499,10 @@ public class EntityBox extends Table{
 			if(!isVisible())
 				return;
 			Log.debug("Setting focus page to", activePage, pages.get(activePage));
-			Tenebrae.t.setFocusTable(pages.get(activePage));
+			game.setFocusTable(pages.get(activePage));
 		}
 
-		public static final String prevText = "<", nextText = ">", emptyText = Tenebrae.showEmpty ? "[empty]" : "";
+		public static final String prevText = "<", nextText = ">", emptyText = Tenebrae.SHOWEMPTY ? "[empty]" : "";
 		public MenuOption empty(){
 			return new MenuOption(emptyText, null, Align.center, false, skin);
 		}
@@ -549,7 +551,7 @@ public class EntityBox extends Table{
 			return super.toString() + "§" + (id.isEmpty() ? "[noid]" : id);
 		}
 	}
-	public static void addItemToBox(final MenuItem item, MenuBox box){
+	public static void addItemToBox(final MenuItem item, MenuBox box, Tenebrae game){
 		MenuOption cat = null;
 		for(MenuOption opt : box.list)
 			if(opt.getText().equals(item.category)){
@@ -557,7 +559,7 @@ public class EntityBox extends Table{
 				break;
 			}
 		if(cat == null){
-			MenuBox b = new MenuBox(item.category, box.skin);
+			MenuBox b = new MenuBox(game, item.category, box.skin);
 			cat = new MenuOption(item.category, b, box.skin);
 		}
 
@@ -571,7 +573,7 @@ public class EntityBox extends Table{
 				});
 		}else{
 			MenuItem.GameItem gitem = (MenuItem.GameItem)item;
-			MenuBox b = new MenuBox(gitem.name, box.skin);
+			MenuBox b = new MenuBox(game, gitem.name, box.skin);
 			MenuOption opt = new MenuOption(gitem.name, b, box.skin);
 			Log.verbose2("Putting item stuff in box!");
 			while(gitem.toPutInBox.size > 0){
@@ -588,7 +590,7 @@ public class EntityBox extends Table{
 		protected MiniHealthBar health, mana;
 		public StatBox(HealthBar health, HealthBar mana, Skin skin){
 			super(skin);
-			setDebug(Tenebrae.tableDebug);
+			setDebug(Tenebrae.TABLEDEBUG);
 			//setClip(true);
 			this.health = new MiniHealthBar(health, skin);
 			this.mana = new MiniHealthBar(mana, skin);
@@ -650,27 +652,27 @@ public class EntityBox extends Table{
 		ButtonBox(final Player player, Skin skin){
 			super(skin);
 
-			MenuBox menuBox = new MenuBox("MenuBox", skin);
+			MenuBox menuBox = new MenuBox(player.game, "MenuBox", skin);
 			//might want to delete these at some point
 			addItemToBox(new MenuItem("Settings", "Main menu"){
 					@Override
 					public void run(String funcName){
 						if(funcName.equals("onUse"))
 							MyGdxGame.game.setScreen(new MainMenu());
-						Tenebrae.t.dispose();
+						player.game.dispose();
 					}
-				}, menuBox);
+				}, menuBox, player.game);
 			addItemToBox(new MenuItem("Settings", "Quit"){
 					@Override
 					public void run(String funcName){
 						if(funcName.equals("onUse"))
 							Gdx.app.exit();
 					}
-				}, menuBox);
-			addItemToBox(new MenuItem.ScriptItem("Player", "Kill", player, killScript), menuBox);
-			addItemToBox(new MenuItem.ScriptItem("Player", "Heal", player, healScript), menuBox);
-			addItemToBox(new MenuItem.ScriptItem("Player", "Tire", player, tireScript), menuBox);
-			addItemToBox(new MenuItem.ScriptItem("Player", "Invigor", player, invigorScript), menuBox);
+				}, menuBox, player.game);
+			addItemToBox(new MenuItem.ScriptItem(player.game, "Player", "Kill", player, killScript), menuBox, player.game);
+			addItemToBox(new MenuItem.ScriptItem(player.game, "Player", "Heal", player, healScript), menuBox, player.game);
+			addItemToBox(new MenuItem.ScriptItem(player.game, "Player", "Tire", player, tireScript), menuBox, player.game);
+			addItemToBox(new MenuItem.ScriptItem(player.game, "Player", "Invigor", player, invigorScript), menuBox, player.game);
 			menu = new MenuOption("Menu", menuBox, Align.center, true, skin);
 			ChangeListener click = new ChangeListener(){
 				@Override
@@ -682,7 +684,7 @@ public class EntityBox extends Table{
 			this.add(menu).grow();
 			this.row();
 
-			MenuBox itemsBox = new MenuBox("ItemsBox", skin);
+			MenuBox itemsBox = new MenuBox(player.game, "ItemsBox", skin);
 			items = new MenuOption("Items", itemsBox, Align.center, true, skin);
 			items.addListener(click);
 			this.add(items).padTop(Tenebrae.MARGIN).grow();

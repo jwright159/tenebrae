@@ -21,6 +21,7 @@ import org.luaj.vm2.*;
 import java.util.*;
 
 public class TileMap extends ScreenActor{
+	private Tenebrae game;
 	private String filepath;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer maprenderer;
@@ -30,7 +31,8 @@ public class TileMap extends ScreenActor{
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
 
-	public TileMap(FileHandle mapFile, LuaFunction script, Batch batch){
+	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
+		this.game = game;
 		this.script = script;
 		ents = new Group(){
 			@Override
@@ -149,10 +151,10 @@ public class TileMap extends ScreenActor{
 			for(MapObject obj : layer.getObjects())
 				if(obj instanceof RectangleMapObject)
 					if(!obj.getProperties().get(prop, "", String.class).isEmpty())
-						trigs.add(new Trigger(((RectangleMapObject)obj).getRectangle(), obj.getProperties()));
+						trigs.add(new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties()));
 		
 		for(Entity ent : ents.getChildren())
-			if(ent != Tenebrae.player){
+			if(ent != game.player){
 				Trigger trig = ent.getTrigger(prop);
 				if(trig == null)
 					continue;
@@ -252,7 +254,7 @@ public class TileMap extends ScreenActor{
 		boolean changed = false;
 		if(i < getZIndex())
 			changed = super.setZIndex(i);
-		for(Character c : Tenebrae.mp.charas)
+		for(Character c : game.mappack.charas)
 			c.setZIndex(i);
 		if(i >= getZIndex())
 			changed = super.setZIndex(i);
@@ -274,7 +276,7 @@ public class TileMap extends ScreenActor{
 
 	@Override
 	public void dispose(){
-		LuaValue onDestroy = Tenebrae.mp.getGlobals().get("onDestroy");
+		LuaValue onDestroy = game.mappack.getGlobals().get("onDestroy");
 		if(!onDestroy.isnil())
 			onDestroy.call();
 		super.dispose();

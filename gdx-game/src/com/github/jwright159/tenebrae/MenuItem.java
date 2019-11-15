@@ -26,14 +26,16 @@ public abstract class MenuItem{
 	}
 
 	public static class ScriptItem extends MenuItem implements ScriptGlob{
+		protected Tenebrae game;
 		private Globals globals;
 		public EntityBox.MenuOption option;
 		protected Character owner;
 		
-		public ScriptItem(String category, String name, Character owner, Prototype onUse){
+		public ScriptItem(Tenebrae game, String category, String name, Character owner, Prototype onUse){
 			super(category, name);
+			this.game = game;
 			this.owner = owner;
-			globals = new Tenebrae.StdEntGlobals();
+			globals = game.new StdEntGlobals();
 			globals.load(new ScriptItemLib());
 			if(onUse != null)
 				globals.set("onUse", new LuaClosure(onUse, globals));
@@ -41,7 +43,7 @@ public abstract class MenuItem{
 		
 		@Override
 		public void run(String funcName){
-			Tenebrae.player.closeMenus();
+			game.player.closeMenus();
 			globals.get(funcName).checkfunction().call();
 		}
 		
@@ -107,8 +109,8 @@ public abstract class MenuItem{
 		public EntityBox.MenuOption equipOpt, unequipOpt;
 		private Skin skin;
 
-		public GameItem(String id, String name, Character owner, ArrayMap<Character.Stats,Float> equip, int life, String catagory, String type, float enemyChance, boolean isMagic, Skin skin){
-			super(catagory, name, owner, null);
+		public GameItem(Tenebrae game, String id, String name, Character owner, ArrayMap<Character.Stats,Float> equip, int life, String catagory, String type, float enemyChance, boolean isMagic, Skin skin){
+			super(game, catagory, name, owner, null);
 			this.id = id;
 			this.equip = equip;
 			this.life = life;
@@ -135,8 +137,8 @@ public abstract class MenuItem{
 				}
 			};
 		}
-		public GameItem(String name, Prototype script, Character owner, Skin skin){
-			this(name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
+		public GameItem(Tenebrae game, String name, Prototype script, Character owner, Skin skin){
+			this(game, name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
 			Log.verbose("Parsing file of item!");
 			new LuaClosure(script, getGlobals()).call();
 			if(isEquipable()){
@@ -254,7 +256,7 @@ public abstract class MenuItem{
 							EntityBox.MenuOption opt = new EntityBox.MenuOption(name.checkjstring(), null, skin){
 								@Override
 								public void open(){
-									Tenebrae.player.closeMenus();
+									game.player.closeMenus();
 									func.call();
 								}
 							};

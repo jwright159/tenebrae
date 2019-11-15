@@ -35,10 +35,12 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class DialogAction extends DelayAction{
+		private Tenebrae game;
 		private String text;
 		private boolean tap, tapDelay;//tap is whether we should wait for a tap, tapDelay is whether we can skip the delay and consecutive tapDelays
-		public DialogAction(Character chara, String text, float delay, boolean tap, boolean tapDelay){
+		public DialogAction(Tenebrae game, Character chara, String text, float delay, boolean tap, boolean tapDelay){
 			super(chara, delay, tap);
+			this.game = game;
 			this.text = text;
 			this.tap = tap;
 			this.tapDelay = tapDelay;
@@ -46,7 +48,7 @@ public abstract class Action implements Runnable{
 		@Override
 		public void run(){
 			super.run();
-			Tenebrae.player.dialogBox.setText(text);
+			game.player.dialogBox.setText(text);
 		}
 		@Override
 		public boolean stop(boolean touched){
@@ -56,7 +58,7 @@ public abstract class Action implements Runnable{
 					while(chara.hasAction() && chara.getAction() instanceof DialogAction && ((DialogAction)chara.getAction()).tapDelay)
 						chara.removeAction();
 				}
-				Tenebrae.player.dialogBox.setText(null);
+				game.player.dialogBox.setText(null);
 				//Log.verbose("Ending Dialog!", chara.delay, tap, touched, tapDelay);
 				return true;
 			}
@@ -102,12 +104,14 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class CameraAction extends DelayAction{
+		private Tenebrae game;
 		private float x, y, z, oldx, oldy, oldz;
 		private Interpolation interpx, interpy, interpz;
 		private OrthographicCamera cam;
 		private Character charaPos;
-		public CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interpx, Interpolation interpy, Interpolation interpz, float time, boolean tap){
-			super(Tenebrae.player, time, tap);
+		public CameraAction(Tenebrae game, OrthographicCamera cam, float x, float y, float z, Interpolation interpx, Interpolation interpy, Interpolation interpz, float time, boolean tap){
+			super(game.player, time, tap);
+			this.game = game;
 			this.cam = cam;
 			oldx = cam.position.x;
 			oldy = cam.position.y;
@@ -119,17 +123,17 @@ public abstract class Action implements Runnable{
 			this.interpy = interpy;
 			this.interpz = interpz;
 		}
-		public CameraAction(OrthographicCamera cam, float x, float y, float z, Interpolation interp, float time, boolean tap){
-			this(cam, x, y, z, interp, interp, interp, time, tap);
+		public CameraAction(Tenebrae game, OrthographicCamera cam, float x, float y, float z, Interpolation interp, float time, boolean tap){
+			this(game, cam, x, y, z, interp, interp, interp, time, tap);
 		}
-		public CameraAction(OrthographicCamera cam, float x, float y, Interpolation interp, float time, boolean tap){
-			this(cam, x, y, cam.zoom, interp, interp, interp, time, tap);
+		public CameraAction(Tenebrae game, OrthographicCamera cam, float x, float y, Interpolation interp, float time, boolean tap){
+			this(game, cam, x, y, cam.zoom, interp, interp, interp, time, tap);
 		}
-		public CameraAction(OrthographicCamera cam, float z, Interpolation interp, float time, boolean tap){
-			this(cam, cam.position.x, cam.position.y, z, interp, interp, interp, time, tap);
+		public CameraAction(Tenebrae game, OrthographicCamera cam, float z, Interpolation interp, float time, boolean tap){
+			this(game, cam, cam.position.x, cam.position.y, z, interp, interp, interp, time, tap);
 		}
-		public CameraAction(OrthographicCamera cam, Character charaPos, Interpolation interp, float time, boolean tap){
-			this(cam, cam.zoom, interp, time, tap);
+		public CameraAction(Tenebrae game, OrthographicCamera cam, Character charaPos, Interpolation interp, float time, boolean tap){
+			this(game, cam, cam.zoom, interp, time, tap);
 			this.charaPos = charaPos;
 		}
 		@Override
@@ -143,7 +147,7 @@ public abstract class Action implements Runnable{
 			cam.position.x = interpx.apply(oldx, x, a);
 			cam.position.y = interpy.apply(oldy, y, a);
 			cam.zoom = interpz.apply(oldz, z, a);
-			Tenebrae.t.updateZoom();
+			game.updateZoom();
 			return rtn;
 		}
 	}

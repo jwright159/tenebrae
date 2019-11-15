@@ -93,7 +93,7 @@ public class MainMenu extends GameScreen{
 		newgame.addListener(new ChangeListener(){
 				@Override
 				public void changed(ChangeEvent event, Actor a){
-					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, savestatepath, false));
+					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, mappack, savestatepath, false));
 					dispose();
 				}
 			});
@@ -106,7 +106,7 @@ public class MainMenu extends GameScreen{
 		contgame.addListener(new ChangeListener(){
 				@Override
 				public void changed(ChangeEvent event, Actor a){
-					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, savestatepath, true));
+					MyGdxGame.game.setScreen(new Tenebrae(mappackpath, mappack, savestatepath, true));
 					dispose();
 				}
 			});

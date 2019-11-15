@@ -40,37 +40,37 @@ public class Player extends Character{
 	public static final float JOYSPEED = 2f;
 	public static final float SPRINTMULT = 2f;
 
-	public Player(){
-		super("player");
+	public Player(Tenebrae game){
+		super(game, "player");
 		Log.verbose("Making Player");
 		lastCameraPos = new Vector3();
-		Tenebrae.mp.charas.add(this);
+		game.mappack.charas.add(this);
 
-		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = Tenebrae.t.getSkin();
-		table = Tenebrae.t.getTable();
-		table.setDebug(Tenebrae.tableDebug);
+		com.badlogic.gdx.scenes.scene2d.ui.Skin skin = game.getSkin();
+		table = game.getTable();
+		table.setDebug(Tenebrae.TABLEDEBUG);
 
 		Stack stack = new Stack();
 		Container<Table> uiRect = new Container<Table>();
 		uiTable = new FocusTable(skin);
-		uiTable.setDebug(Tenebrae.tableDebug);
+		uiTable.setDebug(Tenebrae.TABLEDEBUG);
 		uiRect.setActor(uiTable);
 		uiRect.pad(Tenebrae.MARGIN).fill();
 		stack.add(uiRect);
 		Table dialogTable = new Table(skin);
-		dialogTable.setDebug(Tenebrae.tableDebug);
+		dialogTable.setDebug(Tenebrae.TABLEDEBUG);
 		stack.add(dialogTable);
 		dialogTable.setFillParent(true);
 		table.add(stack).grow();
 
 		Table buttonPane = new Table(skin);
-		buttonPane.setDebug(Tenebrae.tableDebug);
+		buttonPane.setDebug(Tenebrae.TABLEDEBUG);
 		buttonPane.background("window");
 		buttonPane.add(buttonBox = new ButtonBox(this, skin)).pad(Tenebrae.MARGIN).grow();
 		uiTable.add(buttonPane).grow().uniform();
 
 		mapRect = new Container<Stack>().fill();
-		mapRect.setDebug(Tenebrae.tableDebug);
+		mapRect.setDebug(Tenebrae.TABLEDEBUG);
 		uiTable.add(mapRect).padLeft(Tenebrae.MARGIN).growY().width(Value.percentHeight(1f, mapRect));
 		Stack menuStack = new Stack();
 		mapRect.setActor(menuStack);
@@ -79,7 +79,7 @@ public class Player extends Character{
 		menuStack.add(buttonBox.items.box);
 
 		Table playerPane = new Table(skin);
-		playerPane.setDebug(Tenebrae.tableDebug);
+		playerPane.setDebug(Tenebrae.TABLEDEBUG);
 		playerPane.background("window");
 		box.remove();
 		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.MARGIN).grow();
@@ -87,7 +87,7 @@ public class Player extends Character{
 
 		StatBox prevStatBox = smolStatBox;
 		prevStatBox.remove();
-		Tenebrae.t.getUiStage().addActor(smolStatBox = new FadingStatBox(box.healthBar, box.manaBar, skin));
+		game.getUiStage().addActor(smolStatBox = new FadingStatBox(box.healthBar, box.manaBar, skin));
 		smolStatBox.setSize(prevStatBox.getWidth(), prevStatBox.getHeight());
 		
 		dialogTable.add().grow();
@@ -109,14 +109,14 @@ public class Player extends Character{
 		dialogBox.setWrap(true);
 		dialogBox.setAlignment(Align.topLeft);
 		dialogBox.setText(null);
-		dialogBoxBox.setDebug(Tenebrae.tableDebug);
+		dialogBoxBox.setDebug(Tenebrae.TABLEDEBUG);
 		dialogBoxBox.background("window");
 		dialogBoxBox.add(dialogBox).pad(Tenebrae.MARGIN).grow();
 		dialogTable.row();
 		dialogTable.add(dialogBoxBox).pad(Tenebrae.MARGIN).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
 
 		/*Table zoomt = new Table();
-		 Tenebrae.t.getUiStage().addActor(zoomt);
+		 game.getUiStage().addActor(zoomt);
 		 zoomt.setFillParent(true);
 		 zoomt.setDebug(true);
 		 for(int i = 0; i < 12; i++){
@@ -124,7 +124,7 @@ public class Player extends Character{
 		 zoomt.add().grow();
 		 zoomt.row();
 		 }
-		 ((OrthographicCamera)Tenebrae.t.getUiStage().getCamera()).zoom = 0.25f;*/
+		 ((OrthographicCamera)game.getUiStage().getCamera()).zoom = 0.25f;*/
 		// What have we learned? zoom=1/4 means width and height are 1/4th
 
 		table.validate();
@@ -153,7 +153,7 @@ public class Player extends Character{
 			this.map = null;
 		}
 		this.map = map;
-		Tenebrae.t.getStage().addActor(map);
+		game.getStage().addActor(map);
 		map.call();
 		
 		boundsActor.setScale(map.tileWidth, map.tileHeight);
@@ -161,13 +161,13 @@ public class Player extends Character{
 			map.getStage().addActor(boundsActor);
 
 		super.changeMap(map);
-		for(Character c : Tenebrae.mp.charas)
+		for(Character c : game.mappack.charas)
 			if(c != this)
 				c.changeMap(map);
 
 		//Log.debug("Changing player! " + toString());
 
-		LuaValue onCreate = Tenebrae.mp.getGlobals().get("onCreate");
+		LuaValue onCreate = game.mappack.getGlobals().get("onCreate");
 		if(!onCreate.isnil())
 			onCreate.call();
 		
@@ -267,7 +267,7 @@ public class Player extends Character{
 	}
 	public void addDialog(String dialog, float delay, boolean tap, boolean tapDelay){
 		Log.verbose2("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
-		addAction(new DialogAction(this, dialog, delay, tap, tapDelay));
+		addAction(new DialogAction(game, this, dialog, delay, tap, tapDelay));
 	}
 	@Override
 	public void triggerAction(){
@@ -279,7 +279,7 @@ public class Player extends Character{
 			delay = 0;
 			currentAction = null;
 		}
-		if(!hasAction() || !Tenebrae.doneLoading || delay != 0 || (currentAction != null && !currentAction.stop(touched))){
+		if(!hasAction() || !game.doneLoading || delay != 0 || (currentAction != null && !currentAction.stop(touched))){
 			//Log.debug("..But nobody came.");
 			return;
 		}
@@ -308,7 +308,7 @@ public class Player extends Character{
 			active.setVisible(false);
 			if(buttonBox.getActiveBox() == null){
 				setUiDisabled(false);
-				Tenebrae.t.setFocusTable(null);
+				game.setFocusTable(null);
 			}else{
 				active = openedBox.findActiveLeaf();
 				active.setFocusTableToActive();
@@ -448,7 +448,7 @@ public class Player extends Character{
 		collide = false;
 		addDialog("You have died! :(");
 		addAction(new Action(){public void run(){
-					Tenebrae.t.loadSave();
+					game.loadSave();
 				}});
 	}
 	
@@ -474,7 +474,7 @@ public class Player extends Character{
 	@Override
 	public void addItem(GameItem item){
 		super.addItem(item);
-		EntityBox.addItemToBox(item, buttonBox.items.box);
+		EntityBox.addItemToBox(item, buttonBox.items.box, game);
 	}
 	@Override
 	public void removeItem(GameItem item){
@@ -487,12 +487,12 @@ public class Player extends Character{
 	private Rectangle camRect = new Rectangle(), dz = new Rectangle(), dzr = new Rectangle(), b = new Rectangle();
 	public void moveCamera(){
 		//Log.debug("Moving camera! currentAction", currentAction);
-		OrthographicCamera cam = Tenebrae.t.getCamera();
+		OrthographicCamera cam = game.getCamera();
 		if(firstFrame){
 			cam.position.x = getX(Align.center);
 			cam.position.y = getY(Align.center);
 		}
-		camRect.set(cam.position.x - Tenebrae.screenRect.width * cam.zoom / 2, cam.position.y - Tenebrae.screenRect.height * cam.zoom / 2, Tenebrae.screenRect.width * cam.zoom, Tenebrae.screenRect.height * cam.zoom);
+		camRect.set(cam.position.x - game.screenRect.width * cam.zoom / 2, cam.position.y - game.screenRect.height * cam.zoom / 2, game.screenRect.width * cam.zoom, game.screenRect.height * cam.zoom);
 		dz.set(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
 		if(bounds.getWidth() > 0 || bounds.getHeight() > 0)
 			b.set(bounds.x * map.tileWidth, bounds.y * map.tileHeight, bounds.width * map.tileWidth, bounds.height * map.tileHeight);
@@ -583,19 +583,19 @@ public class Player extends Character{
 			Vector2 mapCoords = new Vector2();
 			mapRect.localToStageCoordinates(mapCoords);
 			dzRect = new Rectangle(
-				Math.max(mapCoords.x - Tenebrae.screenRect.getX(), 0), Math.max(mapCoords.y - Tenebrae.screenRect.getY(), 0),
+				Math.max(mapCoords.x - game.screenRect.getX(), 0), Math.max(mapCoords.y - game.screenRect.getY(), 0),
 				mapRect.getWidth(), mapRect.getHeight());
-			bigdzRect = new Rectangle(0, 0, Tenebrae.screenRect.getWidth(), Tenebrae.screenRect.getHeight());
+			bigdzRect = new Rectangle(0, 0, game.screenRect.getWidth(), game.screenRect.getHeight());
 			Log.debug("MapRect!", dzRect, bigdzRect);
 			
 			setExpanded(isExpanded());
 			
 			if(firstFrame){
-				Tenebrae.t.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
-				Tenebrae.t.updateZoom();
-				Log.debug("Zoom", Tenebrae.t.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
+				game.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
+				game.updateZoom();
+				Log.debug("Zoom", game.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
 			}else{
-				Tenebrae.t.getCamera().zoom = Tenebrae.t.zoom;
+				game.getCamera().zoom = game.zoom;
 				moveCamera();
 			}
 		}

@@ -6,10 +6,12 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.jse.*;
 
 public class Trigger{
+	private Tenebrae game;
 	private Rectangle rect;
 	private MapProperties props;
 	
-	public Trigger(Rectangle rect, MapProperties props){
+	public Trigger(Tenebrae game, Rectangle rect, MapProperties props){
+		this.game = game;
 		this.rect = rect;
 		this.props = props;
 	}
@@ -30,7 +32,7 @@ public class Trigger{
 		if(props.containsKey(Entity.ENTITY))
 			return props.get(Entity.ENTITY, Entity.class).vars.get(props.get(prop, String.class));
 		else
-			return Tenebrae.mp.getGlobals().get(props.get(prop, String.class));
+			return game.mappack.getGlobals().get(props.get(prop, String.class));
 	}
 	
 	public void trigger(String prop){

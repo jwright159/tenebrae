@@ -20,8 +20,8 @@ public class NPC extends Character{
 		}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 	}
 
-	public NPC(String name, Prototype script){
-		super(name);
+	public NPC(Tenebrae game, String name, Prototype script){
+		super(game, name);
 		getGlobals().load(new NPCLib());
 		new LuaClosure(setup, getGlobals()).call();
 		new LuaClosure(script, getGlobals()).call();
@@ -87,10 +87,10 @@ public class NPC extends Character{
 							@Override
 							public LuaValue call(){
 								enabled = true;
-								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
+								boolean had = game.mappack.charas.contains(NPC.this, true);
 								if(!had){
-									Tenebrae.mp.charas.add(NPC.this);
-									Tenebrae.t.getUiStage().addActor(smolStatBox);
+									game.mappack.charas.add(NPC.this);
+									game.getUiStage().addActor(smolStatBox);
 								}
 								return valueOf(!had);
 							}
@@ -99,9 +99,9 @@ public class NPC extends Character{
 							@Override
 							public LuaValue call(){
 								enabled = false;
-								boolean had = Tenebrae.mp.charas.contains(NPC.this, true);
+								boolean had = game.mappack.charas.contains(NPC.this, true);
 								if(had){
-									Tenebrae.mp.charas.removeValue(NPC.this, true);
+									game.mappack.charas.removeValue(NPC.this, true);
 									smolStatBox.remove();
 								}
 								return valueOf(had);

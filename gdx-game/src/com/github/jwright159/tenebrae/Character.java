@@ -38,29 +38,29 @@ abstract public class Character extends Entity implements ScriptGlob{
 	public static final String baseStats = "__base", atkMod = "__attackMod", itemMod = "__itemMod";
 	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
-	public Character(String filename){
-		super(0, 0, 1, 1, 1, 1);
+	public Character(Tenebrae game, String filename){
+		super(game, 0, 0, 1, 1, 1, 1);
 		tile = new LayeredTile();
 		stats = new ArrayMap<String,ArrayMap<Stats,Float>>();
 		items = new Array<MenuItem.GameItem>();
 		equippedItems = new ArrayMap<String,MenuItem.GameItem>();
 		skinList = new ArrayMap<String,Skin>();
-		globals = new Tenebrae.StdEntGlobals();
+		globals = game.new StdEntGlobals();
 		vars = globals;
 		globals.load(new EntityLib());
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
 		
-		box = new EntityBox(this, false, Tenebrae.t.getSkin());
-		smolStatBox = new EntityBox.FadingStatBox(box.healthBar, box.manaBar, Tenebrae.t.getSkin());
+		box = new EntityBox(this, false, game.getSkin());
+		smolStatBox = new EntityBox.FadingStatBox(box.healthBar, box.manaBar, game.getSkin());
 		smolStatBox.setSize(Tenebrae.MARGIN * 10.0f, Tenebrae.MARGIN * 2.0f);
-		Tenebrae.t.getUiStage().addActor(smolStatBox);
+		game.getUiStage().addActor(smolStatBox);
 		
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
 		g = 0;
-		setDebug(Tenebrae.tableDebug);
+		setDebug(Tenebrae.TABLEDEBUG);
 	}
 	public void changeMap(TileMap map){
 		Rectangle rect, oRect = null;
@@ -178,7 +178,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 
 		removeSkin(z);
 
-		TiledMapTileSet tileset = Tenebrae.mp.loadTileset(tilesetName);
+		TiledMapTileSet tileset = game.mappack.loadTileset(tilesetName);
 		Skin newSkin = new Skin(z);
 		for(TiledMapTile tile : tileset){
 			Log.verbose("Objs on new skin!", tilesetName, tile.getObjects().getCount());
@@ -262,9 +262,9 @@ abstract public class Character extends Entity implements ScriptGlob{
 		for(TiledMapTile t : tile)
 			for(MapObject obj : t.getObjects())
 				if(obj instanceof RectangleMapObject && !obj.getProperties().get(prop, "", String.class).isEmpty()){
-					Tenebrae.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
+					game.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
 					//Log.debug("Got trigger", prop, "from", this, obj);
-					return new Trigger(((RectangleMapObject)obj).getRectangle(), obj.getProperties());
+					return new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties());
 				}
 		return null;
 	}
@@ -278,7 +278,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		}
 		if(hasAction())
 			Log.debug("Triggerboi", this, actions, stop);
-		if(!Tenebrae.doneLoading || delay != 0 || !stop){
+		if(!game.doneLoading || delay != 0 || !stop){
 			//Log.debug("..But nobody came.");
 			return;
 		}else if(!hasAction() && stop){
@@ -350,8 +350,8 @@ abstract public class Character extends Entity implements ScriptGlob{
 	}
 	public void attack(Character enemy, boolean magic){
 		if(enemy == null){
-			Tenebrae.player.addDialog(name + " attacked!");
-			Tenebrae.player.addDialog("...But nobody came.");
+			game.player.addDialog(name + " attacked!");
+			game.player.addDialog("...But nobody came.");
 			return;
 		}
 		if(str() >= 0)
@@ -394,9 +394,6 @@ abstract public class Character extends Entity implements ScriptGlob{
 		//if(!silent)
 		//	Tenebrae.player.addDialog(name + " got invigorated by " + f(heal) + " points!");
 	}
-	public void failAttack(){
-		Tenebrae.player.addDialog(name + " missed!");
-	}
 	public void finishAffect(){
 		updateBoxHP();
 		if(isDead())
@@ -438,7 +435,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		localToScreenCoordinates(sizeBuffer.set(getWidth(), getHeight()));
 		//Log.debug(coordBuffer, sizeBuffer);
 		sizeBuffer.sub(coordBuffer).scl(1, -1); // sizeBuffer gives top-right point
-		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
+		coordBuffer.y = game.getStage().getViewport().getScreenHeight() - coordBuffer.y - game.getStage().getViewport().getBottomGutterHeight();// + game.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
 		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
 	}
 	public void updateBoxHP(){
@@ -561,7 +558,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 					@Override
 					public LuaValue call(LuaValue file){
 						MenuItem.GameItem item;
-						addItem(item = Tenebrae.mp.loadItem(file.checkjstring(), Character.this));
+						addItem(item = game.mappack.loadItem(file.checkjstring(), Character.this));
 						Log.debug(item);
 						return item.getGlobals();
 					}

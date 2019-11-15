@@ -8,6 +8,7 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 
 public class EnemyWeapon implements ScriptGlob{
+	private Tenebrae game;
 	public Character owner;
 	public String type;
 	public float str, spawnX, spawnY, targetX, targetY, speed, scale;
@@ -16,10 +17,11 @@ public class EnemyWeapon implements ScriptGlob{
 	public boolean touch;
 	private Globals globals;
 
-	EnemyWeapon(Character owner, String filename){
-		globals = new Tenebrae.StdEntGlobals();
+	EnemyWeapon(Character owner, String filename, Tenebrae game){
+		this.game = game;
+		globals = game.new StdEntGlobals();
 		this.owner = owner;
-		tileset = Tenebrae.mp.loadTileset(filename);
+		tileset = game.mappack.loadTileset(filename);
 		/*vars.put("spawn", new JSParser.Function("spawn", "projectile"){public Object run(Scope.Scoped scope){
 		 Projectile projectile = (Projectile)scope.get("projectile");
 		 Tenebrae.fight.spawn(projectile);

@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 public class Entity extends TextureActor implements Comparable<Entity>{
 	public static final String ENTITY = "__entity";
 
+	protected Tenebrae game;
 	public LuaTable vars;
 	private float x, y, width, height, tileWidth, tileHeight;
 	public float lifetime;
@@ -27,7 +28,8 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 	private MapProperties props; // Just for triggers
 	private ScreenActor tap;
 	
-	public Entity(float x, float y, float width, float height, float tileWidth, float tileHeight){
+	public Entity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight){
+		this.game = game;
 		vars = LuaValue.tableOf();
 		new EntityLib().call(LuaValue.valueOf(""), vars);
 		/*trigs = new Array<Trigger>();*/
@@ -51,8 +53,8 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 		setTileScalar(tileWidth, tileHeight);
 		setTileBounds(x, y, width, height);
 	}
-	public Entity(float x, float y, float width, float height, float tileWidth, float tileHeight, TextureRegion region){
-		this(x, y, width, height, tileWidth, tileHeight);
+	public Entity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight, TextureRegion region){
+		this(game, x, y, width, height, tileWidth, tileHeight);
 		setRegion(0, region);
 	}
 
@@ -181,7 +183,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 			if(trig.hasProperty(prop))
 				return trig;
 		return null;*/
-		return !vars.get(prop).isnil() ? new Trigger(toRect(), props) : null;
+		return !vars.get(prop).isnil() ? new Trigger(game, toRect(), props) : null;
 	}
 
 	@Override
@@ -194,7 +196,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 		localToScreenCoordinates(coordBuffer.set(0, 0));
 		localToScreenCoordinates(sizeBuffer.set(getWidth(), getHeight()));
 		sizeBuffer.sub(coordBuffer).scl(1, -1); // sizeBuffer gives top-right point
-		coordBuffer.y = Tenebrae.t.getStage().getViewport().getScreenHeight() - coordBuffer.y - Tenebrae.t.getStage().getViewport().getBottomGutterHeight();// + Tenebrae.t.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
+		coordBuffer.y = game.getStage().getViewport().getScreenHeight() - coordBuffer.y - game.getStage().getViewport().getBottomGutterHeight();// + game.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
 		//Log.debug(getWidth(), getScaleX(), getTileScalarWidth(), getTileX(), getTrueWidth(), coordBuffer, sizeBuffer);
 		tap.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
 	}
@@ -204,7 +206,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 		if(!act.isnil())
 			act.call(vars, LuaValue.valueOf(delta), LuaValue.valueOf(time));
 		
-		if(Tenebrae.player.collide && toTileRect().overlaps(Tenebrae.player.toTileRect())){
+		if(game.player.collide && toTileRect().overlaps(game.player.toTileRect())){
 			LuaValue onTouch = vars.get("onTouch");
 			if(!onTouch.isnil())
 				onTouch.call(vars);
@@ -244,9 +246,9 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 					public LuaValue call(LuaValue tsx, LuaValue tid){
 						if(tid.isnil()){
 							tile = null;
-							setRegion(Tenebrae.t.getSkin().getRegion(tsx.checkjstring()));
+							setRegion(game.getSkin().getRegion(tsx.checkjstring()));
 						}else{
-							TiledMapTileSet tileset = Tenebrae.mp.loadTileset(tsx.checkjstring());
+							TiledMapTileSet tileset = game.mappack.loadTileset(tsx.checkjstring());
 							tile = tileset.getTile(tid.checkint());
 							if(tile == null)
 								env.error("no tile with id "+tid.checkint());
@@ -299,19 +301,19 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 						switch(key.checkjstring()){
 							case "x":
 								x = (float)value.checkdouble();
-								setX(x * Tenebrae.player.map.tileWidth);
+								setX(x * game.player.map.tileWidth);
 								break;
 							case "y":
 								y = (float)value.checkdouble();
-								setY(y * Tenebrae.player.map.tileHeight);
+								setY(y * game.player.map.tileHeight);
 								break;
 							case "width":
 								width = (float)value.checkdouble();
-								setWidth(width * Tenebrae.player.map.tileWidth);
+								setWidth(width * game.player.map.tileWidth);
 								break;
 							case "height":
 								height = (float)value.checkdouble();
-								setHeight(height * Tenebrae.player.map.tileHeight);
+								setHeight(height * game.player.map.tileHeight);
 								break;
 							case "rotation":
 								setRotation((float)value.checkdouble());
@@ -324,7 +326,7 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 								break;
 							case "onTap":
 								if(!value.isnil())
-									Tenebrae.t.getUiStage().addActor(tap);
+									game.getUiStage().addActor(tap);
 								else
 									tap.remove();
 								return TRUE;

@@ -19,30 +19,37 @@ import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
 
 public class Tenebrae extends GameScreen{
-	public static FileHandle pakpath;
-	public static FileHandle savestatepath;
+	public FileHandle pakpath;
+	public FileHandle savestatepath;
 	private boolean continueGame;
+	private JSONObject mappackinfo;
+	private String pakname;
 
 	public static final float DEADZONE_DEFAULT = 0.7f;// 0 is at edge, 1 is at center
 	public static final float TILES = 7.5f;// number of tiles on the screen by height, only accepts 1 param so deal with it (KQ is 10)
-
-	public static final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Dims of game screen
 	public static final float MARGIN = 30f;
-	public static boolean doneLoading = false;
-	public static final boolean tableDebug = false, showEmpty = false;
+	public static final boolean TABLEDEBUG = false, SHOWEMPTY = false;
+	
+	public final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Dims of game screen
+	public boolean doneLoading = false;
 
-	public static Tenebrae t;
-	public static Player player;
-	public static Mappack mp;
+	public Player player;
+	public Mappack mappack;
 
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
-	public Tenebrae(FileHandle pakpath, FileHandle savestatepath, boolean load){
+	public Tenebrae(FileHandle pakpath, JSONObject mappackinfo, FileHandle savestatepath, boolean load){
 		this.pakpath = pakpath;
 		this.savestatepath = savestatepath;
 		this.continueGame = load;
+		this.mappackinfo = mappackinfo;
+		try{
+			pakname = mappackinfo.getString("name");
+		}catch(JSONException ex){
+			pakname = "Tenebrae RPG Engine";
+		}
+		
 		doneLoading = false;
-		t = this;
 		Log.setLogFile(pakpath.child("debug.log"));
 
 		loadSkin(pakpath);
@@ -181,9 +188,9 @@ public class Tenebrae extends GameScreen{
 		//Serializable on another object
 		// Nope that day is here and I'm doing none of those
 		if(save != null)
-			mp.loadSaveState(save);
-		getScript("mappack.lua", mp.getGlobals()).call();
-		player.changeMap(mp.loadMap());
+			mappack.loadSaveState(save);
+		getScript("mappack.lua", mappack.getGlobals()).call();
+		player.changeMap(mappack.loadMap(this));
 
 		//debugBox = new WRect(new Rectangle(0, 0, 50, 50), new Color(Color.BLACK));
 		//hudStage.addActor(debugBox);
@@ -206,8 +213,8 @@ public class Tenebrae extends GameScreen{
 	public void reload(){
 		if(player != null)
 			player.endSelf();
-		mp = new Mappack(pakpath);
-		player = new Player();
+		mappack = new Mappack(this, pakpath);
+		player = new Player(this);
 		Log.verbose("Unloaded, made " + player);
 	}
 	private static TextureAtlas tnbta, mappackta;
@@ -218,17 +225,11 @@ public class Tenebrae extends GameScreen{
 			mappackta.dispose();
 
 		String atlas = null, json = null;
-		JSONObject mappack = null;
 		try{
-			mappack = new JSONObject(mappackpath.child("mappack.json").readString());
+			atlas = mappackinfo.getString("skin_atlas");
+			json = mappackinfo.getString("skin_json");
 		}catch(JSONException ex){
-			mappackpath = null;
-		}
-		if(mappack != null){
-			try{
-				atlas = mappack.getString("skin_atlas");
-				json = mappack.getString("skin_json");
-			}catch(JSONException ex){}
+			Log.error(ex);
 		}
 
 		Skin skin = getSkin();
@@ -280,7 +281,7 @@ public class Tenebrae extends GameScreen{
 				if(loadbar == null){
 					getUiStage().addActor(splash = new Table(getSkin()));
 					splash.setFillParent(true);
-					splash.setDebug(tableDebug);
+					splash.setDebug(TABLEDEBUG);
 					splash.background("window");
 					Label title;
 					splash.add(title = new Label("Tenebrae RPG Engine", getSkin(), getSkin().has("title", BitmapFont.class) ? "title" : "default")).grow().bottom();
@@ -399,10 +400,10 @@ public class Tenebrae extends GameScreen{
 		super.dispose();
 		tnbta.dispose();
 		mappackta.dispose();
-		mp.dispose();
+		mappack.dispose();
 	}
 
-	public static class StdEntGlobals extends ScriptGlob.StdGlobals{
+	public class StdEntGlobals extends ScriptGlob.StdGlobals{
 		public StdEntGlobals(){
 			super(pakpath);
 			if(getmetatable() == null) setmetatable(tableOf());
@@ -414,9 +415,9 @@ public class Tenebrae extends GameScreen{
 					public LuaValue call(LuaValue self, LuaValue key){
 						switch(key.checkjstring()){
 							case "player":
-								return Tenebrae.player.getGlobals();
+								return player.getGlobals();
 							case "map":
-								return Tenebrae.mp.getGlobals();
+								return mappack.getGlobals();
 							default:
 								return oldind.call(self, key);
 						}

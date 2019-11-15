@@ -29,27 +29,29 @@ import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
 
 public class Mappack implements ScriptGlob, Disposable{
+	private Tenebrae game;
 	public FileHandle folder;
 	public String name = "Mapppack lololol", description, startMapTmx, startMapLua;
 	private Globals globals;
 	public Array<Character> charas;
 	private ObjectMap<String,TiledMapTileSet> tilesets;
 
-	public Mappack(FileHandle folder){
+	public Mappack(Tenebrae game, FileHandle folder){
+		this.game = game;
 		this.folder = folder;
 		charas = new Array<Character>();
 		tilesets = new ObjectMap<String,TiledMapTileSet>();
-		globals = new StdGlobals(Tenebrae.pakpath);
+		globals = new StdGlobals(game.pakpath);
 		globals.load(new MappackLib());
 	}
-	public TileMap loadMap(String tmx, String lua){
-		return new TileMap(tmx == null ? null : folder.child(tmx), Tenebrae.t.getScript(lua, globals), Tenebrae.t.getStage().getBatch());
+	public TileMap loadMap(Tenebrae game, String tmx, String lua){
+		return new TileMap(game, tmx == null ? null : folder.child(tmx), game.getScript(lua, globals), game.getStage().getBatch());
 	}
-	public TileMap loadMap(){
-		return loadMap(startMapTmx, startMapLua);
+	public TileMap loadMap(Tenebrae game){
+		return loadMap(game, startMapTmx, startMapLua);
 	}
 	public MenuItem.GameItem loadItem(String lua, Character owner){
-		return new MenuItem.GameItem(Utils.filename(lua), Tenebrae.t.getProto(lua), owner, Tenebrae.t.getSkin());
+		return new MenuItem.GameItem(game, Utils.filename(lua), game.getProto(lua), owner, game.getSkin());
 	}
 	public TiledMapTileSet loadTileset(String tsx){
 		TiledMapTileSet tileset = null;
@@ -60,10 +62,10 @@ public class Mappack implements ScriptGlob, Disposable{
 		return tileset;
 	}
 	public NPC loadNPC(String lua){
-		NPC npc = new NPC(Utils.filename(lua), Tenebrae.t.getProto(lua));
+		NPC npc = new NPC(game, Utils.filename(lua), game.getProto(lua));
 		charas.add(npc);
-		if(Tenebrae.player.map != null)
-			npc.changeMap(Tenebrae.player.map);
+		if(game.player.map != null)
+			npc.changeMap(game.player.map);
 		return npc;
 	}
 
@@ -122,8 +124,8 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("setTile", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){// x, y, layer, tileset, tileid
-						Tenebrae.player.map.changeTile(args.checkint(1),
-							(Tenebrae.player.map.height - 1) - args.checkint(2),
+						game.player.map.changeTile(args.checkint(1),
+							(game.player.map.height - 1) - args.checkint(2),
 							args.checkjstring(3),
 							args.checkjstring(4),
 							args.checkint(5));
@@ -138,9 +140,9 @@ public class Mappack implements ScriptGlob, Disposable{
 						boolean tapDelay = args.toboolean(4);
 						Log.debug(text, delay, cps);
 						if(delay == -1 && cps == -1){
-							Tenebrae.player.addDialog(text);
+							game.player.addDialog(text);
 						}else if(cps == -1){
-							Tenebrae.player.addDialog(text, delay, false, tapDelay);
+							game.player.addDialog(text, delay, false, tapDelay);
 						}else{
 							for(int j = 1; j < text.length(); j++){
 								String substring = text.substring(0, j);
@@ -153,12 +155,12 @@ public class Mappack implements ScriptGlob, Disposable{
 									&& substring.endsWith("\""));																									  // and it ends in quote
 								//if(punc)
 								//Tenebrae.debug("Punctuation! " + substring);
-								Tenebrae.player.addDialog(substring, (punc ? 5f : 1f) / cps, false, tapDelay);
+								game.player.addDialog(substring, (punc ? 5f : 1f) / cps, false, tapDelay);
 							}
 							if(delay != -1)
-								Tenebrae.player.addDialog(text, delay);
+								game.player.addDialog(text, delay);
 							else
-								Tenebrae.player.addDialog(text);
+								game.player.addDialog(text);
 						}
 						return NONE;
 					}
@@ -167,16 +169,16 @@ public class Mappack implements ScriptGlob, Disposable{
 					private float deadzone = -1;
 					@Override
 					public LuaValue call(LuaValue tmx, LuaValue lua){
-						Player p = Tenebrae.player;
+						Player p = game.player;
 						if(tmx.isnil() || (lua.isnil() && tmx.isstring())){
 							p.setBound(0, 0,
-								p.bigdzRect.width * Tenebrae.t.getCamera().zoom / p.map.tileWidth,
-								p.bigdzRect.height * Tenebrae.t.getCamera().zoom / p.map.tileHeight);
+								p.bigdzRect.width * game.getCamera().zoom / p.map.tileWidth,
+								p.bigdzRect.height * game.getCamera().zoom / p.map.tileHeight);
 							if(deadzone == -1){
 								deadzone = p.deadzone;
 								p.deadzone = 0;
 							}
-							p.changeMap(Tenebrae.mp.loadMap(null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
+							p.changeMap(loadMap(game, null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
 						}else{
 							p.setBound(-1, -1, -1, -1);
 							if(deadzone != -1){
@@ -184,9 +186,9 @@ public class Mappack implements ScriptGlob, Disposable{
 								deadzone = -1;
 							}
 							if(lua.isnil() && tmx.istable())
-								p.changeMap(Tenebrae.mp.loadMap(tmx.checkjstring(1), tmx.checkjstring(2)));
+								p.changeMap(loadMap(game, tmx.checkjstring(1), tmx.checkjstring(2)));
 							else
-								p.changeMap(Tenebrae.mp.loadMap(tmx.checkjstring(), lua.checkjstring()));
+								p.changeMap(loadMap(game, tmx.checkjstring(), lua.checkjstring()));
 						}
 						return NONE;
 					}
@@ -194,29 +196,29 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("enableTrigger", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue trigger){
-						Tenebrae.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", false);
+						game.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", false);
 						return NONE;
 					}
 				});
 			library.set("disableTrigger", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue trigger){
-						Tenebrae.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", true);
+						game.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", true);
 						return NONE;
 					}
 				});
 			library.set("setTrigger", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue triggerObj, LuaValue type, LuaValue function){
-						Tenebrae.player.map.getMapObject(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
+						game.player.map.getMapObject(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
 						return NONE;
 					}
 				});
 			library.set("zoom", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){ // amount, time, interpolation, tapOverride
-						OrthographicCamera cam = Tenebrae.t.getCamera();
-						Tenebrae.player.addAction(new Action.CameraAction(cam,
+						OrthographicCamera cam = game.getCamera();
+						game.player.addAction(new Action.CameraAction(game, cam,
 								cam.zoom * (float)args.optdouble(1, 1),
 								Utils.getInterpolation(args.optjstring(3, "constant")),
 								(float)args.optdouble(2, 0),
@@ -227,10 +229,10 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("pan", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
-						OrthographicCamera cam = Tenebrae.t.getCamera();
-						Tenebrae.player.addAction(new Action.CameraAction(cam,
-								cam.position.x + (float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth,
-								cam.position.y + (float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight,
+						OrthographicCamera cam = game.getCamera();
+						game.player.addAction(new Action.CameraAction(game, cam,
+								cam.position.x + (float)args.optdouble(1, 0) * game.player.map.tileWidth,
+								cam.position.y + (float)args.optdouble(2, 0) * game.player.map.tileHeight,
 								Utils.getInterpolation(args.optjstring(4, "constant")),
 								(float)args.optdouble(3, 0),
 								args.optboolean(5, false)));
@@ -240,16 +242,16 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("panTo", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){ // [x, y | entity], time, interpolation, tapOverride
-						OrthographicCamera cam = Tenebrae.t.getCamera();
+						OrthographicCamera cam = game.getCamera();
 						if(args.isnumber(0))
-							Tenebrae.player.addAction(new Action.CameraAction(cam,
-									(float)args.optdouble(1, 0) * Tenebrae.player.map.tileWidth,
-									(float)args.optdouble(2, 0) * Tenebrae.player.map.tileHeight,
+							game.player.addAction(new Action.CameraAction(game, cam,
+									(float)args.optdouble(1, 0) * game.player.map.tileWidth,
+									(float)args.optdouble(2, 0) * game.player.map.tileHeight,
 									Utils.getInterpolation(args.optjstring(4, "constant")),
 									(float)args.optdouble(3, 0),
 									args.optboolean(5, false)));
 						else
-							Tenebrae.player.addAction(new Action.CameraAction(cam,
+							game.player.addAction(new Action.CameraAction(game, cam,
 									(Character)args.checktable(1).get("__this").checkuserdata(Character.class),
 									Utils.getInterpolation(args.optjstring(3, "constant")),
 									(float)args.optdouble(2, 0),
@@ -260,9 +262,10 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("resetCamera", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue interpolation, LuaValue tapOverride){
-						OrthographicCamera cam = Tenebrae.t.getCamera();
-						Vector3 l = Tenebrae.player.lastCameraPos;
-						Tenebrae.player.addAction(new Action.CameraAction(cam,
+						OrthographicCamera cam = game.getCamera();
+						Vector3 l = game.player.lastCameraPos;
+						game.player.addAction(new Action.CameraAction(game,
+								cam,
 								l.x,
 								l.y,
 								l.z,
@@ -275,7 +278,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("setResolution", new TwoArgFunction(){
 				@Override
 				public LuaValue call(LuaValue width, LuaValue height){
-					Tenebrae.t.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
+					game.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
 					return NONE;
 				}
 			});
@@ -283,14 +286,14 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("save", new ZeroArgFunction(){
 				@Override
 				public LuaValue call(){
-					Tenebrae.t.savestatepath.writeString(saveSaveState().toString(), false);
+					game.savestatepath.writeString(saveSaveState().toString(), false);
 					return NONE;
 				}
 			});
 			library.set("delay", new TwoArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue function){
-						Tenebrae.player.addDelay((float)time.optdouble(0), function.checkfunction());
+						game.player.addDelay((float)time.optdouble(0), function.checkfunction());
 						return NONE;
 					}
 				});
@@ -306,7 +309,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.getmetatable().set(CALL, new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){ // self(?), x, y, width, height
-						return new Entity((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), Tenebrae.player.map.tileWidth, Tenebrae.player.map.tileHeight, Tenebrae.t.getSkin().getRegion("white")).vars;
+						return new Entity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.player.map.tileWidth, game.player.map.tileHeight, game.getSkin().getRegion("white")).vars;
 					}
 				});
 			ent.set("add", new OneArgFunction(){
@@ -314,7 +317,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
 						Log.verbose("Added", e);
-						Tenebrae.player.map.addEntity(e);
+						game.player.map.addEntity(e);
 						return NONE;
 					}
 				});
@@ -374,27 +377,27 @@ public class Mappack implements ScriptGlob, Disposable{
 								startMap.set(2, startMapLua);
 								return startMap;
 							case "player":
-								return Tenebrae.player.getGlobals();
+								return game.player.getGlobals();
 							case "cameraX":
-								return valueOf(Tenebrae.t.getCamera().position.x / Tenebrae.player.map.tileWidth);
+								return valueOf(game.getCamera().position.x / game.player.map.tileWidth);
 							case "cameraY":
-								return valueOf(Tenebrae.t.getCamera().position.y / Tenebrae.player.map.tileHeight);
+								return valueOf(game.getCamera().position.y / game.player.map.tileHeight);
 							case "cameraZoom":
-								return valueOf(Tenebrae.t.getCamera().zoom);
+								return valueOf(game.getCamera().zoom);
 							case "screen":
 								return screen.getVars();
 							case "screenWidth":
-								return valueOf(Tenebrae.player.activeDeadzone.width * Tenebrae.t.getCamera().zoom / Tenebrae.player.map.tileWidth);
+								return valueOf(game.player.activeDeadzone.width * game.getCamera().zoom / game.player.map.tileWidth);
 							case "screenHeight":
-								return valueOf(Tenebrae.player.activeDeadzone.height * Tenebrae.t.getCamera().zoom / Tenebrae.player.map.tileHeight);
+								return valueOf(game.player.activeDeadzone.height * game.getCamera().zoom / game.player.map.tileHeight);
 							case "x":
-								return valueOf(Tenebrae.player.getBound().getX());
+								return valueOf(game.player.getBound().getX());
 							case "y":
-								return valueOf(Tenebrae.player.getBound().getY());
+								return valueOf(game.player.getBound().getY());
 							case "width":
-								return valueOf(Tenebrae.player.getBound().getWidth());
+								return valueOf(game.player.getBound().getWidth());
 							case "height":
-								return valueOf(Tenebrae.player.getBound().getHeight());
+								return valueOf(game.player.getBound().getHeight());
 							default:
 								return self.rawget(key);
 						}
@@ -423,13 +426,13 @@ public class Mappack implements ScriptGlob, Disposable{
 								self.error("player is read-only");
 								break;
 							case "cameraX":
-								Tenebrae.t.getCamera().position.x = (float)value.checkdouble() * Tenebrae.player.map.tileWidth;
+								game.getCamera().position.x = (float)value.checkdouble() * game.player.map.tileWidth;
 								break;
 							case "cameraY":
-								Tenebrae.t.getCamera().position.y = (float)value.checkdouble() * Tenebrae.player.map.tileHeight;
+								game.getCamera().position.y = (float)value.checkdouble() * game.player.map.tileHeight;
 								break;
 							case "cameraZoom":
-								Tenebrae.t.getCamera().zoom = (float)value.checkdouble();
+								game.getCamera().zoom = (float)value.checkdouble();
 								break;
 							case "screen":
 								self.error("screen dimensions are read-only");
@@ -441,20 +444,20 @@ public class Mappack implements ScriptGlob, Disposable{
 								self.error("screen dimensions are read-only");
 								break;
 							case "x":
-								Rectangle bounds = Tenebrae.player.getBound();
-								Tenebrae.player.setBound((float)value.checkdouble(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+								Rectangle bounds = game.player.getBound();
+								game.player.setBound((float)value.checkdouble(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
 								break;
 							case "y":
-								bounds = Tenebrae.player.getBound();
-								Tenebrae.player.setBound(bounds.getX(), (float)value.checkdouble(), bounds.getWidth(), bounds.getHeight());
+								bounds = game.player.getBound();
+								game.player.setBound(bounds.getX(), (float)value.checkdouble(), bounds.getWidth(), bounds.getHeight());
 								break;
 							case "width":
-								bounds = Tenebrae.player.getBound();
-								Tenebrae.player.setBound(bounds.getX(), bounds.getY(), (float)value.checkdouble(), bounds.getHeight());
+								bounds = game.player.getBound();
+								game.player.setBound(bounds.getX(), bounds.getY(), (float)value.checkdouble(), bounds.getHeight());
 								break;
 							case "height":
-								bounds = Tenebrae.player.getBound();
-								Tenebrae.player.setBound(bounds.getX(), bounds.getY(), bounds.getWidth(), (float)value.checkdouble());
+								bounds = game.player.getBound();
+								game.player.setBound(bounds.getX(), bounds.getY(), bounds.getWidth(), (float)value.checkdouble());
 								break;
 							default:
 								self.rawset(key, value);
@@ -469,7 +472,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			 npcClass.set("new", new TwoArgFunction(){
 			 @Override
 			 public LuaValue call(LuaValue clazz, LuaValue name){
-			 LuaTable instance = loadNPC(name.checkjstring(), Tenebrae.t.getStage()).getGlobals();
+			 LuaTable instance = loadNPC(name.checkjstring(), game.getStage()).getGlobals();
 			 instance.setmetatable(clazz); // Actually this line is killing the inherited metatables
 			 return instance;
 			 }
@@ -482,7 +485,7 @@ public class Mappack implements ScriptGlob, Disposable{
 	}
 
 	public ScreenDims screen = new ScreenDims();
-	public static class ScreenDims{
+	public class ScreenDims{
 		private LuaTable vars;
 		public ScreenDims(){
 			vars = LuaValue.tableOf();
@@ -492,13 +495,13 @@ public class Mappack implements ScriptGlob, Disposable{
 					public LuaValue call(LuaValue self, LuaValue key){
 						switch(key.checkjstring()){
 							case "x":
-								return valueOf(Tenebrae.screenRect.getX());
+								return valueOf(game.screenRect.getX());
 							case "y":
-								return valueOf(Tenebrae.screenRect.getY());
+								return valueOf(game.screenRect.getY());
 							case "width":
-								return valueOf(Tenebrae.screenRect.getWidth());
+								return valueOf(game.screenRect.getWidth());
 							case "height":
-								return valueOf(Tenebrae.screenRect.getHeight());
+								return valueOf(game.screenRect.getHeight());
 							default:
 								return self.rawget(key);
 						}
