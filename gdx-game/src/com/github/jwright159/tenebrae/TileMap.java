@@ -30,6 +30,10 @@ public class TileMap extends ScreenActor{
 	private Group ents;
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
+	
+	private Rectangle bound;
+	private PatchActor boundActor;
+	public boolean setBoundToBigDZLater = false;
 
 	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
 		this.game = game;
@@ -77,11 +81,19 @@ public class TileMap extends ScreenActor{
 		for(TiledMapTileSet tileset : map.getTileSets())
 			Log.verbose2("Found tileset! " + tileset.getName());
 
+		bound = new Rectangle();
+		boundActor = new PatchActor(bound, game.getSkin().getPatch("bounds"), 1);
+		boundActor.setBorderAlignment(Align.left);
+		//boundsActor.setDebug(true);
+		setBound(-1, -1, -1, -1);
+		
 		//Tenebrar.debug("Map made! "+toString());
 	}
 	
 	public LuaValue call(){
-		return script.call();
+		LuaValue rtn = script.call();
+		boundActor.setScale(tileWidth, tileHeight);
+		return rtn;
 	}
 
 	public MapLayers getCollisionLayers(){
@@ -232,6 +244,35 @@ public class TileMap extends ScreenActor{
 	public void addEntity(Entity ent){
 		addEntity(ent, null);
 	}
+	
+	public void setBound(float x, float y, float width, float height){
+		if(setBoundToBigDZLater){
+			setBoundToBigDZLater = false;
+			if(x < 0) x = 0;
+			if(y < 0) y = 0;
+		}
+
+		bound.set(x, y, width, height);
+		boundActor.setBounds(x, y, width, height);
+		if(width <= 0 || height <= 0)
+			boundActor.setVisible(false);
+		else
+			boundActor.setVisible(true);
+		game.player.clamp(bound);
+	}
+	public Rectangle getBound(){
+		return bound;
+	}
+	public void setBoundToBigDZ(){
+		if(game.player.bigdzRect == null){
+			setBoundToBigDZLater = true;
+			return;
+		}
+		setBoundToBigDZLater = false;
+		setBound(0, 0,
+			game.player.bigdzRect.width  * game.getCamera().zoom / tileWidth,
+			game.player.bigdzRect.height * game.getCamera().zoom / tileHeight);
+	}
 
 	@Override
 	protected void setStage(Stage stage){
@@ -269,6 +310,8 @@ public class TileMap extends ScreenActor{
 		maprenderer.setView((OrthographicCamera)getStage().getCamera());
 		maprenderer.render();
 		batch.begin();
+		if(boundActor.isVisible())
+			boundActor.draw(batch, parentAlpha);
 		for(Entity ent : ents.getChildren())
 			if(!ent.hasMapObject() && ent.isVisible())
 				ent.draw(batch, parentAlpha);
@@ -282,6 +325,7 @@ public class TileMap extends ScreenActor{
 		super.dispose();
 		map.dispose();
 		maprenderer.dispose();
+		//boundActor.dispose();
 		for(Entity ent : ents.getChildren())
 		 	if(!(ent instanceof Character))
 				ent.dispose();

@@ -16,7 +16,6 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 
 public class Player extends Character{
-	public TileMap map;
 	private boolean firstFrame;// True for first frame after map load, for skipping exittriggers (just call them manually if you need them instead of auto detection)
 	public float speedMult = 1;
 	public int lv = -1;
@@ -25,15 +24,14 @@ public class Player extends Character{
 	public ButtonBox buttonBox;
 	public Label dialogBox;
 	private Container<Stack> mapRect;
+	public Table table;
 	private Table uiTable;
 	public String trueName;
-	public Rectangle activeDeadzone;
-	private Rectangle bounds;
-	private PatchActor boundsActor;
 	private Array<Trigger> ptriggers;
 	public Vector3 lastCameraPos;
+	
+	public Rectangle activeDeadzone;
 	public static Rectangle dzRect, bigdzRect;
-	public Table table;
 	public float deadzone = Tenebrae.DEADZONE_DEFAULT;
 	public boolean collide = true;
 	
@@ -135,30 +133,22 @@ public class Player extends Character{
 		setStats(baseStats, 0, 0, 0, 0, 0, 0);
 		exp = 0;
 		g = 0;
-		bounds = new Rectangle();
-		boundsActor = new PatchActor(bounds, skin.getPatch("bounds"), 1);
-		boundsActor.setBorderAlignment(Align.left);
-		//boundsActor.setDebug(true);
-		setBound(-1, -1, -1, -1);
+		
 		getGlobals().load(new PlayerLib());
 
 		setExpanded(false);
 	}
 	@Override
 	public void changeMap(TileMap map){
-		Log.debug("Changing map!", this.map, map);
+		Log.debug("Changing map!", game.map, map);
 		firstFrame = true;
-		if(this.map != null){
-			this.map.dispose();
-			this.map = null;
+		if(game.map != null){
+			game.map.dispose();
+			game.map = null;
 		}
-		this.map = map;
+		game.map = map;
 		game.getStage().addActor(map);
 		map.call();
-		
-		boundsActor.setScale(map.tileWidth, map.tileHeight);
-		if(boundsActor.getStage() == null)
-			map.getStage().addActor(boundsActor);
 
 		super.changeMap(map);
 		for(Character c : game.mappack.charas)
@@ -171,8 +161,8 @@ public class Player extends Character{
 		if(!onCreate.isnil())
 			onCreate.call();
 		
-		if(bounds.getWidth() > 0 && bounds.getHeight() > 0)
-			setTilePosition(bounds.getWidth() / 2 - getTileWidth() / 2, bounds.getHeight() / 2 - getTileHeight() / 2);
+		if(map.getBound().getWidth() > 0 && map.getBound().getHeight() > 0)
+			setTilePosition(map.getBound().getWidth() / 2 - getTileWidth() / 2, map.getBound().getHeight() / 2 - getTileHeight() / 2);
 	}
 
 	public void setPlayerName(String name){
@@ -196,7 +186,7 @@ public class Player extends Character{
 		return false;
 	}
 	public boolean isColliding(int tilex, int tiley){
-		MapObjects objs = map.getCollisionObjects(tilex, tiley);
+		MapObjects objs = game.map.getCollisionObjects(tilex, tiley);
 		if(objs != null){
 			for(RectangleMapObject obj : objs)
 				if(toTileRect().overlaps(obj.getRectangle())){
@@ -219,10 +209,10 @@ public class Player extends Character{
 		return new Vector2(rx, ry);
 	}
 	private Array<Trigger> getCollidingTriggerObjects(){
-		return map.getCollidingObjects(toRect(), "onTrigger");
+		return game.map.getCollidingObjects(toRect(), "onTrigger");
 	}
 	private Array<Trigger> getCollidingEnteranceObjects(){
-		return map.getCollidingObjects(toRect(), "onEnter");
+		return game.map.getCollidingObjects(toRect(), "onEnter");
 	}
 	private Trigger getBestTrigger(){
 		Array<Trigger> trigs = getCollidingTriggerObjects();
@@ -451,24 +441,12 @@ public class Player extends Character{
 					game.loadSave();
 				}});
 	}
-	
-	public void setBound(float x, float y, float width, float height){
-		bounds.set(x, y, width, height);
-		boundsActor.setBounds(x, y, width, height);
-		if(width <= 0 || height <= 0)
-			boundsActor.setVisible(false);
-		else
-			boundsActor.setVisible(true);
-		clamp();
-	}
-	public Rectangle getBound(){
-		return bounds;
-	}
-	public void clamp(){
-		if(bounds.getWidth() > 0)
-			setTileX(MathUtils.clamp(getTileX(), bounds.getX(), bounds.getX()+bounds.getWidth()-getTileWidth()));
-		if(bounds.getHeight() > 0)
-			setTileY(MathUtils.clamp(getTileY(), bounds.getY(), bounds.getY()+bounds.getHeight()-getTileHeight()));
+
+	public void clamp(Rectangle bound){
+		if(bound.getWidth() > 0)
+			setTileX(MathUtils.clamp(getTileX(), bound.getX(), bound.getX()+bound.getWidth()-getTileWidth()));
+		if(bound.getHeight() > 0)
+			setTileY(MathUtils.clamp(getTileY(), bound.getY(), bound.getY()+bound.getHeight()-getTileHeight()));
 	}
 
 	@Override
@@ -488,14 +466,15 @@ public class Player extends Character{
 	public void moveCamera(){
 		//Log.debug("Moving camera! currentAction", currentAction);
 		OrthographicCamera cam = game.getCamera();
+		Rectangle bound = game.map.getBound();
 		if(firstFrame){
 			cam.position.x = getX(Align.center);
 			cam.position.y = getY(Align.center);
 		}
 		camRect.set(cam.position.x - game.screenRect.width * cam.zoom / 2, cam.position.y - game.screenRect.height * cam.zoom / 2, game.screenRect.width * cam.zoom, game.screenRect.height * cam.zoom);
 		dz.set(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
-		if(bounds.getWidth() > 0 || bounds.getHeight() > 0)
-			b.set(bounds.x * map.tileWidth, bounds.y * map.tileHeight, bounds.width * map.tileWidth, bounds.height * map.tileHeight);
+		if(bound.getWidth() > 0 || bound.getHeight() > 0)
+			b.set(bound.x * game.map.tileWidth, bound.y * game.map.tileHeight, bound.width * game.map.tileWidth, bound.height * game.map.tileHeight);
 		Log.verbose2("CamRect:", camRect, "Cam:", cam);
 
 		float dzx = (dz.width / 2 - getTrueWidth() / 2) * deadzone, dzy = (dz.height / 2 - getTrueHeight() / 2) * deadzone;
@@ -504,12 +483,12 @@ public class Player extends Character{
 		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
 		Log.verbose2("Deadzone:", deadzone, "DZ:", dz, "DZR:", dzr, "B:", b, "CamRect:", camRect, "Player:", toRect());
 
-		if(bounds.width > 0)
+		if(bound.width > 0)
 			if(b.width <= dzr.width)
 				camRect.x = b.x + b.width / 2 - camRect.width / 2;
 			else
 				camRect.x = MathUtils.clamp(camRect.x, b.x - dz.x, b.x + b.width - (dz.x + dz.width));
-		if(bounds.height > 0)
+		if(bound.height > 0)
 			if(b.height <= dzr.height)
 				camRect.y = b.y + b.height / 2 - camRect.height / 2;
 			else
@@ -563,7 +542,7 @@ public class Player extends Character{
 				if(isColliding() && currentAction == null)
 					setTileY(py);
 			}
-			clamp();
+			clamp(game.map.getBound());
 			updateSkins(getTileX() - ppx, getTileY() - ppy);
 		}else{
 			updateSkins(0, 0);
@@ -591,12 +570,16 @@ public class Player extends Character{
 			setExpanded(isExpanded());
 			
 			if(firstFrame){
-				game.getCamera().zoom = map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
+				game.getCamera().zoom = game.map.tileHeight * Tenebrae.TILES / dzRect.getHeight();
 				game.updateZoom();
-				Log.debug("Zoom", game.zoom, map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
+				Log.debug("Zoom", game.zoom, game.map.tileHeight, Tenebrae.TILES, dzRect.getHeight());
 			}else{
 				game.getCamera().zoom = game.zoom;
 				moveCamera();
+			}
+			if(game.map.setBoundToBigDZLater){
+				game.map.setBoundToBigDZ();
+				Log.debug("It's later now", game.map.getBound());
 			}
 		}
 
@@ -642,7 +625,6 @@ public class Player extends Character{
 	@Override
 	public void endSelf(){
 		super.endSelf();
-		map.dispose();
 		table.clear();
 	}
 

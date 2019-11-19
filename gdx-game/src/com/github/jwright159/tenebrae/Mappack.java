@@ -31,10 +31,12 @@ import org.json.*;
 public class Mappack implements ScriptGlob, Disposable{
 	private Tenebrae game;
 	public FileHandle folder;
-	public String name = "Mapppack lololol", description, startMapTmx, startMapLua;
+	public String startMapTmx, startMapLua;
 	private Globals globals;
 	public Array<Character> charas;
 	private ObjectMap<String,TiledMapTileSet> tilesets;
+	
+	private float lastdeadzone = -1;
 
 	public Mappack(Tenebrae game, FileHandle folder){
 		this.game = game;
@@ -44,11 +46,27 @@ public class Mappack implements ScriptGlob, Disposable{
 		globals = new StdGlobals(game.mappackpath);
 		globals.load(new MappackLib());
 	}
-	public TileMap loadMap(Tenebrae game, String tmx, String lua){
-		return new TileMap(game, tmx == null ? null : folder.child(tmx), game.getScript(lua, globals), game.getStage().getBatch());
+	public TileMap loadMap(String tmx, String lua){
+		if(tmx == null){
+			TileMap map = new TileMap(game, null, game.getScript(lua, globals), game.getStage().getBatch());
+			map.setBoundToBigDZ();
+			if(lastdeadzone == -1){
+				lastdeadzone = game.player.deadzone;
+				game.player.deadzone = 0;
+			}
+			return map;
+		}else{
+			TileMap map = new TileMap(game, folder.child(tmx), game.getScript(lua, globals), game.getStage().getBatch());
+			map.setBound(-1, -1, -1, -1);
+			if(lastdeadzone != -1){
+				game.player.deadzone = lastdeadzone;
+				lastdeadzone = -1;
+			}
+			return map;
+		}
 	}
-	public TileMap loadMap(Tenebrae game){
-		return loadMap(game, startMapTmx, startMapLua);
+	public TileMap loadMap(){
+		return loadMap(startMapTmx, startMapLua);
 	}
 	public MenuItem.GameItem loadItem(String lua, Character owner){
 		return new MenuItem.GameItem(game, Utils.filename(lua), game.getProto(lua), owner, game.getSkin());
@@ -64,8 +82,8 @@ public class Mappack implements ScriptGlob, Disposable{
 	public NPC loadNPC(String lua){
 		NPC npc = new NPC(game, Utils.filename(lua), game.getProto(lua));
 		charas.add(npc);
-		if(game.player.map != null)
-			npc.changeMap(game.player.map);
+		if(game.map != null)
+			npc.changeMap(game.map);
 		return npc;
 	}
 
@@ -73,7 +91,7 @@ public class Mappack implements ScriptGlob, Disposable{
 	public Globals getGlobals(){
 		return globals;
 	}
-	
+
 	public void loadSaveState(JSONObject savestate){
 		Log.debug("Loading", savestate);
 		LuaTable save = LuaValue.tableOf();
@@ -124,8 +142,8 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("setTile", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){// x, y, layer, tileset, tileid
-						game.player.map.changeTile(args.checkint(1),
-							(game.player.map.height - 1) - args.checkint(2),
+						game.map.changeTile(args.checkint(1),
+							(game.map.height - 1) - args.checkint(2),
 							args.checkjstring(3),
 							args.checkjstring(4),
 							args.checkint(5));
@@ -166,29 +184,15 @@ public class Mappack implements ScriptGlob, Disposable{
 					}
 				});
 			library.set("setMap", new TwoArgFunction(){
-					private float deadzone = -1;
 					@Override
 					public LuaValue call(LuaValue tmx, LuaValue lua){
-						Player p = game.player;
 						if(tmx.isnil() || (lua.isnil() && tmx.isstring())){
-							p.setBound(0, 0,
-								p.bigdzRect.width * game.getCamera().zoom / p.map.tileWidth,
-								p.bigdzRect.height * game.getCamera().zoom / p.map.tileHeight);
-							if(deadzone == -1){
-								deadzone = p.deadzone;
-								p.deadzone = 0;
-							}
-							p.changeMap(loadMap(game, null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
+							game.player.changeMap(loadMap(null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
 						}else{
-							p.setBound(-1, -1, -1, -1);
-							if(deadzone != -1){
-								p.deadzone = deadzone;
-								deadzone = -1;
-							}
 							if(lua.isnil() && tmx.istable())
-								p.changeMap(loadMap(game, tmx.checkjstring(1), tmx.checkjstring(2)));
+								game.player.changeMap(loadMap(tmx.get(1).checkjstring(), tmx.get(2).checkjstring()));
 							else
-								p.changeMap(loadMap(game, tmx.checkjstring(), lua.checkjstring()));
+								game.player.changeMap(loadMap(tmx.checkjstring(), lua.checkjstring()));
 						}
 						return NONE;
 					}
@@ -196,21 +200,21 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("enableTrigger", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue trigger){
-						game.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", false);
+						game.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", false);
 						return NONE;
 					}
 				});
 			library.set("disableTrigger", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue trigger){
-						game.player.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", true);
+						game.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", true);
 						return NONE;
 					}
 				});
 			library.set("setTrigger", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue triggerObj, LuaValue type, LuaValue function){
-						game.player.map.getMapObject(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
+						game.map.getMapObject(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
 						return NONE;
 					}
 				});
@@ -231,8 +235,8 @@ public class Mappack implements ScriptGlob, Disposable{
 					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
 						game.player.addAction(new Action.CameraAction(game, cam,
-								cam.position.x + (float)args.optdouble(1, 0) * game.player.map.tileWidth,
-								cam.position.y + (float)args.optdouble(2, 0) * game.player.map.tileHeight,
+								cam.position.x + (float)args.optdouble(1, 0) * game.map.tileWidth,
+								cam.position.y + (float)args.optdouble(2, 0) * game.map.tileHeight,
 								Utils.getInterpolation(args.optjstring(4, "constant")),
 								(float)args.optdouble(3, 0),
 								args.optboolean(5, false)));
@@ -245,8 +249,8 @@ public class Mappack implements ScriptGlob, Disposable{
 						OrthographicCamera cam = game.getCamera();
 						if(args.isnumber(0))
 							game.player.addAction(new Action.CameraAction(game, cam,
-									(float)args.optdouble(1, 0) * game.player.map.tileWidth,
-									(float)args.optdouble(2, 0) * game.player.map.tileHeight,
+									(float)args.optdouble(1, 0) * game.map.tileWidth,
+									(float)args.optdouble(2, 0) * game.map.tileHeight,
 									Utils.getInterpolation(args.optjstring(4, "constant")),
 									(float)args.optdouble(3, 0),
 									args.optboolean(5, false)));
@@ -276,24 +280,39 @@ public class Mappack implements ScriptGlob, Disposable{
 					}
 				});
 			library.set("setResolution", new TwoArgFunction(){
-				@Override
-				public LuaValue call(LuaValue width, LuaValue height){
-					game.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
-					return NONE;
-				}
-			});
+					@Override
+					public LuaValue call(LuaValue width, LuaValue height){
+						game.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
+						return NONE;
+					}
+				});
 			library.set("savestate", tableOf());
 			library.set("save", new ZeroArgFunction(){
-				@Override
-				public LuaValue call(){
-					game.savestatepath.writeString(saveSaveState().toString(), false);
-					return NONE;
-				}
-			});
+					@Override
+					public LuaValue call(){
+						game.savestatepath.writeString(saveSaveState().toString(), false);
+						return NONE;
+					}
+				});
 			library.set("delay", new TwoArgFunction(){
 					@Override
 					public LuaValue call(LuaValue time, LuaValue function){
 						game.player.addDelay((float)time.optdouble(0), function.checkfunction());
+						return NONE;
+					}
+				});
+			library.set("addTexture", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue path){
+						game.getSkin().add(Utils.filename(path.checkjstring()), new TextureRegion(new Texture(game.mappackpath.child(path.checkjstring()))), TextureRegion.class);
+						return NONE;
+					}
+				});
+			library.set("addRegion", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // texture, name, x, y, w, h
+						Texture tex = game.getSkin().getRegion(args.checkjstring(1)).getTexture();
+						game.getSkin().add(args.checkjstring(2), new TextureRegion(tex, args.checkint(3), args.checkint(4), args.checkint(5), args.checkint(6)));
 						return NONE;
 					}
 				});
@@ -309,7 +328,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.getmetatable().set(CALL, new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){ // self(?), x, y, width, height
-						return new Entity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.player.map.tileWidth, game.player.map.tileHeight, game.getSkin().getRegion("white")).vars;
+						return new Entity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.map.tileWidth, game.map.tileHeight, game.getSkin().getRegion("white")).vars;
 					}
 				});
 			ent.set("add", new OneArgFunction(){
@@ -317,7 +336,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
 						Log.verbose("Added", e);
-						game.player.map.addEntity(e);
+						game.map.addEntity(e);
 						return NONE;
 					}
 				});
@@ -367,10 +386,6 @@ public class Mappack implements ScriptGlob, Disposable{
 					public LuaValue call(LuaValue self, LuaValue key){
 						//Log.debug("Getting", key.checkjstring());
 						switch(key.checkjstring()){
-							case "name":
-								return valueOf(Mappack.this.name);
-							case "description":
-								return valueOf(description);
 							case "startMap":
 								LuaTable startMap = tableOf();
 								startMap.set(1, startMapTmx);
@@ -379,25 +394,25 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "player":
 								return game.player.getGlobals();
 							case "cameraX":
-								return valueOf(game.getCamera().position.x / game.player.map.tileWidth);
+								return valueOf(game.getCamera().position.x / game.map.tileWidth);
 							case "cameraY":
-								return valueOf(game.getCamera().position.y / game.player.map.tileHeight);
+								return valueOf(game.getCamera().position.y / game.map.tileHeight);
 							case "cameraZoom":
 								return valueOf(game.getCamera().zoom);
 							case "screen":
 								return screen.getVars();
 							case "screenWidth":
-								return valueOf(game.player.activeDeadzone.width * game.getCamera().zoom / game.player.map.tileWidth);
+								return valueOf(game.player.activeDeadzone.width * game.getCamera().zoom / game.map.tileWidth);
 							case "screenHeight":
-								return valueOf(game.player.activeDeadzone.height * game.getCamera().zoom / game.player.map.tileHeight);
+								return valueOf(game.player.activeDeadzone.height * game.getCamera().zoom / game.map.tileHeight);
 							case "x":
-								return valueOf(game.player.getBound().getX());
+								return valueOf(game.map.getBound().getX());
 							case "y":
-								return valueOf(game.player.getBound().getY());
+								return valueOf(game.map.getBound().getY());
 							case "width":
-								return valueOf(game.player.getBound().getWidth());
+								return valueOf(game.map.getBound().getWidth());
 							case "height":
-								return valueOf(game.player.getBound().getHeight());
+								return valueOf(game.map.getBound().getHeight());
 							default:
 								return self.rawget(key);
 						}
@@ -407,12 +422,6 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
 						switch(key.checkjstring()){
-							case "name":
-								Mappack.this.name = value.checkjstring();
-								break;
-							case "description":
-								description = value.checkjstring();
-								break;
 							case "startMap":
 								if(value.isstring()){
 									startMapTmx = null;
@@ -426,10 +435,10 @@ public class Mappack implements ScriptGlob, Disposable{
 								self.error("player is read-only");
 								break;
 							case "cameraX":
-								game.getCamera().position.x = (float)value.checkdouble() * game.player.map.tileWidth;
+								game.getCamera().position.x = (float)value.checkdouble() * game.map.tileWidth;
 								break;
 							case "cameraY":
-								game.getCamera().position.y = (float)value.checkdouble() * game.player.map.tileHeight;
+								game.getCamera().position.y = (float)value.checkdouble() * game.map.tileHeight;
 								break;
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();
@@ -444,20 +453,20 @@ public class Mappack implements ScriptGlob, Disposable{
 								self.error("screen dimensions are read-only");
 								break;
 							case "x":
-								Rectangle bounds = game.player.getBound();
-								game.player.setBound((float)value.checkdouble(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+								Rectangle bound = game.map.getBound();
+								game.map.setBound((float)value.checkdouble(), bound.getY(), bound.getWidth(), bound.getHeight());
 								break;
 							case "y":
-								bounds = game.player.getBound();
-								game.player.setBound(bounds.getX(), (float)value.checkdouble(), bounds.getWidth(), bounds.getHeight());
+								bound = game.map.getBound();
+								game.map.setBound(bound.getX(), (float)value.checkdouble(), bound.getWidth(), bound.getHeight());
 								break;
 							case "width":
-								bounds = game.player.getBound();
-								game.player.setBound(bounds.getX(), bounds.getY(), (float)value.checkdouble(), bounds.getHeight());
+								bound = game.map.getBound();
+								game.map.setBound(bound.getX(), bound.getY(), (float)value.checkdouble(), bound.getHeight());
 								break;
 							case "height":
-								bounds = game.player.getBound();
-								game.player.setBound(bounds.getX(), bounds.getY(), bounds.getWidth(), (float)value.checkdouble());
+								bound = game.map.getBound();
+								game.map.setBound(bound.getX(), bound.getY(), bound.getWidth(), (float)value.checkdouble());
 								break;
 							default:
 								self.rawset(key, value);

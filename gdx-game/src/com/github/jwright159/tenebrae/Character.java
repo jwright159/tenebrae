@@ -262,7 +262,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		for(TiledMapTile t : tile)
 			for(MapObject obj : t.getObjects())
 				if(obj instanceof RectangleMapObject && !obj.getProperties().get(prop, "", String.class).isEmpty()){
-					game.player.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
+					game.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
 					//Log.debug("Got trigger", prop, "from", this, obj);
 					return new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties());
 				}

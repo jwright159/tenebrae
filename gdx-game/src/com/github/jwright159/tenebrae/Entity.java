@@ -301,19 +301,19 @@ public class Entity extends TextureActor implements Comparable<Entity>{
 						switch(key.checkjstring()){
 							case "x":
 								x = (float)value.checkdouble();
-								setX(x * game.player.map.tileWidth);
+								setX(x * game.map.tileWidth);
 								break;
 							case "y":
 								y = (float)value.checkdouble();
-								setY(y * game.player.map.tileHeight);
+								setY(y * game.map.tileHeight);
 								break;
 							case "width":
 								width = (float)value.checkdouble();
-								setWidth(width * game.player.map.tileWidth);
+								setWidth(width * game.map.tileWidth);
 								break;
 							case "height":
 								height = (float)value.checkdouble();
-								setHeight(height * game.player.map.tileHeight);
+								setHeight(height * game.map.tileHeight);
 								break;
 							case "rotation":
 								setRotation((float)value.checkdouble());

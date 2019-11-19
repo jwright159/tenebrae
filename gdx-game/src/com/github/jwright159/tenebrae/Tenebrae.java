@@ -35,6 +35,7 @@ public class Tenebrae extends GameScreen{
 
 	public Player player;
 	public Mappack mappack;
+	public TileMap map;
 
 	public static Globals globals = new ScriptGlob.ServerGlobals();
 
@@ -150,7 +151,7 @@ public class Tenebrae extends GameScreen{
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
 						if(doneLoading && player.canMove())
-							player.move(dx / player.map.tileWidth * player.speedMult * zoom, -dy / player.map.tileHeight * player.speedMult * zoom, 0, true, true);
+							player.move(dx / map.tileWidth * player.speedMult * zoom, -dy / map.tileHeight * player.speedMult * zoom, 0, true, true);
 						return true;
 					}
 					@Override
@@ -190,7 +191,7 @@ public class Tenebrae extends GameScreen{
 		if(save != null)
 			mappack.loadSaveState(save);
 		getScript("mappack.lua", mappack.getGlobals()).call();
-		player.changeMap(mappack.loadMap(this));
+		player.changeMap(mappack.loadMap());
 
 		//debugBox = new WRect(new Rectangle(0, 0, 50, 50), new Color(Color.BLACK));
 		//hudStage.addActor(debugBox);
@@ -211,8 +212,14 @@ public class Tenebrae extends GameScreen{
 		loadSave(null);
 	}
 	public void reload(){
-		if(player != null)
+		if(player != null){
 			player.endSelf();
+			player = null;
+		}
+		if(map != null){
+			map.dispose();
+			map = null;
+		}
 		mappack = new Mappack(this, mappackpath);
 		player = new Player(this);
 		Log.verbose("Unloaded, made " + player);
