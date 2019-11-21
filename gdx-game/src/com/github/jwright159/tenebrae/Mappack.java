@@ -316,6 +316,18 @@ public class Mappack implements ScriptGlob, Disposable{
 						return NONE;
 					}
 				});
+			library.set("regionRect", new OneArgFunction(){
+				@Override
+				public LuaValue call(LuaValue name){
+					TextureRegion region = game.getSkin().getRegion(name.checkjstring());
+					LuaTable rect = tableOf();
+					rect.set("x", region.getRegionX());
+					rect.set("y", region.getRegionY());
+					rect.set("width", region.getRegionWidth());
+					rect.set("height", region.getRegionHeight());
+					return rect;
+				}
+			});
 			library.set("NPC", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue name){
@@ -327,14 +339,20 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.setmetatable(tableOf());
 			ent.getmetatable().set(CALL, new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // self(?), x, y, width, height
-						return new Entity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.map.tileWidth, game.map.tileHeight, game.getSkin().getRegion("white")).vars;
+					public Varargs invoke(Varargs args){ // self(?), x, y, [width, height | region]
+						if(args.arg(4).isnumber()){
+							return new Entity.TextureEntity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.map.tileWidth, game.map.tileHeight, game.getSkin().getRegion("white")).vars;
+						}else{
+							TextureRegion region = game.getSkin().getRegion(args.checkjstring(4));
+							return new Entity.TextureEntity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)region.getRegionWidth() / game.map.tileWidth, (float)region.getRegionHeight() / game.map.tileHeight, game.map.tileWidth, game.map.tileHeight, region).vars;
+						}
 					}
 				});
 			ent.set("add", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue ent){
-						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
+						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).optuserdata(Entity.class);
+						if(e != null)
 						Log.verbose("Added", e);
 						game.map.addEntity(e);
 						return NONE;
@@ -343,7 +361,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.set("remove", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue ent){
-						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
+						Actor e = (Actor)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class);
 						e.remove();
 						return NONE;
 					}
@@ -357,6 +375,15 @@ public class Mappack implements ScriptGlob, Disposable{
 							return varargsOf(args.arg(3), args.arg(4));
 						dx /= mag; dy /= mag;
 						return varargsOf(valueOf(args.checkdouble(1) + dx * args.checkdouble(5) * args.checkdouble(6)), valueOf(args.checkdouble(2) + dy * args.checkdouble(5) * args.checkdouble(6)));
+					}
+				});
+			library.set("Group", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){
+						Entity.GroupEntity group = new Entity.GroupEntity(game, 0, 0, game.map.tileWidth, game.map.tileHeight);
+						for(int i = 1; i <= args.narg(); i++)
+							group.addEntity((Entity)args.arg(i).getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class));
+						return group.vars;
 					}
 				});
 			LuaTable music = tableOf();

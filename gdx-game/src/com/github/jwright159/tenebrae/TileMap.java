@@ -30,7 +30,7 @@ public class TileMap extends ScreenActor{
 	private Group ents;
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
-	
+
 	private Rectangle bound;
 	private PatchActor boundActor;
 	public boolean setBoundToBigDZLater = false;
@@ -72,9 +72,14 @@ public class TileMap extends ScreenActor{
 		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
-				for(Entity ent : ents.getChildren())
-					if(ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible())
+				Entity.TextureEntity ent;
+				for(Entity e : ents.getChildren())
+					if(e instanceof Entity.TextureEntity && (ent = (Entity.TextureEntity)e) != null &&
+						ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible()){
+						if(ent instanceof Player && boundActor.isVisible())
+							boundActor.draw(getBatch(), 1);
 						ent.draw(getBatch(), 1);
+					}
 			}
 		};
 
@@ -86,10 +91,10 @@ public class TileMap extends ScreenActor{
 		boundActor.setBorderAlignment(Align.left);
 		//boundsActor.setDebug(true);
 		setBound(-1, -1, -1, -1);
-		
+
 		//Tenebrar.debug("Map made! "+toString());
 	}
-	
+
 	public LuaValue call(){
 		LuaValue rtn = script.call();
 		boundActor.setScale(tileWidth, tileHeight);
@@ -164,9 +169,10 @@ public class TileMap extends ScreenActor{
 				if(obj instanceof RectangleMapObject)
 					if(!obj.getProperties().get(prop, "", String.class).isEmpty())
 						trigs.add(new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties()));
-		
-		for(Entity ent : ents.getChildren())
-			if(ent != game.player){
+
+		for(Entity e : ents.getChildren())
+			if(e instanceof Entity.TextureEntity && e != game.player){
+				Entity.TextureEntity ent = (Entity.TextureEntity)e;
 				Trigger trig = ent.getTrigger(prop);
 				if(trig == null)
 					continue;
@@ -238,13 +244,10 @@ public class TileMap extends ScreenActor{
 		((TiledMapTileLayer)map.getLayers().get(z)).getCell(x, y).setTile(map.getTileSets().getTileSet(tileset).getTile(id));
 	}
 
-	public void addEntity(Entity ent, MapObject obj){
+	public void addEntity(Entity ent){
 		ents.addActor(ent);
 	}
-	public void addEntity(Entity ent){
-		addEntity(ent, null);
-	}
-	
+
 	public void setBound(float x, float y, float width, float height){
 		if(setBoundToBigDZLater){
 			setBoundToBigDZLater = false;
@@ -310,13 +313,11 @@ public class TileMap extends ScreenActor{
 		maprenderer.setView((OrthographicCamera)getStage().getCamera());
 		maprenderer.render();
 		batch.begin();
-		if(boundActor.isVisible())
-			boundActor.draw(batch, parentAlpha);
-		for(Entity ent : ents.getChildren())
-			if(!ent.hasMapObject() && ent.isVisible())
-				ent.draw(batch, parentAlpha);
+		for(Actor a : ents.getChildren())
+			if((!(a instanceof Entity.TextureEntity) || !((Entity.TextureEntity)a).hasMapObject()) && a.isVisible())
+				a.draw(batch, parentAlpha);
 	}
-
+	
 	@Override
 	public void dispose(){
 		LuaValue onDestroy = game.mappack.getGlobals().get("onDestroy");
@@ -326,9 +327,9 @@ public class TileMap extends ScreenActor{
 		map.dispose();
 		maprenderer.dispose();
 		//boundActor.dispose();
-		for(Entity ent : ents.getChildren())
-		 	if(!(ent instanceof Character))
-				ent.dispose();
+		for(Actor a : ents.getChildren())
+		 	if(a instanceof Entity && !(a instanceof Character))
+				((Entity)a).dispose();
 	}
 
 	@Override

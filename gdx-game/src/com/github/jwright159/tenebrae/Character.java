@@ -19,7 +19,7 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.*;
 
-abstract public class Character extends Entity implements ScriptGlob{
+abstract public class Character extends Entity.TextureEntity implements ScriptGlob{
 	public String name, filename;
 	public float targetX=-1,targetY=-1;//in tiles
 	public float exp, g, hp, mp;
@@ -48,6 +48,7 @@ abstract public class Character extends Entity implements ScriptGlob{
 		globals = game.new StdEntGlobals();
 		vars = globals;
 		globals.load(new EntityLib());
+		globals.load(new TextureEntity.TextureEntityLib());
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
