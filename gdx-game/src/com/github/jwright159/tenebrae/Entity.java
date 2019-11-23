@@ -239,16 +239,14 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		}
 		public void setTileWidth(float width){
 			this.width = width;
-			if(getWidth() != 0)
-				setScaleX(width * getTileScalarWidth() / getWidth());
+			setWidth(width * getTileScalarWidth());
 		}
 		public float getTileWidth(){
 			return width;
 		}
 		public void setTileHeight(float height){
 			this.height = height;
-			if(getHeight() != 0)
-				setScaleY(height * getTileScalarHeight() / getHeight());
+			setHeight(height * getTileScalarHeight());
 		}
 		public float getTileHeight(){
 			return height;
@@ -265,7 +263,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		}
 		private Rectangle tileRect = new Rectangle();
 		public Rectangle toTileRect(){
-			tileRect.set(getTileX(), getTileY(), getTileWidth(), getTileHeight());
+			tileRect.set(getTileX()-getTileOriginX(), getTileY()-getTileOriginY(), getTileWidth(), getTileHeight());
 			return tileRect;
 		}
 

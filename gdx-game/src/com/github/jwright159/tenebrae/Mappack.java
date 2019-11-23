@@ -134,6 +134,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			}
 	}
 
+	private static Vector2 tmp = new Vector2();
 	public class MappackLib extends TwoArgFunction{
 		@Override
 		public LuaValue call(LuaValue modname, LuaValue env){
@@ -286,6 +287,15 @@ public class Mappack implements ScriptGlob, Disposable{
 						return NONE;
 					}
 				});
+			library.set("applyInterp", new VarArgFunction(){
+				@Override
+				public Varargs invoke(Varargs args){ // interp, alpha, [start, end]
+					if(args.isnil(3) || args.isnil(4))
+						return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(2)));
+					else
+						return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(2)));
+				}
+			});
 			library.set("savestate", tableOf());
 			library.set("save", new ZeroArgFunction(){
 					@Override
@@ -351,8 +361,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.set("add", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue ent){
-						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).optuserdata(Entity.class);
-						if(e != null)
+						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
 						Log.verbose("Added", e);
 						game.map.addEntity(e);
 						return NONE;
@@ -361,7 +370,8 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.set("remove", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue ent){
-						Actor e = (Actor)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class);
+						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
+						Log.verbose("Removed", e);
 						e.remove();
 						return NONE;
 					}
@@ -420,18 +430,14 @@ public class Mappack implements ScriptGlob, Disposable{
 								return startMap;
 							case "player":
 								return game.player.getGlobals();
+							case "moveSpeed":
+								return valueOf(game.player.speedMult);
 							case "cameraX":
 								return valueOf(game.getCamera().position.x / game.map.tileWidth);
 							case "cameraY":
 								return valueOf(game.getCamera().position.y / game.map.tileHeight);
 							case "cameraZoom":
 								return valueOf(game.getCamera().zoom);
-							case "screen":
-								return screen.getVars();
-							case "screenWidth":
-								return valueOf(game.player.activeDeadzone.width * game.getCamera().zoom / game.map.tileWidth);
-							case "screenHeight":
-								return valueOf(game.player.activeDeadzone.height * game.getCamera().zoom / game.map.tileHeight);
 							case "x":
 								return valueOf(game.map.getBound().getX());
 							case "y":
@@ -440,6 +446,20 @@ public class Mappack implements ScriptGlob, Disposable{
 								return valueOf(game.map.getBound().getWidth());
 							case "height":
 								return valueOf(game.map.getBound().getHeight());
+							case "offsetX":
+								return valueOf(game.map.getTileOffsetX());
+							case "offsetY":
+								return valueOf(game.map.getTileOffsetY());
+							case "screenX":
+								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).x / game.map.tileWidth);
+							case "screenY":
+								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).y / game.map.tileHeight);
+							case "screenWidth":
+								return valueOf(game.getViewport().getScreenWidth()  * game.getCamera().zoom / game.map.tileWidth);
+							case "screenHeight":
+								return valueOf(game.getViewport().getScreenHeight() * game.getCamera().zoom / game.map.tileHeight);
 							default:
 								return self.rawget(key);
 						}
@@ -461,6 +481,9 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "player":
 								self.error("player is read-only");
 								break;
+							case "moveSpeed":
+								game.player.speedMult = (float)value.checkdouble();
+								break;
 							case "cameraX":
 								game.getCamera().position.x = (float)value.checkdouble() * game.map.tileWidth;
 								break;
@@ -469,15 +492,6 @@ public class Mappack implements ScriptGlob, Disposable{
 								break;
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();
-								break;
-							case "screen":
-								self.error("screen dimensions are read-only");
-								break;
-							case "screenWidth":
-								self.error("screen dimensions are read-only");
-								break;
-							case "screenHeight":
-								self.error("screen dimensions are read-only");
 								break;
 							case "x":
 								Rectangle bound = game.map.getBound();
@@ -494,6 +508,24 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "height":
 								bound = game.map.getBound();
 								game.map.setBound(bound.getX(), bound.getY(), bound.getWidth(), (float)value.checkdouble());
+								break;
+							case "offsetX":
+								game.map.setTileOffsetX((float)value.checkdouble());
+								break;
+							case "offsetY":
+								game.map.setTileOffsetY((float)value.checkdouble());
+								break;
+							case "screenX":
+								self.error("screen dimensions are read-only");
+								break;
+							case "screenY":
+								self.error("screen dimensions are read-only");
+								break;
+							case "screenWidth":
+								self.error("screen dimensions are read-only");
+								break;
+							case "screenHeight":
+								self.error("screen dimensions are read-only");
 								break;
 							default:
 								self.rawset(key, value);
@@ -517,42 +549,6 @@ public class Mappack implements ScriptGlob, Disposable{
 
 			ScriptGlob.S.setLibToEnv(library, env);
 			return env;
-		}
-	}
-
-	public ScreenDims screen = new ScreenDims();
-	public class ScreenDims{
-		private LuaTable vars;
-		public ScreenDims(){
-			vars = LuaValue.tableOf();
-			if(vars.getmetatable() == null) vars.setmetatable(LuaValue.tableOf());
-			vars.getmetatable().set(LuaValue.INDEX, new TwoArgFunction(){
-					@Override
-					public LuaValue call(LuaValue self, LuaValue key){
-						switch(key.checkjstring()){
-							case "x":
-								return valueOf(game.screenRect.getX());
-							case "y":
-								return valueOf(game.screenRect.getY());
-							case "width":
-								return valueOf(game.screenRect.getWidth());
-							case "height":
-								return valueOf(game.screenRect.getHeight());
-							default:
-								return self.rawget(key);
-						}
-					}
-				});
-			vars.getmetatable().set(LuaValue.NEWINDEX, new ThreeArgFunction(){
-					@Override
-					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
-						self.error("screen dimensions are read-only");
-						return NONE;
-					}
-				});
-		}
-		public LuaTable getVars(){
-			return vars;
 		}
 	}
 

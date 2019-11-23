@@ -27,6 +27,7 @@ public class TileMap extends ScreenActor{
 	private OrthogonalTiledMapRenderer maprenderer;
 	public float tileWidth, tileHeight;
 	public int width, height;
+	private float offsetX, offsetY;
 	private Group ents;
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
@@ -276,6 +277,23 @@ public class TileMap extends ScreenActor{
 			game.player.bigdzRect.width  * game.getCamera().zoom / tileWidth,
 			game.player.bigdzRect.height * game.getCamera().zoom / tileHeight);
 	}
+	
+	public void setTileOffsetX(float x){
+		offsetX = x;
+	}
+	public float getTileOffsetX(){
+		return offsetX;
+	}
+	public void setTileOffsetY(float y){
+		offsetY = y;
+	}
+	public float getTileOffsetY(){
+		return offsetY;
+	}
+	public void setTileOffset(float x, float y){
+		setTileOffsetX(x);
+		setTileOffsetY(y);
+	}
 
 	@Override
 	protected void setStage(Stage stage){
@@ -310,12 +328,17 @@ public class TileMap extends ScreenActor{
 	public void draw(Batch batch, float parentAlpha){
 		batch.end();
 		//Tenebrae.mp.charas.sort();
-		maprenderer.setView((OrthographicCamera)getStage().getCamera());
+		OrthographicCamera cam = (OrthographicCamera)getStage().getCamera();
+		cam.translate(-offsetX*tileWidth, -offsetY*tileHeight, 0);
+		cam.update();
+		maprenderer.setView(cam);
 		maprenderer.render();
 		batch.begin();
 		for(Actor a : ents.getChildren())
 			if((!(a instanceof Entity.TextureEntity) || !((Entity.TextureEntity)a).hasMapObject()) && a.isVisible())
 				a.draw(batch, parentAlpha);
+		cam.translate(offsetX*tileWidth, offsetY*tileHeight, 0);
+		cam.update();
 	}
 	
 	@Override
