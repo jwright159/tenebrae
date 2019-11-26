@@ -31,6 +31,7 @@ public class TileMap extends ScreenActor{
 	private Group ents;
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
+	public float lifetime;
 
 	private Rectangle bound;
 	private PatchActor boundActor;
@@ -324,6 +325,12 @@ public class TileMap extends ScreenActor{
 		//mapOutline.setZIndex(i);
 	}
 
+	@Override
+	public void act(float delta){
+		super.act(delta);
+		lifetime += delta;
+	}
+	
 	@Override
 	public void draw(Batch batch, float parentAlpha){
 		batch.end();

@@ -17,6 +17,8 @@ import org.luaj.vm2.lib.*;
 import java.io.*;
 import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
+import com.github.jwright159.gdx.actor.*;
+import com.badlogic.gdx.scenes.scene2d.*;
 
 public class Tenebrae extends GameScreen{
 	public FileHandle mappackpath;
@@ -38,6 +40,8 @@ public class Tenebrae extends GameScreen{
 	public TileMap map;
 
 	public static Globals globals = new ScriptGlob.ServerGlobals();
+	
+	//private Actor debugActor;
 
 	public Tenebrae(FileHandle pakpath, JSONObject mappackinfo, FileHandle savestatepath, boolean load){
 		this.mappackpath = pakpath;
@@ -54,6 +58,9 @@ public class Tenebrae extends GameScreen{
 		Log.setLogFile(pakpath.child("debug.log"));
 
 		loadSkin(pakpath);
+		
+		//debugActor = new PatchActor(new Rectangle(0, 0, 16, 16), getSkin().getPatch("white"));
+		//getStage().addActor(debugActor);
 
 		getMultiplexer().addProcessor(0, new InputAdapter(){
 				@Override
@@ -152,6 +159,7 @@ public class Tenebrae extends GameScreen{
 					public boolean pan(float x, float y, float dx, float dy){
 						if(doneLoading && player.canMove())
 							player.move(dx / map.tileWidth * player.speedMult * zoom, -dy / map.tileHeight * player.speedMult * zoom, 0, true, true);
+							//debugActor.moveBy(dx / map.tileWidth, -dy / map.tileHeight);
 						return true;
 					}
 					@Override
@@ -356,7 +364,9 @@ public class Tenebrae extends GameScreen{
 			}
 		}else{ // IN-GAME ACT
 
-
+			LuaValue act = mappack.getGlobals().get("act");
+			if(!act.isnil())
+				act.checkfunction().call(mappack.getGlobals(), LuaValue.valueOf(delta), LuaValue.valueOf(map.lifetime));
 
 		}
 	}
