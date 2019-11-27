@@ -14,6 +14,7 @@ import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.scenes.scene2d.*;
+import com.badlogic.gdx.scenes.scene2d.utils.*;
 
 public abstract class Entity extends ScreenActor implements Comparable<Entity>, Disposable{
 	public static final String ENTITY = "__entity";
@@ -177,19 +178,27 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		}
 	}
 	
-	public static class TextureEntity extends Entity{
-		private TextureActor actor;
+	public static class DrawableEntity extends Entity{
+		private Drawable drawable;
 		private float width, height;
+		
 		private TiledMapTile tile;
+		private LayeredTextureRegionDrawable region;
+		private NinePatchDrawable patch;
+		
 		private MapObject mapobj; // Either RectMapObj or TileMapObj
 		private ScreenActor tap;
 		//private Array<Trigger> trigs; // Do this if u want the longer prop searching
 		private MapProperties props; // Just for triggers
 		
-		public TextureEntity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight){
+		public DrawableEntity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight, Drawable drawable){
 			super(game, x, y, tileWidth, tileHeight);
-			new TextureEntityLib().call(LuaValue.valueOf(""), vars);
-			actor = new TextureActor();
+			new DrawableEntityLib().call(LuaValue.valueOf(""), vars);
+			
+			this.drawable = drawable;
+			region = drawable instanceof LayeredTextureRegionDrawable ? (LayeredTextureRegionDrawable)drawable : new LayeredTextureRegionDrawable(new LayeredTextureRegion());
+			patch = drawable instanceof NinePatchDrawable ? (NinePatchDrawable)drawable : new NinePatchDrawable();
+			
 			/*trigs = new Array<Trigger>();*/
 			props = new MapProperties();
 			//props.put("onTouch", "onTouch");
@@ -206,13 +215,11 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 				public void draw(Batch batch, float parentAlpha){
 					// Just don't do anything
 				}
+				@Override
+				public void draw(Batch batch){}
 			};
 			//tap.setDebug(true);
 			setTileBounds(x, y, width, height);
-		}
-		public TextureEntity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight, TextureRegion region){
-			this(game, x, y, width, height, tileWidth, tileHeight);
-			setRegion(0, region);
 		}
 		
 		@Override
@@ -267,29 +274,24 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			return tileRect;
 		}
 
-		public void setRegion(TextureRegion newRegion){
-			actor.setRegion(newRegion);
-			validateRegion();
+		public void setDrawable(Drawable drawable){
+			this.drawable = drawable;
 		}
-		public void setRegion(int i, TextureRegion newRegion){
-			actor.setRegion(i, newRegion);
-			validateRegion();
+		public Drawable getDrawable(){
+			return drawable;
 		}
-		public TextureRegion removeRegion(int i){
-			TextureRegion region = actor.removeRegion(i);
-			validateRegion();
-			return region;
+		public void setRegions(LayeredTextureRegion regions){
+			this.region.setRegions(regions);
+			setDrawable(this.region);
 		}
-		public void setRegions(LayeredTextureRegion region){
-			actor.setRegions(region);
-			validateRegion();
+		public void setRegion(TextureRegion region){
+			this.region.getRegions().clear();
+			this.region.getRegions().set(0, region);
+			setDrawable(this.region);
 		}
-		public LayeredTextureRegion getRegions(){
-			return actor.getRegions();
-		}
-		private void validateRegion(){
-			setSize(actor.getWidth(), actor.getHeight());
-			setTileSize(width, height);
+		public void setPatch(NinePatch patch){
+			this.patch.setPatch(patch);
+			setDrawable(this.patch);
 		}
 
 		public void setMapObject(MapObject mapobj){
@@ -344,29 +346,27 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 				moveTapActor();
 
 			if(tile != null)
-				setRegion(tile.getTextureRegion());
+				((LayeredTextureRegionDrawable)getDrawable()).getRegions().set(0, tile.getTextureRegion());
 		}
 
 		@Override
-		public void draw(Batch batch, float parentAlpha){
-			//Log.debug("Drawing", this, getX(), getY()+"\n"+ batch.getTransformMatrix());
-			Utils.setActorFromActor(actor, this); // Could be greatly optimized
-			actor.draw(batch, parentAlpha);
+		public void draw(Batch batch){
+			//Log.debug("Drawing", this, getX(), getY()+"\n"+ batch.getTransformMatrix())
+			drawable.draw(batch, 0, 0, getWidth(), getHeight());
 		}
 		
 		@Override
 		public String toString(){
-			return super.toString() + "§" + "{" + width + "x" + height + "}";
+			return super.toString() + "§" + "{" + width + "x" + height + "," + drawable.toString() + "}";
 		}
 		
 		@Override
 		public void dispose(){
 			super.dispose();
 			tap.dispose();
-			actor.dispose();
 		}
 		
-		public class TextureEntityLib extends TwoArgFunction{
+		public class DrawableEntityLib extends TwoArgFunction{
 			@Override
 			public LuaValue call(LuaValue modname, final LuaValue env){
 				LuaTable library = tableOf();
@@ -374,15 +374,18 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 				library.set("setTexture", new TwoArgFunction(){
 						@Override
 						public LuaValue call(LuaValue tsx, LuaValue tid){
-							if(tid.isnil()){
-								tile = null;
-								setRegion(game.getSkin().getRegion(tsx.checkjstring()));
-							}else{
+							if(tid.isnumber()){
 								TiledMapTileSet tileset = game.mappack.loadTileset(tsx.checkjstring());
 								tile = tileset.getTile(tid.checkint());
 								if(tile == null)
 									env.error("no tile with id "+tid.checkint());
 								setRegion(tile.getTextureRegion());
+							}else{
+								tile = null;
+								if(tid.optboolean(false))
+									setPatch(game.getSkin().getPatch(tsx.checkjstring()));
+								else
+									setRegion(game.getSkin().getRegion(tsx.checkjstring()));
 							}
 							return NONE;
 						}
@@ -431,31 +434,34 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 	}
 	
 	public static class GroupEntity extends Entity{
-		private TransGroup group;
+		private Array<Actor> group;
 		
 		public GroupEntity(Tenebrae game, float x, float y, float tileWidth, float tileHeight){
 			super(game, x, y, tileWidth, tileHeight);
 			new GroupEntityLib().call(LuaValue.valueOf(""), vars);
-			group = new TransGroup();
+			group = new Array<Actor>();
 		}
 		
 		public void addEntity(Entity ent){
-			group.addActor(ent);
+			group.add(ent);
 		}
 
 		@Override
-		public void act(float delta, float time){
-			super.act(delta, time);
-			group.act(delta);
+		public void act(float delta){
+			super.act(delta);
+			for(Actor actor : group)
+				actor.act(delta);
 		}
 
 		@Override
-		public void draw(Batch batch, float parentAlpha){
+		public void draw(Batch batch){
 			//Log.debug("Drawing", this, getX(), getY()+"\n"+ batch.getTransformMatrix());
-			Utils.setActorFromActor(group, this);
 			// Problem: when batch computes transformation matrix, also premuls with parent,
 			//          but this group has no parent so the whole transformatrix gets set to only what the group has
-			group.draw(batch, parentAlpha);
+			// haha now im doing that for all screenactors thanks
+			
+			for(Actor actor : group)
+				actor.draw(batch, 1);
 		}
 		
 		public class GroupEntityLib extends TwoArgFunction{
@@ -466,14 +472,14 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 				library.set("add", new OneArgFunction(){
 						@Override
 						public LuaValue call(LuaValue actor){
-							group.addActor((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class));
+							group.add((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class));
 							return NONE;
 						}
 					});
 				library.set("remove", new OneArgFunction(){
 						@Override
 						public LuaValue call(LuaValue actor){
-							group.removeActor((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class));
+							group.removeValue((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class), true);
 							return NONE;
 						}
 					});
@@ -502,15 +508,6 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 
 				ScriptGlob.S.setLibToEnv(library, env);
 				return env;
-			}
-		}
-		
-		public static class TransGroup extends Group{
-			@Override
-			public void draw(Batch batch, float parentAlpha){
-				applyTransform(batch, computeTransform().mulLeft(batch.getTransformMatrix()));
-				drawChildren(batch, parentAlpha);
-				resetTransform(batch);
 			}
 		}
 	}

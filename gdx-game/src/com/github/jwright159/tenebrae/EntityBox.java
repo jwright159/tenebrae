@@ -28,7 +28,7 @@ public class EntityBox extends Table{
 		this.setDebug(Tenebrae.TABLEDEBUG);
 		Table pic = new Table(skin);
 		pic.setDebug(Tenebrae.TABLEDEBUG);
-		pic.add(icon = new Image(new LayeredTextureRegionDrawable(parent.getRegions()))).size(128, 128);
+		pic.add(icon = new Image(parent.getDrawable())).size(128, 128);
 		pic.row();
 		pic.add(name = new Label(parent.name, skin));
 		this.add(pic).pad(0, 0, vertical ? Tenebrae.MARGIN : 0, vertical ? 0 : Tenebrae.MARGIN);

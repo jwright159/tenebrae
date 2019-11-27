@@ -74,9 +74,9 @@ public class TileMap extends ScreenActor{
 		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
-				Entity.TextureEntity ent;
+				Entity.DrawableEntity ent;
 				for(Entity e : ents.getChildren())
-					if(e instanceof Entity.TextureEntity && (ent = (Entity.TextureEntity)e) != null &&
+					if(e instanceof Entity.DrawableEntity && (ent = (Entity.DrawableEntity)e) != null &&
 						ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible()){
 						if(ent instanceof Player && boundActor.isVisible())
 							boundActor.draw(getBatch(), 1);
@@ -99,7 +99,6 @@ public class TileMap extends ScreenActor{
 
 	public LuaValue call(){
 		LuaValue rtn = script.call();
-		boundActor.setScale(tileWidth, tileHeight);
 		return rtn;
 	}
 
@@ -173,8 +172,8 @@ public class TileMap extends ScreenActor{
 						trigs.add(new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties()));
 
 		for(Entity e : ents.getChildren())
-			if(e instanceof Entity.TextureEntity && e != game.player){
-				Entity.TextureEntity ent = (Entity.TextureEntity)e;
+			if(e instanceof Entity.DrawableEntity && e != game.player){
+				Entity.DrawableEntity ent = (Entity.DrawableEntity)e;
 				Trigger trig = ent.getTrigger(prop);
 				if(trig == null)
 					continue;
@@ -258,7 +257,7 @@ public class TileMap extends ScreenActor{
 		}
 
 		bound.set(x, y, width, height);
-		boundActor.setBounds(x, y, width, height);
+		boundActor.setBounds(x*tileWidth, y*tileHeight, width*tileWidth, height*tileHeight);
 		if(width <= 0 || height <= 0)
 			boundActor.setVisible(false);
 		else
@@ -332,7 +331,7 @@ public class TileMap extends ScreenActor{
 	}
 	
 	@Override
-	public void draw(Batch batch, float parentAlpha){
+	public void draw(Batch batch){
 		batch.end();
 		//Tenebrae.mp.charas.sort();
 		OrthographicCamera cam = (OrthographicCamera)getStage().getCamera();
@@ -342,8 +341,8 @@ public class TileMap extends ScreenActor{
 		maprenderer.render();
 		batch.begin();
 		for(Actor a : ents.getChildren())
-			if((!(a instanceof Entity.TextureEntity) || !((Entity.TextureEntity)a).hasMapObject()) && a.isVisible())
-				a.draw(batch, parentAlpha);
+			if((!(a instanceof Entity.DrawableEntity) || !((Entity.DrawableEntity)a).hasMapObject()) && a.isVisible())
+				a.draw(batch, 1);
 		cam.translate(offsetX*tileWidth, offsetY*tileHeight, 0);
 		cam.update();
 	}

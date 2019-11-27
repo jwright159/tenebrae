@@ -27,6 +27,9 @@ import com.leff.midi.*;
 import com.leff.midi.event.*;
 import com.badlogic.gdx.utils.viewport.*;
 import org.json.*;
+import com.github.jwright159.gdx.actor.*;
+import com.badlogic.gdx.scenes.scene2d.utils.*;
+import com.github.jwright159.gdx.graphics.*;
 
 public class Mappack implements ScriptGlob, Disposable{
 	private Tenebrae game;
@@ -349,12 +352,32 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.setmetatable(tableOf());
 			ent.getmetatable().set(CALL, new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // self(?), x, y, [width, height | region]
+					public Varargs invoke(Varargs args){ // self(?), x, y, [width, height | region, isPatch]
 						if(args.arg(4).isnumber()){
-							return new Entity.TextureEntity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), game.map.tileWidth, game.map.tileHeight, game.getSkin().getRegion("white")).vars;
+							return new Entity.DrawableEntity(game,
+								(float)args.checkdouble(2), (float)args.checkdouble(3),
+								(float)args.checkdouble(4), (float)args.checkdouble(5),
+								game.map.tileWidth, game.map.tileHeight,
+								new LayeredTextureRegionDrawable(new LayeredTextureRegion(game.getSkin().getRegion("white")))
+								).vars;
 						}else{
-							TextureRegion region = game.getSkin().getRegion(args.checkjstring(4));
-							return new Entity.TextureEntity(game, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)region.getRegionWidth() / game.map.tileWidth, (float)region.getRegionHeight() / game.map.tileHeight, game.map.tileWidth, game.map.tileHeight, region).vars;
+							if(args.arg(5).optboolean(false)){
+								NinePatch patch = game.getSkin().getPatch(args.checkjstring(4));
+								return new Entity.DrawableEntity(game,
+									(float)args.checkdouble(2), (float)args.checkdouble(3),
+									(float)patch.getTotalWidth() / game.map.tileWidth, (float)patch.getTotalHeight() / game.map.tileHeight,
+									game.map.tileWidth, game.map.tileHeight,
+									new NinePatchDrawable(patch)
+									).vars;
+							}else{
+								TextureRegion region = game.getSkin().getRegion(args.checkjstring(4));
+								return new Entity.DrawableEntity(game,
+									(float)args.checkdouble(2), (float)args.checkdouble(3),
+									(float)region.getRegionWidth() / game.map.tileWidth, (float)region.getRegionHeight() / game.map.tileHeight,
+									game.map.tileWidth, game.map.tileHeight,
+									new LayeredTextureRegionDrawable(new LayeredTextureRegion(region))
+									).vars;
+							}
 						}
 					}
 				});

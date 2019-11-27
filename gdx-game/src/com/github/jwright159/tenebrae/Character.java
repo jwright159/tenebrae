@@ -19,7 +19,7 @@ import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.*;
 
-abstract public class Character extends Entity.TextureEntity implements ScriptGlob{
+abstract public class Character extends Entity.DrawableEntity implements ScriptGlob{
 	public String name, filename;
 	public float targetX=-1,targetY=-1;//in tiles
 	public float exp, g, hp, mp;
@@ -32,6 +32,7 @@ abstract public class Character extends Entity.TextureEntity implements ScriptGl
 	private Array<Action> actions;
 	protected Action currentAction;
 	public float delay;//Using Delay Action keeps me from using only RunnableActions //But now it doesn't matter anyway as I'm not using Actions //Well i was just using Runnables with a boolean property but now i need more properties so i renamed it to Action
+	protected LayeredTextureRegion regions;
 	protected LayeredTile tile;
 	private Globals globals;
 	
@@ -39,7 +40,9 @@ abstract public class Character extends Entity.TextureEntity implements ScriptGl
 	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
 	public Character(Tenebrae game, String filename){
-		super(game, 0, 0, 1, 1, 1, 1);
+		super(game, 0, 0, 1, 1, 1, 1, null);
+		regions = new LayeredTextureRegion();
+		setRegions(regions);
 		tile = new LayeredTile();
 		stats = new ArrayMap<String,ArrayMap<Stats,Float>>();
 		items = new Array<MenuItem.GameItem>();
@@ -48,7 +51,7 @@ abstract public class Character extends Entity.TextureEntity implements ScriptGl
 		globals = game.new StdEntGlobals();
 		vars = globals;
 		globals.load(new EntityLib());
-		globals.load(new TextureEntity.TextureEntityLib());
+		globals.load(new DrawableEntityLib());
 		globals.load(new CharacterLib());
 		actions = new Array<Action>();
 		this.filename = filename;
@@ -212,7 +215,7 @@ abstract public class Character extends Entity.TextureEntity implements ScriptGl
 		int z = skinList.get(skin).z;
 		TiledMapTile t = skinList.get(skin).getSkin(speed, type);
 		tile.set(z, t);
-		setRegion(z, t.getTextureRegion());
+		regions.set(z, t.getTextureRegion());
 	}
 	public void updateSkins(float dx, float dy){
 		//if(dx == 0 && dy == 0)//causes running to be played if sudden stop
