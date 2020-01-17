@@ -125,7 +125,6 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 	
 	public static class DrawableEntity extends Entity{
 		private Drawable drawable;
-		private float width, height;
 		
 		private TiledMapTile tile;
 		private LayeredTextureRegionDrawable region;
@@ -250,7 +249,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		
 		@Override
 		public String toString(){
-			return super.toString() + "§" + "{" + width + "x" + height + "," + drawable.toString() + "}";
+			return super.toString() + "§" + "{" + getWidth() + "x" + getHeight() + "," + drawable.toString() + "}";
 		}
 		
 		@Override
@@ -292,6 +291,10 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 									return valueOf(getWidth());
 								case "height":
 									return valueOf(getHeight());
+								case "scaleX":
+									return valueOf(getScaleX());
+								case "scaleY":
+									return valueOf(getScaleY());
 								default:
 									return NIL;
 							}
@@ -306,6 +309,12 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 									break;
 								case "height":
 									setHeight((float)value.checkdouble());
+									break;
+								case "scaleX":
+									setScaleX((float)value.checkdouble());
+									break;
+								case "scaleY":
+									setScaleY((float)value.checkdouble());
 									break;
 								case "onTap":
 									if(!value.isnil())
@@ -381,7 +390,10 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 						@Override
 						public LuaValue call(LuaValue self, LuaValue key){
 							switch(key.checkjstring()){
-								
+								case "scaleX":
+									return valueOf(getScaleX());
+								case "scaleY":
+									return valueOf(getScaleY());
 								default:
 									return NIL;
 							}
@@ -391,11 +403,16 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 						@Override
 						public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
 							switch(key.checkjstring()){
-								
+								case "scaleX":
+									setScaleX((float)value.checkdouble());
+									break;
+								case "scaleY":
+									setScaleY((float)value.checkdouble());
+									break;
 								default:
 									return TRUE;
 							}
-							//return NONE;
+							return NONE;
 						}
 					});
 

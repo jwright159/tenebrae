@@ -269,6 +269,13 @@ public class TileMap extends ScreenActor{
 			game.player.bigdzRect.height * game.getCamera().zoom);
 	}
 	
+	public float getTileWidth(){
+		return tileWidth;
+	}
+	public float getTileHeight(){
+		return tileHeight;
+	}
+	
 	public void setTileOffsetX(float x){
 		offsetX = x;
 	}
