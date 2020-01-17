@@ -40,7 +40,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	public static final enum Stats{str,intl,def,agl,maxhp,maxmp}
 
 	public Character(Tenebrae game, String filename){
-		super(game, 0, 0, 1, 1, 1, 1, null);
+		super(game, 0, 0, 1, 1, null);
 		regions = new LayeredTextureRegion();
 		setRegions(regions);
 		tile = new LayeredTile();
@@ -67,34 +67,30 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		setDebug(Tenebrae.TABLEDEBUG);
 	}
 	public void changeMap(TileMap map){
-		Rectangle rect, oRect = null;
+		Rectangle rect = new Rectangle();
 		MapObject mapobj = map.getMapObject(filename);
 		setMapObject(mapobj);
 		
 		if(mapobj == null){
-			oRect = new Rectangle(-map.tileWidth, -map.tileHeight, map.tileWidth, map.tileHeight);
+			rect = new Rectangle(-1, -1, 1, 1);
 		}else{
 			if(mapobj instanceof RectangleMapObject){
 				RectangleMapObject obj = (RectangleMapObject)mapobj;
-				oRect = obj.getRectangle();
+				rect.set(obj.getRectangle());
 				//Log.debug("Entity is a rectangle! "+pRect);
 			}else if(mapobj instanceof TiledMapTileMapObject){
 				TiledMapTileMapObject obj = (TiledMapTileMapObject)mapobj;
-				oRect = new Rectangle(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
+				rect.set(obj.getX(), obj.getY(), obj.getTextureRegion().getRegionWidth() * obj.getScaleX(), obj.getTextureRegion().getRegionHeight() * obj.getScaleY());
 				//Log.debug("Entity is a tile! "+pRect);
 			}
+			map.relateTiledRectToMap(rect);
 			map.addEntity(this);
 		}
-		rect = new Rectangle(oRect.getX() / map.tileWidth, oRect.getY() / map.tileHeight, oRect.getWidth() / map.tileWidth, oRect.getHeight() / map.tileHeight);
 
 		Log.debug("Changing map!", this, rect, currentAction);
-		setTilePosition(rect.getX(), rect.getY());
-		currentAction = null;
-
-		setTileScalar(map.tileWidth, map.tileHeight);
-		setTileSize(rect.getWidth(), rect.getHeight());
-		Log.debug("scaled", getTileWidth(), getTileHeight(), getWidth(), getHeight());
 		
+		setBounds(rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
+		currentAction = null;
 		smolStatBox.setVisible(false);
 	}
 
@@ -266,7 +262,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		for(TiledMapTile t : tile)
 			for(MapObject obj : t.getObjects())
 				if(obj instanceof RectangleMapObject && !obj.getProperties().get(prop, "", String.class).isEmpty()){
-					game.map.relateRectMapObjToMapPix((RectangleMapObject)obj, getTileX(), getTileY());
+					game.map.relateRectMapObjToMap((RectangleMapObject)obj, getX(), getY());
 					//Log.debug("Got trigger", prop, "from", this, obj);
 					return new Trigger(game, ((RectangleMapObject)obj).getRectangle(), obj.getProperties());
 				}
@@ -466,10 +462,10 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	}
 	public void doMovement(){
 		if(hasTarget()){
-			float px = getTileX(), py = getTileY();
-			setTilePosition(targetX, targetY);
+			float px = getX(), py = getY();
+			setPosition(targetX, targetY);
 			targetX = targetY = -1;
-			updateSkins(getTileX() - px, getTileY() - py);
+			updateSkins(getX() - px, getY() - py);
 		}else{
 			updateSkins(0, 0);
 		}

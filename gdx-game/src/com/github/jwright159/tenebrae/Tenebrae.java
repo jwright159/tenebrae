@@ -28,7 +28,7 @@ public class Tenebrae extends GameScreen{
 	private String mappackname;
 
 	public static final float DEADZONE_DEFAULT = 0.7f;// 0 is at edge, 1 is at center
-	public static final float TILES = 7.5f;// number of tiles on the screen by height, only accepts 1 param so deal with it (KQ is 10)
+	public static final float TILES = 10f;// number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
 	public static final float MARGIN = 30f;
 	public static final boolean TABLEDEBUG = false, SHOWEMPTY = false;
 	
@@ -158,7 +158,7 @@ public class Tenebrae extends GameScreen{
 					@Override
 					public boolean pan(float x, float y, float dx, float dy){
 						if(doneLoading && player.canMove())
-							player.move(dx / map.tileWidth * player.speedMult * zoom, -dy / map.tileHeight * player.speedMult * zoom, 0, true, true);
+							player.move(dx * player.speedMult * zoom, -dy * player.speedMult * zoom, 0, true, true);
 							//debugActor.moveBy(dx / map.tileWidth, -dy / map.tileHeight);
 						return true;
 					}

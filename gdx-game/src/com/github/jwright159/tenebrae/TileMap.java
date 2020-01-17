@@ -25,7 +25,7 @@ public class TileMap extends ScreenActor{
 	private String filepath;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer maprenderer;
-	public float tileWidth, tileHeight;
+	private float tileWidth, tileHeight;
 	public int width, height;
 	private float offsetX, offsetY;
 	private Group ents;
@@ -68,10 +68,10 @@ public class TileMap extends ScreenActor{
 		width = tilelayer.getWidth();
 		height = tilelayer.getHeight();
 		setPosition(0, 0);
-		setSize(width * tileWidth, height * tileHeight);
+		setSize(width, height);
 
 		//final WRect objRenderer = new WRect(new Rectangle(), Color.WHITE, Color.BLACK, 1);
-		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, batch){
+		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, 1/tileWidth, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
 				Entity.DrawableEntity ent;
@@ -109,48 +109,39 @@ public class TileMap extends ScreenActor{
 				rtn.add(layer);
 		return rtn;
 	}
-	public MapObjects getCollisionObjects(int x, int y){
-		Cell cell = getCell(x, y);
+	public MapObjects getCollisionObjects(int tileX, int tileY){
+		Cell cell = getCell(tileX, tileY);
 		if(cell == null || cell.getTile().getObjects().getCount() == 0)
 			return null;
 		MapObjects rtn = new MapObjects();
 		for(MapObject obj : cell.getTile().getObjects())
 			if(obj instanceof RectangleMapObject){
 				RectangleMapObject robj = (RectangleMapObject)obj;
-				relateRectMapObjToMap(robj, x, y);
+				relateRectMapObjToMap(robj, tileX, tileY);
 				rtn.add(robj);
-				Log.verbose2("Found collision object!", robj.getRectangle());
+				Log.verbose2("Found collision object!", tileX, tileY, robj.getRectangle());
 			}
 		return rtn;
 	}
-	/*public static RectangleMapObject copy(RectangleMapObject o){ // Bad flex
-	 RectangleMapObject r = new RectangleMapObject();
-	 r.setColor(o.getColor());
-	 r.setName(o.getName());
-	 r.setOpacity(o.getOpacity());
-	 r.setVisible(o.isVisible());
-	 r.getRectangle().set(o.getRectangle());
-	 r.getProperties().putAll(o.getProperties());
-	 return r;
-	 }*/
-	public void relateRectMapObjToMap(RectangleMapObject obj, float x, float y){
+	/**
+		Relates RectangleMapObjects inside tiles to the map.
+	*/
+	public void relateRectMapObjToMap(RectangleMapObject obj, float tileX, float tileY){
+		MapProperties p = obj.getProperties();
 		Rectangle r = obj.getRectangle();
-		if(!obj.getProperties().containsKey("__x")){
-			obj.getProperties().put("__x", r.getX());
-			obj.getProperties().put("__y", r.getY());
+		if(p.get("__x") == null){ // keep the original states
+			relateTiledRectToMap(r);
+			p.put("__x", r.getX());
+			p.put("__y", r.getY());
+			p.put("__w", r.getWidth());
+			p.put("__h", r.getHeight());
+		}else{ // set to original states for re-translation
+			r.set(p.get("__x"), p.get("__y"), p.get("__w"), p.get("__h"));
 		}
-		if(!obj.getProperties().containsKey("__w")){
-			obj.getProperties().put("__w", r.getWidth());
-			obj.getProperties().put("__h", r.getHeight());
-		}
-		r.set(x + obj.getProperties().get("__x", Float.class) / tileWidth, y + obj.getProperties().get("__y", Float.class) / tileHeight, obj.getProperties().get("__w", Float.class) / tileWidth, obj.getProperties().get("__h", Float.class) / tileHeight);
+		r.setPosition(tileX + r.getX(), tileY + r.getY());
 	}
-	public void relateRectMapObjToMapPix(RectangleMapObject obj, float x, float y){
-		if(!obj.getProperties().containsKey("__x")){
-			obj.getProperties().put("__x", obj.getRectangle().getX());
-			obj.getProperties().put("__y", obj.getRectangle().getY());
-		}
-		obj.getRectangle().setPosition(x * tileWidth + obj.getProperties().get("__x", Float.class), y * tileHeight + obj.getProperties().get("__y", Float.class));
+	public Rectangle relateTiledRectToMap(Rectangle rect){
+		return rect.set(rect.getX()/tileWidth, rect.getY()/tileHeight, rect.getWidth()/tileWidth, rect.getHeight()/tileHeight);
 	}
 	public Array<Trigger> getCollidingObjects(Rectangle player, String prop){
 		Log.verbose2("Getting colliding objects!", player);
@@ -257,7 +248,7 @@ public class TileMap extends ScreenActor{
 		}
 
 		bound.set(x, y, width, height);
-		boundActor.setBounds(x*tileWidth, y*tileHeight, width*tileWidth, height*tileHeight);
+		boundActor.setBounds(x, y, width, height);
 		if(width <= 0 || height <= 0)
 			boundActor.setVisible(false);
 		else
@@ -274,8 +265,8 @@ public class TileMap extends ScreenActor{
 		}
 		setBoundToBigDZLater = false;
 		setBound(0, 0,
-			game.player.bigdzRect.width  * game.getCamera().zoom / tileWidth,
-			game.player.bigdzRect.height * game.getCamera().zoom / tileHeight);
+			game.player.bigdzRect.width  * game.getCamera().zoom,
+			game.player.bigdzRect.height * game.getCamera().zoom);
 	}
 	
 	public void setTileOffsetX(float x){
@@ -335,7 +326,7 @@ public class TileMap extends ScreenActor{
 		batch.end();
 		//Tenebrae.mp.charas.sort();
 		OrthographicCamera cam = (OrthographicCamera)getStage().getCamera();
-		cam.translate(-offsetX*tileWidth, -offsetY*tileHeight, 0);
+		cam.translate(-offsetX, -offsetY, 0);
 		cam.update();
 		maprenderer.setView(cam);
 		maprenderer.render();
@@ -343,7 +334,7 @@ public class TileMap extends ScreenActor{
 		for(Actor a : ents.getChildren())
 			if((!(a instanceof Entity.DrawableEntity) || !((Entity.DrawableEntity)a).hasMapObject()) && a.isVisible())
 				a.draw(batch, 1);
-		cam.translate(offsetX*tileWidth, offsetY*tileHeight, 0);
+		cam.translate(offsetX, offsetY, 0);
 		cam.update();
 	}
 	

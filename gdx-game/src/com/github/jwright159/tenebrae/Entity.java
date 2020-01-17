@@ -21,73 +21,18 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 
 	protected Tenebrae game;
 	public LuaTable vars;
-	private float x, y, originX, originY, tileWidth, tileHeight;
 	public float lifetime;
 	
-	public Entity(Tenebrae game, float x, float y, float tileWidth, float tileHeight){
+	public Entity(Tenebrae game, float x, float y){
 		this.game = game;
+		setPosition(x, y);
 		vars = LuaValue.tableOf();
 		new EntityLib().call(LuaValue.valueOf(""), vars);
-		setTileScalar(tileWidth, tileHeight);
-		setTilePosition(x, y);
-	}
-
-	public void setTileScalar(float tileWidth, float tileHeight){
-		this.tileWidth = tileWidth;
-		this.tileHeight = tileHeight;
-		setTilePosition(x, y);
-		setTileOrigin(originX, originY);
-	}
-	public float getTileScalarWidth(){
-		return tileWidth;
-	}
-	public float getTileScalarHeight(){
-		return tileHeight;
-	}
-	public void setTileX(float x){
-		this.x = x;
-		setX(x * tileWidth);
-	}
-	public float getTileX(){
-		return x;
-	}
-	public void setTileY(float y){
-		this.y = y;
-		setY(y * tileHeight);
-	}
-	public float getTileY(){
-		return y;
-	}
-	public void setTilePosition(float x, float y){
-		setTileX(x);
-		setTileY(y);
-	}
-	public void moveTileBy(float dx, float dy){
-		setTileX(x + dx);
-		setTileY(y + dy);
-	}
-	public void setTileOriginX(float originX){
-		this.originX = originX;
-		setOriginX(originX * tileWidth);
-	}
-	public float getTileOriginX(){
-		return originX;
-	}
-	public void setTileOriginY(float originY){
-		this.originY = originY;
-		setOriginY(originY * tileHeight);
-	}
-	public float getTileOriginY(){
-		return originY;
-	}
-	public void setTileOrigin(float originX, float originY){
-		setTileOriginX(originX);
-		setTileOriginY(originY);
 	}
 
 	@Override
 	public int compareTo(Entity c){
-		return y > c.y ? -1 : 1;
+		return getY() > c.getY() ? -1 : 1;
 	}
 
 	public void act(float delta, float time){
@@ -104,7 +49,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 
 	@Override
 	public String toString(){
-		return super.toString() + "§" + "{" + x + "x" + y + "}";
+		return super.toString() + "§" + "{" + getX() + "x" + getY() + "}";
 	}
 
 	public class EntityLib extends TwoArgFunction{
@@ -132,15 +77,15 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 					public LuaValue call(LuaValue self, LuaValue key){
 						switch(key.checkjstring()){
 							case "x":
-								return valueOf(getTileX());
+								return valueOf(getX());
 							case "y":
-								return valueOf(getTileY());
+								return valueOf(getY());
 							case "rotation":
 								return valueOf(getRotation());
 							case "originX":
-								return valueOf(getTileOriginX());
+								return valueOf(getOriginX());
 							case "originY":
-								return valueOf(getTileOriginY());
+								return valueOf(getOriginY());
 							default:
 								return NIL;
 						}
@@ -151,19 +96,19 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
 						switch(key.checkjstring()){
 							case "x":
-								setTileX((float)value.checkdouble());
+								setX((float)value.checkdouble());
 								break;
 							case "y":
-								setTileY((float)value.checkdouble());
+								setY((float)value.checkdouble());
 								break;
 							case "rotation":
 								setRotation((float)value.checkdouble());
 								break;
 							case "originX":
-								setTileOriginX((float)value.checkdouble());
+								setOriginX((float)value.checkdouble());
 								break;
 							case "originY":
-								setTileOriginY((float)value.checkdouble());
+								setOriginY((float)value.checkdouble());
 								break;
 							default:
 								return TRUE;
@@ -191,8 +136,8 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		//private Array<Trigger> trigs; // Do this if u want the longer prop searching
 		private MapProperties props; // Just for triggers
 		
-		public DrawableEntity(Tenebrae game, float x, float y, float width, float height, float tileWidth, float tileHeight, Drawable drawable){
-			super(game, x, y, tileWidth, tileHeight);
+		public DrawableEntity(Tenebrae game, float x, float y, float width, float height, Drawable drawable){
+			super(game, x, y);
 			new DrawableEntityLib().call(LuaValue.valueOf(""), vars);
 			
 			this.drawable = drawable;
@@ -219,59 +164,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 				public void draw(Batch batch){}
 			};
 			//tap.setDebug(true);
-			setTileBounds(x, y, width, height);
-		}
-		
-		@Override
-		public void setTileScalar(float tileWidth, float tileHeight){
-			super.setTileScalar(tileWidth, tileHeight);
-			setTileSize(width, height);
-		}
-		
-		public float getTileX(int align){
-			if(Align.isLeft(align))
-				return getTileX();
-			else if(Align.isRight(align))
-				return getTileX() + width;
-			else
-				return getTileX() + width / 2;
-		}
-		public float getTileY(int align){
-			if(Align.isBottom(align))
-				return getTileY();
-			else if(Align.isTop(align))
-				return getTileY() + height;
-			else
-				return getTileY() + height / 2;
-		}
-		public void setTileWidth(float width){
-			this.width = width;
-			setWidth(width * getTileScalarWidth());
-		}
-		public float getTileWidth(){
-			return width;
-		}
-		public void setTileHeight(float height){
-			this.height = height;
-			setHeight(height * getTileScalarHeight());
-		}
-		public float getTileHeight(){
-			return height;
-		}
-		public void setTileSize(float width, float height){
-			setTileWidth(width);
-			setTileHeight(height);
-		}
-		public void setTileBounds(float x, float y, float width, float height){
-			setTileX(x);
-			setTileY(y);
-			setTileWidth(width);
-			setTileHeight(height);
-		}
-		private Rectangle tileRect = new Rectangle();
-		public Rectangle toTileRect(){
-			tileRect.set(getTileX()-getTileOriginX(), getTileY()-getTileOriginY(), getTileWidth(), getTileHeight());
-			return tileRect;
+			setBounds(x, y, width, height);
 		}
 
 		public void setDrawable(Drawable drawable){
@@ -336,7 +229,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		@Override
 		public void act(float delta, float time){
 			super.act(delta, time);
-			if(game.player.collide && toTileRect().overlaps(game.player.toTileRect())){
+			if(game.player.collide && toRect().overlaps(game.player.toRect())){
 				LuaValue onTouch = vars.get("onTouch");
 				if(!onTouch.isnil())
 					onTouch.call(vars);
@@ -396,9 +289,9 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 						public LuaValue call(LuaValue self, LuaValue key){
 							switch(key.checkjstring()){
 								case "width":
-									return valueOf(getTileWidth());
+									return valueOf(getWidth());
 								case "height":
-									return valueOf(getTileHeight());
+									return valueOf(getHeight());
 								default:
 									return NIL;
 							}
@@ -409,10 +302,10 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 						public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
 							switch(key.checkjstring()){
 								case "width":
-									setTileWidth((float)value.checkdouble());
+									setWidth((float)value.checkdouble());
 									break;
 								case "height":
-									setTileHeight((float)value.checkdouble());
+									setHeight((float)value.checkdouble());
 									break;
 								case "onTap":
 									if(!value.isnil())
@@ -436,8 +329,8 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 	public static class GroupEntity extends Entity{
 		private Array<Actor> group;
 		
-		public GroupEntity(Tenebrae game, float x, float y, float tileWidth, float tileHeight){
-			super(game, x, y, tileWidth, tileHeight);
+		public GroupEntity(Tenebrae game, float x, float y){
+			super(game, x, y);
 			new GroupEntityLib().call(LuaValue.valueOf(""), vars);
 			group = new Array<Actor>();
 		}

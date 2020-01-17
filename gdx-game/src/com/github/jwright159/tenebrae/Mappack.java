@@ -239,8 +239,8 @@ public class Mappack implements ScriptGlob, Disposable{
 					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
 						game.player.addAction(new Action.CameraAction(game, cam,
-								cam.position.x + (float)args.optdouble(1, 0) * game.map.tileWidth,
-								cam.position.y + (float)args.optdouble(2, 0) * game.map.tileHeight,
+								cam.position.x + (float)args.optdouble(1, 0),
+								cam.position.y + (float)args.optdouble(2, 0),
 								Utils.getInterpolation(args.optjstring(4, "constant")),
 								(float)args.optdouble(3, 0),
 								args.optboolean(5, false)));
@@ -253,8 +253,8 @@ public class Mappack implements ScriptGlob, Disposable{
 						OrthographicCamera cam = game.getCamera();
 						if(args.isnumber(0))
 							game.player.addAction(new Action.CameraAction(game, cam,
-									(float)args.optdouble(1, 0) * game.map.tileWidth,
-									(float)args.optdouble(2, 0) * game.map.tileHeight,
+									(float)args.optdouble(1, 0),
+									(float)args.optdouble(2, 0),
 									Utils.getInterpolation(args.optjstring(4, "constant")),
 									(float)args.optdouble(3, 0),
 									args.optboolean(5, false)));
@@ -357,7 +357,6 @@ public class Mappack implements ScriptGlob, Disposable{
 							return new Entity.DrawableEntity(game,
 								(float)args.checkdouble(2), (float)args.checkdouble(3),
 								(float)args.checkdouble(4), (float)args.checkdouble(5),
-								game.map.tileWidth, game.map.tileHeight,
 								new LayeredTextureRegionDrawable(new LayeredTextureRegion(game.getSkin().getRegion("white")))
 								).vars;
 						}else{
@@ -365,16 +364,14 @@ public class Mappack implements ScriptGlob, Disposable{
 								NinePatch patch = game.getSkin().getPatch(args.checkjstring(4));
 								return new Entity.DrawableEntity(game,
 									(float)args.checkdouble(2), (float)args.checkdouble(3),
-									(float)patch.getTotalWidth() / game.map.tileWidth, (float)patch.getTotalHeight() / game.map.tileHeight,
-									game.map.tileWidth, game.map.tileHeight,
+									(float)patch.getTotalWidth(), (float)patch.getTotalHeight(),
 									new NinePatchDrawable(patch)
 									).vars;
 							}else{
 								TextureRegion region = game.getSkin().getRegion(args.checkjstring(4));
 								return new Entity.DrawableEntity(game,
 									(float)args.checkdouble(2), (float)args.checkdouble(3),
-									(float)region.getRegionWidth() / game.map.tileWidth, (float)region.getRegionHeight() / game.map.tileHeight,
-									game.map.tileWidth, game.map.tileHeight,
+									(float)region.getRegionWidth(), (float)region.getRegionHeight(),
 									new LayeredTextureRegionDrawable(new LayeredTextureRegion(region))
 									).vars;
 							}
@@ -413,7 +410,7 @@ public class Mappack implements ScriptGlob, Disposable{
 			library.set("Group", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){
-						Entity.GroupEntity group = new Entity.GroupEntity(game, 0, 0, game.map.tileWidth, game.map.tileHeight);
+						Entity.GroupEntity group = new Entity.GroupEntity(game, 0, 0);
 						for(int i = 1; i <= args.narg(); i++)
 							group.addEntity((Entity)args.arg(i).getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class));
 						return group.vars;
@@ -456,9 +453,9 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "moveSpeed":
 								return valueOf(game.player.speedMult);
 							case "cameraX":
-								return valueOf(game.getCamera().position.x / game.map.tileWidth);
+								return valueOf(game.getCamera().position.x);
 							case "cameraY":
-								return valueOf(game.getCamera().position.y / game.map.tileHeight);
+								return valueOf(game.getCamera().position.y);
 							case "cameraZoom":
 								return valueOf(game.getCamera().zoom);
 							case "x":
@@ -475,14 +472,14 @@ public class Mappack implements ScriptGlob, Disposable{
 								return valueOf(game.map.getTileOffsetY());
 							case "screenX":
 								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
-								return valueOf(game.getStage().screenToStageCoordinates(tmp).x / game.map.tileWidth);
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).x);
 							case "screenY":
 								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
-								return valueOf(game.getStage().screenToStageCoordinates(tmp).y / game.map.tileHeight);
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).y);
 							case "screenWidth":
-								return valueOf(game.getViewport().getScreenWidth()  * game.getCamera().zoom / game.map.tileWidth);
+								return valueOf(game.getViewport().getScreenWidth()  * game.getCamera().zoom);
 							case "screenHeight":
-								return valueOf(game.getViewport().getScreenHeight() * game.getCamera().zoom / game.map.tileHeight);
+								return valueOf(game.getViewport().getScreenHeight() * game.getCamera().zoom);
 							default:
 								return self.rawget(key);
 						}
@@ -508,10 +505,10 @@ public class Mappack implements ScriptGlob, Disposable{
 								game.player.speedMult = (float)value.checkdouble();
 								break;
 							case "cameraX":
-								game.getCamera().position.x = (float)value.checkdouble() * game.map.tileWidth;
+								game.getCamera().position.x = (float)value.checkdouble();
 								break;
 							case "cameraY":
-								game.getCamera().position.y = (float)value.checkdouble() * game.map.tileHeight;
+								game.getCamera().position.y = (float)value.checkdouble();
 								break;
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();

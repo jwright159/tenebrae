@@ -167,8 +167,8 @@ public abstract class Action implements Runnable{
 		}
 		@Override
 		public void run(){
-			oldx = chara.getTileX();
-			oldy = chara.getTileY();
+			oldx = chara.getX();
+			oldy = chara.getY();
 			if(relative){
 				x += oldx;
 				y += oldy;
