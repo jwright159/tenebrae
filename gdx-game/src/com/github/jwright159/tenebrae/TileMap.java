@@ -34,7 +34,6 @@ public class TileMap extends ScreenActor{
 	public float lifetime;
 
 	private Rectangle bound;
-	private PatchActor boundActor;
 	public boolean setBoundToBigDZLater = false;
 
 	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
@@ -78,8 +77,6 @@ public class TileMap extends ScreenActor{
 				for(Entity e : ents.getChildren())
 					if(e instanceof Entity.DrawableEntity && (ent = (Entity.DrawableEntity)e) != null &&
 						ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible()){
-						if(ent instanceof Player && boundActor.isVisible())
-							boundActor.draw(getBatch(), 1);
 						ent.draw(getBatch(), 1);
 					}
 			}
@@ -89,9 +86,6 @@ public class TileMap extends ScreenActor{
 			Log.verbose2("Found tileset! " + tileset.getName());
 
 		bound = new Rectangle();
-		boundActor = new PatchActor(bound, game.getSkin().getPatch("bounds"), 1);
-		boundActor.setBorderAlignment(Align.left);
-		//boundsActor.setDebug(true);
 		setBound(-1, -1, -1, -1);
 
 		//Tenebrar.debug("Map made! "+toString());
@@ -248,11 +242,6 @@ public class TileMap extends ScreenActor{
 		}
 
 		bound.set(x, y, width, height);
-		boundActor.setBounds(x, y, width, height);
-		if(width <= 0 || height <= 0)
-			boundActor.setVisible(false);
-		else
-			boundActor.setVisible(true);
 		game.player.clamp(bound);
 	}
 	public Rectangle getBound(){

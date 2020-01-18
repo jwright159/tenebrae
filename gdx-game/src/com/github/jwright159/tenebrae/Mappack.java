@@ -458,13 +458,13 @@ public class Mappack implements ScriptGlob, Disposable{
 								return valueOf(game.getCamera().position.y);
 							case "cameraZoom":
 								return valueOf(game.getCamera().zoom);
-							case "x":
+							case "boundryX":
 								return valueOf(game.map.getBound().getX());
-							case "y":
+							case "boundryY":
 								return valueOf(game.map.getBound().getY());
-							case "width":
+							case "boundryWidth":
 								return valueOf(game.map.getBound().getWidth());
-							case "height":
+							case "boundryHeight":
 								return valueOf(game.map.getBound().getHeight());
 							case "offsetX":
 								return valueOf(game.map.getTileOffsetX());
@@ -513,19 +513,19 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();
 								break;
-							case "x":
+							case "boundryX":
 								Rectangle bound = game.map.getBound();
 								game.map.setBound((float)value.checkdouble(), bound.getY(), bound.getWidth(), bound.getHeight());
 								break;
-							case "y":
+							case "boundryY":
 								bound = game.map.getBound();
 								game.map.setBound(bound.getX(), (float)value.checkdouble(), bound.getWidth(), bound.getHeight());
 								break;
-							case "width":
+							case "boundryWidth":
 								bound = game.map.getBound();
 								game.map.setBound(bound.getX(), bound.getY(), (float)value.checkdouble(), bound.getHeight());
 								break;
-							case "height":
+							case "boundryHeight":
 								bound = game.map.getBound();
 								game.map.setBound(bound.getX(), bound.getY(), bound.getWidth(), (float)value.checkdouble());
 								break;
