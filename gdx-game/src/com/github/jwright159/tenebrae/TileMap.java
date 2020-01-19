@@ -342,7 +342,6 @@ public class TileMap extends ScreenActor{
 		super.dispose();
 		map.dispose();
 		maprenderer.dispose();
-		//boundActor.dispose();
 		for(Actor a : ents.getChildren())
 		 	if(a instanceof Entity && !(a instanceof Character))
 				((Entity)a).dispose();

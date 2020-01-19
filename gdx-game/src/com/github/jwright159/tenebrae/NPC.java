@@ -44,13 +44,6 @@ public class NPC extends Character{
 	}
 
 	@Override
-	public void die(){
-		LuaValue die = getGlobals().get("onDie");
-		if(!die.isnil())
-			die.call(getGlobals());
-	}
-
-	@Override
 	public void draw(Batch batch, float parentAlpha){
 		//Log.debug("Drawing", this);
 		if(enabled)

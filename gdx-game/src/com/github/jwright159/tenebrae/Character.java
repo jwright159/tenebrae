@@ -148,9 +148,9 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		//Log.debug("Removing stats of type " + type + " from " + toString() + "!");
 		ArrayMap<Stats,Float> stat = stats.removeKey(type);
 		if(hp > maxhp())
-			damage(stat.get(Stats.maxhp), true, true);
+			damage(stat.get(Stats.maxhp), true);
 		if(mp > maxmp())
-			tire(stat.get(Stats.maxmp), true, true);
+			tire(stat.get(Stats.maxmp), true);
 		updateBoxHP();
 	}
 	public void removeTempStats(){
@@ -355,54 +355,55 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			return;
 		}
 		if(str() >= 0)
-			enemy.damage(calcDamage(enemy, magic), false, false);
+			enemy.damage(calcDamage(enemy, magic), false);
 		else
-			enemy.heal(calcHeal(enemy, magic), false, false);
+			enemy.heal(calcHeal(enemy, magic), false);
 		//for(MenuItem.GameItem item : enemy.equippedItems.values())
 		//	item.run("onEquippedHit");
 		removeTempStats();
 	}
-	public void damage(float damage, boolean override, boolean silent){
+	public void damage(float damage, boolean override){
 		hp -= damage;
 		if(!override && hp < 0)
 			hp = 0;
-		finishAffect();
-		//if(!silent)
-		//	Tenebrae.player.addDialog(name + " got hurt by " + f(damage) + " points!");
+		finishAffect(!override);
 	}
-	public void heal(float heal, boolean override, boolean silent){
+	public void heal(float heal, boolean override){
 		hp += heal;
 		if(!override && hp > maxhp())
 			hp = maxhp();
-		finishAffect();
-		//if(!silent)
-		//	Tenebrae.player.addDialog(name + " got healed by " + f(heal) + " points!");
+		finishAffect(!override);
 	}
-	public void tire(float damage, boolean override, boolean silent){
+	public void tire(float damage, boolean override){
 		mp -= damage;
 		if(!override && mp < 0)
 			mp = 0;
-		finishAffect();
-		//if(!silent)
-		//	Tenebrae.player.addDialog(name + " got tired by " + f(damage) + " points!");
+		finishAffect(!override);
 	}
-	public void invigor(float heal, boolean override, boolean silent){
+	public void invigor(float heal, boolean override){
 		mp += heal;
 		if(!override && mp > maxmp())
 			mp = maxmp();
-		finishAffect();
-		//if(!silent)
-		//	Tenebrae.player.addDialog(name + " got invigorated by " + f(heal) + " points!");
+		finishAffect(!override);
 	}
-	public void finishAffect(){
+	public void finishAffect(boolean checkDeath){
 		updateBoxHP();
-		if(isDead())
+		if(checkDeath && isDead())
 			die();
 	}
 	public boolean isDead(){
 		return hp <= 0;
 	}
-	abstract public void die()
+	/**
+		Returns whether death was handled.
+	*/
+	public boolean die(){
+		LuaValue func = getGlobals().get("onDeath");
+		if(!func.isnil())
+			return func.call(getGlobals()).toboolean();
+		else
+			return false;
+	}
 
 	public void addAction(Action add){
 		Log.verbose2("Adding action", add);
@@ -509,20 +510,19 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 						return NONE;
 					}
 				});
-			library.set("affect", new VarArgFunction(){ // hp, mp, silent, override
+			library.set("affect", new VarArgFunction(){ // hp, mp, override
 					@Override
 					public Varargs invoke(Varargs args){
 						float hp = (float)args.checkdouble(1), mp = (float)args.checkdouble(2);
-						boolean silent = args.optboolean(3, false);
-						boolean override = args.optboolean(4, false);
+						boolean override = args.optboolean(3, false);
 						if(hp < 0)
-							damage(-hp, override,  silent);
+							damage(-hp, override);
 						else if(hp > 0)
-							heal(hp, override, silent);
+							heal(hp, override);
 						if(mp < 0)
-							tire(-mp, override, silent);
+							tire(-mp, override);
 						else if(mp > 0)
-							invigor(mp, override, silent);
+							invigor(mp, override);
 						return NONE;
 					}
 				});

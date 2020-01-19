@@ -46,7 +46,7 @@ public class Mappack implements ScriptGlob, Disposable{
 		this.folder = folder;
 		charas = new Array<Character>();
 		tilesets = new ObjectMap<String,TiledMapTileSet>();
-		globals = new StdGlobals(game.mappackpath);
+		globals = new StdGlobals(folder);
 		globals.load(new MappackLib());
 	}
 	public TileMap loadMap(String tmx, String lua){

@@ -31,7 +31,7 @@ public class Player extends Character{
 	public Vector3 lastCameraPos;
 	
 	public Rectangle activeDeadzone;
-	public static Rectangle dzRect, bigdzRect;
+	public Rectangle dzRect, bigdzRect;
 	public float deadzone = Tenebrae.DEADZONE_DEFAULT;
 	public boolean collide = true;
 	
@@ -360,7 +360,7 @@ public class Player extends Character{
 				addDialog("You have gone up a level! (" + (lv + 1) + " -> " + (i + 1) + ")");
 			setStats(i);
 		}
-		finishAffect();
+		finishAffect(true);
 	}
 	public void setStats(int newlv){
 		Log.debug("Setting a lv! " + newlv);
@@ -375,8 +375,8 @@ public class Player extends Character{
 		float maxhp = maxhp(), maxmp = maxmp();
 		ArrayMap<Stats,Float> stats = statTable.getValueAt(newlv);
 		setStats(baseStats, stats.get(Stats.str), stats.get(Stats.intl), stats.get(Stats.def), stats.get(Stats.agl), stats.get(Stats.maxhp), stats.get(Stats.maxmp));
-		heal(maxhp() - maxhp, true, true);
-		invigor(maxmp() - maxmp, true, true);
+		heal(maxhp() - maxhp, true);
+		invigor(maxmp() - maxmp, true);
 		Log.debug("setStats", maxhp, maxhp());
 	}
 	public void setStatLv(float exp, float str, float intl, float def, float agl, float maxhp, float maxmp){
@@ -431,13 +431,15 @@ public class Player extends Character{
 	 */
 
 	@Override
-	public void die(){
-		Log.debug("Dead.");
-		collide = false;
-		addDialog("You have died! :(");
-		addAction(new Action(){public void run(){
-					game.loadSave();
-				}});
+	public boolean die(){
+		if(!super.die()){
+			Log.debug("Dead.");
+			collide = false;
+			addAction(new Action(){public void run(){
+						game.loadSave();
+					}});
+		}
+		return true;
 	}
 
 	public void clamp(Rectangle bound){

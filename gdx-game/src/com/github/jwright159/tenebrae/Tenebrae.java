@@ -186,7 +186,7 @@ public class Tenebrae extends GameScreen{
 		Gdx.input.setCatchBackKey(true);
 	}
 	public void loadSave(JSONObject save){
-		Log.debug("Loading!", player, save);
+		Log.debug("Loading!", player, map, save);
 
 		doneLoading = false;
 		reload();
@@ -227,6 +227,10 @@ public class Tenebrae extends GameScreen{
 		if(map != null){
 			map.dispose();
 			map = null;
+		}
+		if(mappack != null){
+			mappack.dispose();
+			mappack = null;
 		}
 		mappack = new Mappack(this, mappackpath);
 		player = new Player(this);
@@ -409,7 +413,7 @@ public class Tenebrae extends GameScreen{
 		vp.setWorldSize(vp.getScreenWidth(), vp.getScreenHeight());
 		screenRect.set(vp.getScreenX(), vp.getScreenY(), vp.getScreenWidth(), vp.getScreenHeight());
 		Log.debug("ScreenRect", screenRect);
-		player.dzRect = null;
+		if(player != null) player.dzRect = null;
 	}
 
 	@Override
