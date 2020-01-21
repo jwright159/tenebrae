@@ -139,7 +139,7 @@ public abstract class MenuItem{
 		}
 		public GameItem(Tenebrae game, String name, Prototype script, Character owner, Skin skin){
 			this(game, name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
-			Log.verbose("Parsing file of item!");
+			Log.gameplay("Parsing file of item!");
 			new LuaClosure(script, getGlobals()).call();
 			if(isEquipable()){
 				addOption(equipOpt);

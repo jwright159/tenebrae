@@ -34,7 +34,7 @@ public class NPC extends Character{
 
 	@Override
 	public boolean doDefaultAction(){
-		if(idleRoutine.isEmpty() || hasTarget())
+		if(idleRoutine.isEmpty() || hasTarget)
 			return false;
 		FunctionAction a;
 		addAction(a = idleRoutine.removeIndex(0));

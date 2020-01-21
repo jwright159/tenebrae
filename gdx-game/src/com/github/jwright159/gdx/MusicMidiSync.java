@@ -23,7 +23,7 @@ public class MusicMidiSync implements Disposable{
 		music.setOnCompletionListener(new Music.OnCompletionListener(){
 				@Override
 				public void onCompletion(Music p1){
-					Log.verbose("Completed music", MusicMidiSync.this, p1);
+					Log.audio("Completed music", MusicMidiSync.this, p1);
 					stop();
 					if(looping)
 						play();

@@ -68,7 +68,7 @@ public class EntityBox extends Table{
 		public void updateHP(){
 			Player p = (Player)parent;
 			super.updateHP();
-			Log.verbose("Lv pts! " + p.expNow());
+			Log.ui("Lv pts! " + p.expNow());
 			levelBar.setHealth(p.lv, p.expNow(), p.expAtNextLv());
 		}
 	}
@@ -168,7 +168,7 @@ public class EntityBox extends Table{
 			this(text, box, Align.topLeft, true, skin);
 		}
 		public boolean isEmpty(){
-			Log.verbose2("Is " + this + " empty? " + (box != null ? box.list.size : -1));
+			Log.ui("Is " + this + " empty? " + (box != null ? box.list.size : -1));
 			if(box == null)
 				return false;
 			for(MenuOption opt : box.list)
@@ -263,7 +263,7 @@ public class EntityBox extends Table{
 		}
 
 		public void addOption(MenuOption opt){
-			Log.verbose2("Adding option " + opt + " to " + this + "!");
+			Log.ui("Adding option " + opt + " to " + this + "!");
 			if(list.contains(opt, true))
 				return;
 			list.add(opt);
@@ -288,22 +288,22 @@ public class EntityBox extends Table{
 		}
 
 		public void reorganize(){
-			Log.verbose2("Reorganizing " + this + "!");
+			Log.ui("Reorganizing " + this + "!");
 			if(list.size == 0)
 				return;
 
 			for(int i = 0; i < list.size; i++){
-				Log.verbose2("Found " + (isPrevPage(list.get(i)) ?"prevPage": isNextPage(list.get(i)) ?"nextPage": isEmpty(list.get(i)) ?"empty": "an option") + "!");
-				Log.verbose2("Found " + list.get(i) + "! " + (list.get(i).box != null ?"" + list.get(i).box.list.size: "no box"));
+				Log.ui("Found " + (isPrevPage(list.get(i)) ?"prevPage": isNextPage(list.get(i)) ?"nextPage": isEmpty(list.get(i)) ?"empty": "an option") + "!");
+				Log.ui("Found " + list.get(i) + "! " + (list.get(i).box != null ?"" + list.get(i).box.list.size: "no box"));
 				if(!list.get(i).isOpt()){
-					Log.verbose2("Removing " + list.get(i) + "!");
+					Log.ui("Removing " + list.get(i) + "!");
 					list.removeIndex(i--).remove();
 				}
 			}
 
 			sortList();
 			int listLengthAfter = list.size == 0 ? itemsPerHeight * 2 : ((list.size - 1) / ((itemsPerHeight - 1) * 2) + 1) * itemsPerHeight * 2;
-			Log.verbose("List Lengths! Current: " + list.size + ", After: Got " + listLengthAfter + ", expected a multiple of " + itemsPerHeight * 2 + "!");
+			Log.ui("List Lengths! Current: " + list.size + ", After: Got " + listLengthAfter + ", expected a multiple of " + itemsPerHeight * 2 + "!");
 			for(int i = 0; i < listLengthAfter; i++){
 				String debug = "an option";
 				if(i % (itemsPerHeight * 2) == itemsPerHeight * 2 - 2){
@@ -316,13 +316,13 @@ public class EntityBox extends Table{
 					list.insert(i, empty());
 					debug = "empty";
 				}
-				Log.verbose2("Adding " + debug + " at " + i + "! Size now! " + list.size);
+				Log.ui("Adding " + debug + " at " + i + "! Size now! " + list.size);
 			}
 
 			activePage = 0;
 			double pagefloat = (float)list.size / (float)(itemsPerHeight * 2);
 			int pages = list.size == 0 ? 1 : (int)Math.ceil(pagefloat);
-			Log.verbose2("Pages! " + list.size + ", " + (itemsPerHeight * 2) + ", " + pagefloat + " = " + pages);
+			Log.ui("Pages! " + list.size + ", " + (itemsPerHeight * 2) + ", " + pagefloat + " = " + pages);
 
 			clearChildren();
 			this.pages.clear();
@@ -388,7 +388,7 @@ public class EntityBox extends Table{
 		public void setFocusTableToActive(){
 			if(!isVisible())
 				return;
-			Log.debug("Setting focus page to", activePage, pages.get(activePage));
+			Log.ui("Setting focus page to", activePage, pages.get(activePage));
 			game.setFocusTable(pages.get(activePage));
 		}
 
@@ -423,7 +423,7 @@ public class EntityBox extends Table{
 		}
 
 		public void changePage(int page){
-			Log.verbose2("Changing page on " + this + " of size " + list.size + " from " + activePage + " to " + page + " of " + pages + "!");
+			Log.ui("Changing page on " + this + " of size " + list.size + " from " + activePage + " to " + page + " of " + pages + "!");
 			if(list.size == 0)
 				return;
 			if(page < 0 || page >= pages.size){
@@ -453,7 +453,7 @@ public class EntityBox extends Table{
 			cat = new MenuOption(item.category, b, box.skin);
 		}
 
-		Log.debug(item);
+		Log.ui(item);
 		if(!(item instanceof MenuItem.GameItem)){
 			cat.box.addOption(new MenuOption(item.name, null, box.skin){
 					@Override
@@ -465,9 +465,9 @@ public class EntityBox extends Table{
 			MenuItem.GameItem gitem = (MenuItem.GameItem)item;
 			MenuBox b = new MenuBox(game, gitem.name, box.skin);
 			MenuOption opt = new MenuOption(gitem.name, b, box.skin);
-			Log.verbose2("Putting item stuff in box!");
+			Log.ui("Putting item stuff in box!");
 			while(gitem.toPutInBox.size > 0){
-				Log.verbose("Got " + gitem.toPutInBox.get(0));
+				Log.ui("Got " + gitem.toPutInBox.get(0));
 				opt.box.addOption(gitem.toPutInBox.removeIndex(0));
 			}
 			cat.box.addOption(opt);

@@ -174,17 +174,18 @@ public abstract class Action implements Runnable{
 				y += oldy;
 			}
 			delay = delay == 0 ? 0 : (float)Math.hypot(x - oldx, y - oldy) / delay;
-			Log.verbose2("Moving!", oldx, oldy, x, y, delay);
+			Log.gameplay("Moving!", oldx, oldy, x, y, delay);
 			super.run();
 		}
 		@Override
 		public boolean stop(boolean touched){
-			Log.verbose2("Actually moving.", this, delay, oldx, oldy, x, y, done);
+			Log.gameplay("Actually moving.", this, delay, oldx, oldy, x, y, done);
 			if(done)
 				return true;
 			if(manualOverride && touched)
 				chara.delay = 0;
 			float a = delay == 0 ? 1 : (delay - chara.delay) / delay;
+			chara.hasTarget = true;
 			chara.targetX = interp.apply(oldx, x, a);
 			chara.targetY = interp.apply(oldy, y, a);
 			if(chara instanceof Player)((Player)chara).collide = collide;

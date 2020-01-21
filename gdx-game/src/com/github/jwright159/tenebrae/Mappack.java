@@ -52,7 +52,6 @@ public class Mappack implements ScriptGlob, Disposable{
 	public TileMap loadMap(String tmx, String lua){
 		if(tmx == null){
 			TileMap map = new TileMap(game, null, game.getScript(lua, globals), game.getStage().getBatch());
-			map.setBoundToBigDZ();
 			if(lastdeadzone == -1){
 				lastdeadzone = game.player.deadzone;
 				game.player.deadzone = 0;
@@ -60,7 +59,6 @@ public class Mappack implements ScriptGlob, Disposable{
 			return map;
 		}else{
 			TileMap map = new TileMap(game, folder.child(tmx), game.getScript(lua, globals), game.getStage().getBatch());
-			map.setBound(-1, -1, -1, -1);
 			if(lastdeadzone != -1){
 				game.player.deadzone = lastdeadzone;
 				lastdeadzone = -1;
@@ -160,7 +158,7 @@ public class Mappack implements ScriptGlob, Disposable{
 						String text = args.checkjstring(1);
 						float delay = (float)args.optdouble(2, -1), cps = (float)args.optdouble(3, -1);
 						boolean tapDelay = args.toboolean(4);
-						Log.debug(text, delay, cps);
+						Log.gameplay(text, delay, cps);
 						if(delay == -1 && cps == -1){
 							game.player.addDialog(text);
 						}else if(cps == -1){
@@ -382,7 +380,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
-						Log.verbose2("Added", e);
+						Log.gameplay("Added", e);
 						game.map.addEntity(e);
 						return NONE;
 					}
@@ -391,7 +389,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
-						Log.verbose2("Removed", e);
+						Log.gameplay("Removed", e);
 						e.remove();
 						return NONE;
 					}
@@ -458,14 +456,8 @@ public class Mappack implements ScriptGlob, Disposable{
 								return valueOf(game.getCamera().position.y);
 							case "cameraZoom":
 								return valueOf(game.getCamera().zoom);
-							case "boundryX":
-								return valueOf(game.map.getBound().getX());
-							case "boundryY":
-								return valueOf(game.map.getBound().getY());
-							case "boundryWidth":
-								return valueOf(game.map.getBound().getWidth());
-							case "boundryHeight":
-								return valueOf(game.map.getBound().getHeight());
+							case "deadzone":
+								return valueOf(game.player.deadzone);
 							case "offsetX":
 								return valueOf(game.map.getTileOffsetX());
 							case "offsetY":
@@ -513,21 +505,8 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();
 								break;
-							case "boundryX":
-								Rectangle bound = game.map.getBound();
-								game.map.setBound((float)value.checkdouble(), bound.getY(), bound.getWidth(), bound.getHeight());
-								break;
-							case "boundryY":
-								bound = game.map.getBound();
-								game.map.setBound(bound.getX(), (float)value.checkdouble(), bound.getWidth(), bound.getHeight());
-								break;
-							case "boundryWidth":
-								bound = game.map.getBound();
-								game.map.setBound(bound.getX(), bound.getY(), (float)value.checkdouble(), bound.getHeight());
-								break;
-							case "boundryHeight":
-								bound = game.map.getBound();
-								game.map.setBound(bound.getX(), bound.getY(), bound.getWidth(), (float)value.checkdouble());
+							case "deadzone":
+								game.player.deadzone = (float)value.checkdouble();
 								break;
 							case "offsetX":
 								game.map.setTileOffsetX((float)value.checkdouble());
@@ -586,7 +565,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public void onEvent(MidiEvent event, long ms){
 						final NoteOn note = (NoteOn)event;
-						Log.verbose2("On!", note, note.getChannel(), note.getTick());
+						Log.audio("On!", note, note.getChannel(), note.getTick());
 						final LuaTable levent = LuaValue.tableOf();
 						levent.set("time", ms / 1000f);
 						levent.set("velocity", note.getVelocity());
@@ -619,7 +598,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public void onEvent(MidiEvent event, long ms){
 						final NoteOff note = (NoteOff)event;
-						Log.verbose2("Off!", note, note.getChannel(), note.getTick());
+						Log.audio("Off!", note, note.getChannel(), note.getTick());
 						final LuaTable levent = LuaValue.tableOf();
 						levent.set("time", ms / 1000f);
 						levent.set("velocity", note.getVelocity());

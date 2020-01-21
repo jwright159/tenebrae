@@ -44,7 +44,7 @@ public class EnemyWeapon implements ScriptGlob{
 			//proj = new Projectile(tileset.getTile(1), spawnX, spawnY, touch, id++, this);
 		}
 		proj.setScale(scale);
-		Log.debug("Spawning", spawnX, spawnY, proj);
+		Log.gameplay("Spawning", spawnX, spawnY, proj);
 		//if(Tenebrae.fight == null)
 			proj.dispose();
 		//else

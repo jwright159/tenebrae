@@ -33,9 +33,6 @@ public class TileMap extends ScreenActor{
 	private LuaFunction script;
 	public float lifetime;
 
-	private Rectangle bound;
-	public boolean setBoundToBigDZLater = false;
-
 	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
 		this.game = game;
 		this.script = script;
@@ -83,10 +80,7 @@ public class TileMap extends ScreenActor{
 		};
 
 		for(TiledMapTileSet tileset : map.getTileSets())
-			Log.verbose2("Found tileset! " + tileset.getName());
-
-		bound = new Rectangle();
-		setBound(-1, -1, -1, -1);
+			Log.graphics("Found tileset! " + tileset.getName());
 
 		//Tenebrar.debug("Map made! "+toString());
 	}
@@ -113,7 +107,7 @@ public class TileMap extends ScreenActor{
 				RectangleMapObject robj = (RectangleMapObject)obj;
 				relateRectMapObjToMap(robj, tileX, tileY);
 				rtn.add(robj);
-				Log.verbose2("Found collision object!", tileX, tileY, robj.getRectangle());
+				Log.gameplay("Found collision object!", tileX, tileY, robj.getRectangle());
 			}
 		return rtn;
 	}
@@ -138,7 +132,7 @@ public class TileMap extends ScreenActor{
 		return rect.set(rect.getX()/tileWidth, rect.getY()/tileHeight, rect.getWidth()/tileWidth, rect.getHeight()/tileHeight);
 	}
 	public Array<Trigger> getCollidingObjects(Rectangle player, String prop){
-		Log.verbose2("Getting colliding objects!", player);
+		Log.gameplay("Getting colliding objects!", player);
 		Array<Trigger> trigs = getTriggerObjects(prop);
 		Iterator<Trigger> iter = trigs.iterator();
 		while(iter.hasNext()){
@@ -232,30 +226,6 @@ public class TileMap extends ScreenActor{
 
 	public void addEntity(Entity ent){
 		ents.addActor(ent);
-	}
-
-	public void setBound(float x, float y, float width, float height){
-		if(setBoundToBigDZLater){
-			setBoundToBigDZLater = false;
-			if(x < 0) x = 0;
-			if(y < 0) y = 0;
-		}
-
-		bound.set(x, y, width, height);
-		game.player.clamp(bound);
-	}
-	public Rectangle getBound(){
-		return bound;
-	}
-	public void setBoundToBigDZ(){
-		if(game.player.bigdzRect == null){
-			setBoundToBigDZLater = true;
-			return;
-		}
-		setBoundToBigDZLater = false;
-		setBound(0, 0,
-			game.player.bigdzRect.width  * game.getCamera().zoom,
-			game.player.bigdzRect.height * game.getCamera().zoom);
 	}
 	
 	public float getTileWidth(){

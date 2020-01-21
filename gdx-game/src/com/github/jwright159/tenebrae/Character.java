@@ -21,7 +21,8 @@ import org.luaj.vm2.lib.jse.*;
 
 abstract public class Character extends Entity.DrawableEntity implements ScriptGlob{
 	public String name, filename;
-	public float targetX=-1,targetY=-1;//in tiles
+	protected float px, py, targetX, targetY;
+	protected boolean hasTarget;
 	public float exp, g, hp, mp;
 	public ArrayMap<String,ArrayMap<Stats,Float>> stats;
 	protected Array<MenuItem.GameItem> items;
@@ -98,14 +99,11 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		addAction(new Action.MoveAction(this, newX, newY, speed, relative, collide, false));
 		triggerAction();
 	}
-	public boolean hasTarget(){
-		return targetX != -1 || targetY != -1;
-	}
 
 	public float calcDamage(Character enemy, boolean magic){
 		float rtn = ((magic ? intl() : str()) - enemy.def() * 2 / 3 + (float)Math.random() * 2) * 2;//ut player
 		//float rtn = ((magic ? intl() : str()) + ((enemy.hp - 10f) / 10f) - (enemy.def() / 5f)) * (1f - 0.1f * (float)Math.random());//ut enemy(without random part)
-		Log.verbose("CalcDamage", rtn, str(), enemy.hp, enemy.def());
+		Log.gameplay("CalcDamage", rtn, str(), enemy.hp, enemy.def());
 		if(rtn > 1)
 			return (int)rtn;
 		return 1;
@@ -113,7 +111,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	public float calcHeal(Character enemy, boolean magic){
 		float rtn = (-(magic ? intl() : str()) - enemy.str() * 2 / 3 + (float)Math.random() * 2) * 2;//ut player
 		//float rtn = (-(magic ? intl() : str()) + ((enemy.hp - 10f) / 10f) - (enemy.str() / 5f)) * (1f - 0.1f * (float)Math.random());//ut enemy(without random part)
-		Log.verbose("CalcHeal", rtn, str(), enemy.hp, enemy.str());
+		Log.gameplay("CalcHeal", rtn, str(), enemy.hp, enemy.str());
 		if(rtn > 1)
 			return (int)rtn;
 		return 1;
@@ -142,7 +140,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		setStat(type, Stats.agl, agl);
 		setStat(type, Stats.maxhp, maxhp);
 		setStat(type, Stats.maxmp, maxmp);
-		Log.verbose("Updated! " + stats);
+		Log.gameplay("Updated! " + stats);
 	}
 	public void removeStats(String type){
 		//Log.debug("Removing stats of type " + type + " from " + toString() + "!");
@@ -181,7 +179,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		TiledMapTileSet tileset = game.mappack.loadTileset(tilesetName);
 		Skin newSkin = new Skin(z);
 		for(TiledMapTile tile : tileset){
-			Log.verbose("Objs on new skin!", tilesetName, tile.getObjects().getCount());
+			Log.graphics("Objs on new skin!", tilesetName, tile.getObjects().getCount());
 			MapProperties prop = tile.getProperties();
 			String dirstr = prop.get("direction", String.class);
 			if(dirstr != null){
@@ -207,7 +205,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			updateSkins();
 	}
 	public void setSkin(String skin, float speed, String type){
-		Log.verbose2("Setting skin!", skin, speed, type, skinList.get(skin));
+		Log.graphics("Setting skin!", skin, speed, type, skinList.get(skin));
 		int z = skinList.get(skin).z;
 		TiledMapTile t = skinList.get(skin).getSkin(speed, type);
 		tile.set(z, t);
@@ -236,7 +234,13 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			setSkin(skinList.getKeyAt(i), speed, directon);
 	}
 	public void updateSkins(){
-		updateSkins(0, "down");
+		Log.debug("updating", this, tile, px, getX(), py, getY());
+		if(tile.isEmpty())
+			updateSkins(0, "down");
+		else
+			updateSkins(getX() - px, getY() - py);
+		px = getX();
+		py = getY();
 	}
 	public String getSkin(int z){
 		for(Skin skin : skinList.values())
@@ -270,7 +274,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	}
 
 	public void triggerAction(){
-		Log.verbose2("Wanting an action from", this, ", Was", currentAction);
+		Log.gameplay("Wanting an action from", this, ", Was", currentAction);
 		boolean stop = currentAction == null || currentAction.stop(false);
 		if(stop){
 			delay = 0;
@@ -289,7 +293,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
-			Log.verbose2("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
+			Log.gameplay("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
 			//if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 			//	map.cover();
 			if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts // interesting, because they  w e r e n ' t  and I just fixed it
@@ -406,7 +410,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	}
 
 	public void addAction(Action add){
-		Log.verbose2("Adding action", add);
+		Log.gameplay("Adding action", add);
 		actions.add(add);
 	}
 	public boolean hasAction(){
@@ -440,7 +444,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
 	}
 	public void updateBoxHP(){
-		Log.debug("Updating HP", hp, maxhp(), mp, maxmp(), this);
+		Log.gameplay("Updating HP", hp, maxhp(), mp, maxmp(), this);
 		if(box != null)
 			box.updateHP();
 		if(smolStatBox != null)
@@ -459,28 +463,25 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		}
 		triggerAction();
 
-		doMovement();
+		moveToTarget();
 	}
-	public void doMovement(){
-		if(hasTarget()){
-			float px = getX(), py = getY();
+	public void moveToTarget(){
+		if(hasTarget){
 			setPosition(targetX, targetY);
-			targetX = targetY = -1;
-			updateSkins(getX() - px, getY() - py);
-		}else{
-			updateSkins(0, 0);
+			hasTarget = false;
 		}
 	}
 
 	@Override
 	public void draw(Batch batch, float parentAlpha){
 		moveSmolStatBox();
+		updateSkins();
 		super.draw(batch, parentAlpha);
 	}
 
 	@Override
 	public String toString(){
-		return super.toString() + "§" + filename + "," + tile;
+		return super.toString() + "§" + filename + "{" + tile + "}";
 	}
 
 	public void endSelf(){
@@ -507,6 +508,13 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 					@Override
 					public LuaValue call(LuaValue z){
 						removeSkin(z.checkint());
+						return NONE;
+					}
+				});
+			library.set("lookToward", new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue dx, LuaValue dy){
+						updateSkins((float)dx.checkdouble(), (float)dy.checkdouble());
 						return NONE;
 					}
 				});
@@ -695,7 +703,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			this.z = z;
 		}
 		public void putSkin(float speed, String type, TiledMapTile tile){
-			Log.verbose2("Putting skin!", speed, type, tile.getId());
+			Log.graphics("Putting skin!", speed, type, tile.getId());
 			ArrayMap<String,TiledMapTile> map;
 			if(tileList.get(speed) != null)
 				map = tileList.get(speed);
@@ -716,7 +724,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 					lowspeed = newspeed;
 				}
 			//Log.debug("Speed end! "+lowspeed+" "+speed);
-			Log.verbose2("Getting skin", lowspeed, type, tileList.get(lowspeed));
+			Log.graphics("Getting skin", lowspeed, type, tileList.get(lowspeed));
 			return tileList.get(lowspeed).get(type);
 		}
 		public void sortSkinList(){

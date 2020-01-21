@@ -65,12 +65,12 @@ public class Tenebrae extends GameScreen{
 		getMultiplexer().addProcessor(0, new InputAdapter(){
 				@Override
 				public boolean touchDown(int x, int y, int pointer, int button){
-					Log.verbose("Pressed down!");
+					Log.debug("Pressed down!");
 					return false;
 				}
 				@Override
 				public boolean touchUp(int x, int y, int pointer, int button){
-					Log.verbose("Pressed up!");
+					Log.debug("Pressed up!");
 					return false;
 				}
 				@Override
@@ -234,7 +234,7 @@ public class Tenebrae extends GameScreen{
 		}
 		mappack = new Mappack(this, mappackpath);
 		player = new Player(this);
-		Log.verbose("Unloaded, made " + player);
+		Log.gameplay("Unloaded, made " + player);
 	}
 	private static TextureAtlas tnbta, mappackta;
 	public void loadSkin(FileHandle mappackpath){
@@ -408,11 +408,11 @@ public class Tenebrae extends GameScreen{
 	public void resize(int x, int y){
 		super.resize(x, y);
 		Viewport vp = getViewport(), uvp = getUiViewport();
-		Log.debug("Game", vp.getScreenWidth(), vp.getScreenHeight(), vp.getWorldWidth(), vp.getWorldHeight(),
+		Log.ui("Game", vp.getScreenWidth(), vp.getScreenHeight(), vp.getWorldWidth(), vp.getWorldHeight(),
 			"UI", uvp.getScreenWidth(), vp.getScreenHeight(), uvp.getWorldWidth(), uvp.getWorldHeight());
 		vp.setWorldSize(vp.getScreenWidth(), vp.getScreenHeight());
 		screenRect.set(vp.getScreenX(), vp.getScreenY(), vp.getScreenWidth(), vp.getScreenHeight());
-		Log.debug("ScreenRect", screenRect);
+		Log.ui("ScreenRect", screenRect);
 		if(player != null) player.dzRect = null;
 	}
 

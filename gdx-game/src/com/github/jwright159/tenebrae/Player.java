@@ -14,6 +14,7 @@ import com.github.jwright159.tenebrae.EntityBox.*;
 import com.github.jwright159.tenebrae.MenuItem.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.*;
+import com.badlogic.gdx.graphics.g2d.*;
 
 public class Player extends Character{
 	private boolean firstFrame;// True for first frame after map load, for skipping exittriggers (just call them manually if you need them instead of auto detection)
@@ -40,7 +41,7 @@ public class Player extends Character{
 
 	public Player(Tenebrae game){
 		super(game, "player");
-		Log.verbose("Making Player");
+		Log.gameplay("Making Player");
 		lastCameraPos = new Vector3();
 		game.mappack.charas.add(this);
 
@@ -160,21 +161,17 @@ public class Player extends Character{
 		LuaValue onCreate = game.mappack.getGlobals().get("onCreate");
 		if(!onCreate.isnil())
 			onCreate.call();
-		
-		if(map.getBound().getWidth() > 0 && map.getBound().getHeight() > 0)
-			setPosition(map.getBound().getWidth() / 2 - getWidth() / 2, map.getBound().getHeight() / 2 - getHeight() / 2);
 	}
 
 	public void setPlayerName(String name){
 		trueName = name;
 		box.name.setText(trueName);
-		Log.debug("SetName", name, box.name.getText());
 	}
 
 	public boolean isColliding(){
 		if(!collide)
 			return false;
-		Log.verbose2("isColliding?", getX(), getY(), getX(Align.right), getY(Align.top));
+		Log.gameplay("isColliding?", getX(), getY(), getX(Align.right), getY(Align.top));
 		for(int i = (int)getX(); i <= getX(Align.right); i++)
 			for(int j = (int)getY(); j <= getY(Align.top); j++)
 				if(isColliding(i, j))
@@ -185,9 +182,9 @@ public class Player extends Character{
 		MapObjects objs = game.map.getCollisionObjects(tileX, tiley);
 		if(objs != null){
 			for(RectangleMapObject obj : objs){
-				Log.verbose2("Collision?", toRect(), obj.getRectangle());
+				Log.gameplay("Collision?", toRect(), obj.getRectangle());
 				if(toRect().overlaps(obj.getRectangle())){
-					Log.verbose2("Collision!");
+					Log.gameplay("Collision!");
 					return true;
 				}
 			}
@@ -221,13 +218,13 @@ public class Player extends Character{
 		for(Trigger trig : trigs){
 			boolean disabled = trig.getProperties().get("disabled", false, Boolean.class);
 			Rectangle rect = trig.getRectangle();
-			Log.verbose("Obj", rect);
-			Log.verbose("Player", toRect());
+			Log.gameplay("Obj", rect);
+			Log.gameplay("Player", toRect());
 			Intersector.intersectRectangles(rect, toRect(), inter);
-			Log.verbose("Intersect", inter);
+			Log.gameplay("Intersect", inter);
 			//Log.verbose("Intersecting triggers! " + obj.getName() + " " + rect + " " + player + " " + inter + " " + disabled);
 			//rect.set(rect.getX() * map.tilebasewidth, rect.getY() * map.tilebaseheight, rect.getWidth() * map.tilebasewidth, rect.getHeight() * map.tilebaseheight);
-			Log.verbose("Rescaled", rect);
+			Log.gameplay("Rescaled", rect);
 
 			if(inter.area() > best && !disabled){
 				best = inter.area();
@@ -239,7 +236,7 @@ public class Player extends Character{
 	}
 	public boolean triggerBestTrigger(){
 		Trigger trig = getBestTrigger();
-		Log.verbose("Requesting trigger!", trig);
+		Log.gameplay("Requesting trigger!", trig);
 		if(trig != null){
 			trig.trigger("onTrigger");
 			return true;
@@ -254,7 +251,7 @@ public class Player extends Character{
 		addDialog(dialog, delay, false, false);
 	}
 	public void addDialog(String dialog, float delay, boolean tap, boolean tapDelay){
-		Log.verbose2("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
+		Log.gameplay("New dialog!", '"' + dialog + '"', delay, tap, tapDelay);
 		addAction(new DialogAction(game, this, dialog, delay, tap, tapDelay));
 	}
 	@Override
@@ -262,7 +259,7 @@ public class Player extends Character{
 		triggerAction(false);
 	}
 	public void triggerAction(boolean touched){
-		Log.verbose2("Wanting an action! Was", currentAction, "Might be", hasAction() ? getAction() : null);
+		Log.gameplay("Wanting an action! Was", currentAction, "Might be", hasAction() ? getAction() : null);
 		if(currentAction != null && currentAction.stop(touched)){
 			delay = 0;
 			currentAction = null;
@@ -275,7 +272,7 @@ public class Player extends Character{
 		currentAction = removeAction();
 		if(currentAction != null){
 			currentAction.run();
-			Log.verbose2("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
+			Log.gameplay("Current action!", currentAction, delay, currentAction == null ? null : currentAction.manualOverride);
 			if(delay != 0 || (currentAction != null && currentAction.manualOverride))
 				;//map.cover();
 			else if(currentAction == null)//on loading maps, currentAction gets nulled by loading of new map's scripts
@@ -345,16 +342,16 @@ public class Player extends Character{
 		checkExpLv(true);
 	}
 	public void checkExpLv(boolean silent){
-		Log.verbose("Checking exp lv!");
+		Log.gameplay("Checking exp lv!");
 		int newlv = 0;
 		for(int i = 0; i < statTable.size; i++){
-			Log.verbose("StatTable exp! " + i + " " + statTable.getKeyAt(i));
+			Log.gameplay("StatTable exp! " + i + " " + statTable.getKeyAt(i));
 			if(statTable.getKeyAt(i) > exp){
 				newlv = i - 1;
 				break;
 			}
 		}
-		Log.debug("Levels: " + lv + " -> " + newlv);
+		Log.gameplay("Levels: " + lv + " -> " + newlv);
 		for(int i = lv + 1; i <= newlv; i++){
 			if(!silent)
 				addDialog("You have gone up a level! (" + (lv + 1) + " -> " + (i + 1) + ")");
@@ -363,7 +360,7 @@ public class Player extends Character{
 		finishAffect(true);
 	}
 	public void setStats(int newlv){
-		Log.debug("Setting a lv! " + newlv);
+		Log.gameplay("Setting a lv! " + newlv);
 		/*float n = newlv < lv ? -1 : 1;
 		 lv = newlv;
 		 ArrayMap<Stats,Float> paststats = stats.get(baseStats);
@@ -377,10 +374,10 @@ public class Player extends Character{
 		setStats(baseStats, stats.get(Stats.str), stats.get(Stats.intl), stats.get(Stats.def), stats.get(Stats.agl), stats.get(Stats.maxhp), stats.get(Stats.maxmp));
 		heal(maxhp() - maxhp, true);
 		invigor(maxmp() - maxmp, true);
-		Log.debug("setStats", maxhp, maxhp());
+		Log.gameplay("setStats", maxhp, maxhp());
 	}
 	public void setStatLv(float exp, float str, float intl, float def, float agl, float maxhp, float maxmp){
-		Log.verbose("Got a new statlv! " + maxhp);
+		Log.gameplay("Got a new statlv! " + maxhp);
 		ArrayMap<Stats, Float> stats = new ArrayMap<Stats, Float>();
 		stats.put(Stats.str, str);
 		stats.put(Stats.intl, intl);
@@ -442,13 +439,6 @@ public class Player extends Character{
 		return true;
 	}
 
-	public void clamp(Rectangle bound){
-		if(bound.getWidth() > 0)
-			setX(MathUtils.clamp(getX(), bound.getX(), bound.getX()+bound.getWidth()-getWidth()));
-		if(bound.getHeight() > 0)
-			setY(MathUtils.clamp(getY(), bound.getY(), bound.getY()+bound.getHeight()-getHeight()));
-	}
-
 	@Override
 	public void addItem(GameItem item){
 		super.addItem(item);
@@ -466,32 +456,19 @@ public class Player extends Character{
 	public void moveCamera(){
 		//Log.debug("Moving camera! currentAction", currentAction);
 		OrthographicCamera cam = game.getCamera();
-		Rectangle bound = game.map.getBound();
 		if(firstFrame){
 			cam.position.x = getX(Align.center);
 			cam.position.y = getY(Align.center);
 		}
 		camRect.set(cam.position.x - game.screenRect.width * cam.zoom / 2, cam.position.y - game.screenRect.height * cam.zoom / 2, game.screenRect.width * cam.zoom, game.screenRect.height * cam.zoom);
 		dz.set(activeDeadzone.x * cam.zoom, activeDeadzone.y * cam.zoom, activeDeadzone.width * cam.zoom, activeDeadzone.height * cam.zoom);
-		Log.verbose2("CamRect:", camRect, "Cam:", cam);
+		Log.graphics("CamRect:", camRect, "Cam:", cam);
 
 		float dzx = (dz.width / 2 - getTrueWidth() / 2) * deadzone, dzy = (dz.height / 2 - getTrueHeight() / 2) * deadzone;
 		dzr.set(dz.x + dzx, dz.y + dzy, dz.width - dzx * 2, dz.height - dzy * 2);
 		camRect.x = MathUtils.clamp(camRect.x, getX() + getTrueWidth()  - (dzr.x + dzr.width),  getX() - dzr.x);
 		camRect.y = MathUtils.clamp(camRect.y, getY() + getTrueHeight() - (dzr.y + dzr.height), getY() - dzr.y);
-		Log.verbose2("Deadzone:", deadzone, "DZ:", dz, "DZR:", dzr, "B:", bound, "CamRect:", camRect, "Player:", toRect());
-
-		if(bound.width > 0)
-			if(bound.width <= dzr.width)
-				camRect.x = bound.x + bound.width / 2 - camRect.width / 2;
-			else
-				camRect.x = MathUtils.clamp(camRect.x, bound.x - dz.x, bound.x + bound.width - (dz.x + dz.width));
-		if(bound.height > 0)
-			if(bound.height <= dzr.height)
-				camRect.y = bound.y + bound.height / 2 - camRect.height / 2;
-			else
-				camRect.y = MathUtils.clamp(camRect.y, bound.y - dz.y, bound.y + bound.height - (dz.y + dz.height));
-		Log.verbose2("CamRect:", camRect);
+		Log.graphics("Deadzone:", deadzone, "DZ:", dz, "DZR:", dzr, "CamRect:", camRect, "Player:", toRect());
 
 		cam.position.x = camRect.x + camRect.width / 2;
 		cam.position.y = camRect.y + camRect.height / 2;
@@ -526,11 +503,9 @@ public class Player extends Character{
 	}
 	
 	@Override
-	public void doMovement(){
-		if(hasTarget()){
-			float ppx = getX(), ppy = getY();
-			float adx = (targetX - ppx) / actstep, ady = (targetY - ppy) / actstep;
-			targetX = targetY = -1;
+	public void moveToTarget(){
+		if(hasTarget){
+			float adx = (targetX - getX()) / actstep, ady = (targetY - getY()) / actstep;
 			for(int i = 0; i < actstep; i++){
 				float px = getX(), py = getY();
 				moveBy(adx, 0);
@@ -540,20 +515,15 @@ public class Player extends Character{
 				if(isColliding() && currentAction == null)
 					setY(py);
 			}
-			clamp(game.map.getBound());
-			updateSkins(getX() - ppx, getY() - ppy);
-		}else{
-			updateSkins(0, 0);
+			hasTarget = false;
 		}
-		
-		moveSmolStatBox();
 	}
 
 	@Override
 	public void act(float delta){
 		handleMovementControls(delta);
 		
-		boolean moved = hasTarget(); // back here bc triggerAction() kills them and moves us
+		boolean moved = hasTarget; // back here bc triggerAction() kills them and moves us
 		super.act(delta);
 
 		if(dzRect == null){
@@ -563,21 +533,16 @@ public class Player extends Character{
 				Math.max(mapCoords.x - game.screenRect.getX(), 0), Math.max(mapCoords.y - game.screenRect.getY(), 0),
 				mapRect.getWidth(), mapRect.getHeight());
 			bigdzRect = new Rectangle(0, 0, game.screenRect.getWidth(), game.screenRect.getHeight());
-			Log.debug("MapRect!", dzRect, bigdzRect);
+			Log.graphics("MapRect!", dzRect, bigdzRect);
 			
 			setExpanded(isExpanded());
 			
 			if(firstFrame){
 				game.getCamera().zoom = Tenebrae.TILES / dzRect.getWidth();
 				game.updateZoom();
-				Log.debug("Zoom", game.zoom, Tenebrae.TILES, dzRect.getWidth(), getWidth());
+				Log.graphics("Zoom", game.zoom, Tenebrae.TILES, dzRect.getWidth(), getWidth());
 			}else{
 				game.getCamera().zoom = game.zoom;
-				moveCamera();
-			}
-			if(game.map.setBoundToBigDZLater){
-				game.map.setBoundToBigDZ();
-				Log.debug("It's later now", game.map.getBound());
 			}
 		}
 
@@ -595,29 +560,37 @@ public class Player extends Character{
 			 }*/
 
 			Array<Trigger> triggersIn = getCollidingEnteranceObjects();
-			Log.verbose2("In:", triggersIn.size == 0 ? 0 : triggersIn.get(0), "Out:", ptriggers == null ? null : ptriggers.size == 0 ? 0 : ptriggers.get(0));
+			Log.gameplay("In:", triggersIn.size == 0 ? 0 : triggersIn.get(0), "Out:", ptriggers == null ? null : ptriggers.size == 0 ? 0 : ptriggers.get(0));
 			for(Trigger trig : triggersIn){
-				Log.verbose2("Found an enter/exit object inside!", trig);
+				Log.gameplay("Found an enter/exit object inside!", trig);
 				if((ptriggers == null || !ptriggers.contains(trig, false)) && trig.hasProperty("onEnter")){
-					Log.verbose2("It was an enter object!");
+					Log.gameplay("It was an enter object!");
 					trig.trigger("onEnter");
 				}
 			}
 			if(!firstFrame && ptriggers != null)
 				for(Trigger trig : ptriggers){
-					Log.verbose2("Found an enter/exit object outside!", trig);
+					Log.gameplay("Found an enter/exit object outside!", trig);
 					if(!triggersIn.contains(trig, false) && trig.hasProperty("onExit")){
-						Log.verbose2("It was an exit object!");
+						Log.gameplay("It was an exit object!");
 						trig.trigger("onExit");
 					}
 				}
 			ptriggers = triggersIn;
-			
-			if(firstFrame || currentAction == null)
-				moveCamera();
 		}
+		
+		if(firstFrame){
+			px = getX();
+			py = getY();
+			firstFrame = false;
+		}
+	}
 
-		firstFrame = false;
+	@Override
+	public void draw(Batch batch, float parentAlpha){
+		if(px != getX() || py != getY())
+			moveCamera();
+		super.draw(batch, parentAlpha);
 	}
 
 	@Override
