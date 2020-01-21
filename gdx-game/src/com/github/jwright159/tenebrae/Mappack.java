@@ -382,7 +382,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
-						Log.verbose("Added", e);
+						Log.verbose2("Added", e);
 						game.map.addEntity(e);
 						return NONE;
 					}
@@ -391,7 +391,7 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue ent){
 						Entity e = (Entity)ent.getmetatable().get(Entity.ENTITY).checkuserdata(Entity.class);
-						Log.verbose("Removed", e);
+						Log.verbose2("Removed", e);
 						e.remove();
 						return NONE;
 					}
@@ -471,13 +471,13 @@ public class Mappack implements ScriptGlob, Disposable{
 							case "offsetY":
 								return valueOf(game.map.getTileOffsetY());
 							case "screenX":
-								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
-								return valueOf(game.getStage().screenToStageCoordinates(tmp).x);
+								tmp.set(game.getViewport().getLeftGutterWidth(), 0);
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).x - game.map.getTileOffsetX());
 							case "screenY":
-								tmp.set(game.getViewport().getLeftGutterWidth(), game.getViewport().getBottomGutterHeight());
-								return valueOf(game.getStage().screenToStageCoordinates(tmp).y);
+								tmp.set(0, game.getViewport().getScreenHeight() - game.getViewport().getTopGutterHeight());
+								return valueOf(game.getStage().screenToStageCoordinates(tmp).y - game.map.getTileOffsetY());
 							case "screenWidth":
-								return valueOf(game.getViewport().getScreenWidth()  * game.getCamera().zoom);
+								return valueOf(game.getViewport().getScreenWidth() * game.getCamera().zoom);
 							case "screenHeight":
 								return valueOf(game.getViewport().getScreenHeight() * game.getCamera().zoom);
 							default:
@@ -592,7 +592,7 @@ public class Mappack implements ScriptGlob, Disposable{
 						levent.set("velocity", note.getVelocity());
 						levent.set("note", note.getNoteValue());
 						levent.set("tick", note.getTick());
-						levent.set("channel", note.getChannel());
+						levent.set("channel", note.getChannel()+1); // 0-index to 1-index
 
 						Gdx.app.postRunnable(new Runnable(){
 								@Override
