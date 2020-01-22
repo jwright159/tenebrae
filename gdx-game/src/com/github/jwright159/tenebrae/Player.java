@@ -456,7 +456,7 @@ public class Player extends Character{
 	public void moveCamera(){
 		//Log.debug("Moving camera! currentAction", currentAction);
 		OrthographicCamera cam = game.getCamera();
-		if(firstFrame){
+		if(firstFrame && !game.map.hasCameraInit){
 			cam.position.x = getX(Align.center);
 			cam.position.y = getY(Align.center);
 		}

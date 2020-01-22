@@ -234,7 +234,6 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			setSkin(skinList.getKeyAt(i), speed, directon);
 	}
 	public void updateSkins(){
-		Log.debug("updating", this, tile, px, getX(), py, getY());
 		if(tile.isEmpty())
 			updateSkins(0, "down");
 		else

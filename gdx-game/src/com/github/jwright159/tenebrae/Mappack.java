@@ -498,9 +498,11 @@ public class Mappack implements ScriptGlob, Disposable{
 								break;
 							case "cameraX":
 								game.getCamera().position.x = (float)value.checkdouble();
+								game.map.hasCameraInit = true;
 								break;
 							case "cameraY":
 								game.getCamera().position.y = (float)value.checkdouble();
+								game.map.hasCameraInit = true;
 								break;
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();

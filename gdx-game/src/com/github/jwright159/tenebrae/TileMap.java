@@ -32,6 +32,7 @@ public class TileMap extends ScreenActor{
 	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
 	public float lifetime;
+	public boolean hasCameraInit;
 
 	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
 		this.game = game;
