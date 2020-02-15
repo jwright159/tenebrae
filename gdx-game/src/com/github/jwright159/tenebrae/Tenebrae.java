@@ -31,7 +31,7 @@ public class Tenebrae extends GameScreen{
 	public static final float TILES = 7.5f;// number of tiles on the screen by width, only accepts 1 param so deal with it (KQ is 10)
 	public static final float MARGIN = 30f;
 	public static final boolean TABLEDEBUG = false, SHOWEMPTY = false;
-	
+
 	public final Rectangle screenRect = new Rectangle(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Dims of game screen
 	public boolean doneLoading = false;
 
@@ -39,8 +39,8 @@ public class Tenebrae extends GameScreen{
 	public Mappack mappack;
 	public TileMap map;
 
-	public static Globals globals = new ScriptGlob.ServerGlobals();
-	
+	public static Globals compiler = new ScriptGlob.ServerGlobals();
+
 	//private Actor debugActor;
 
 	public Tenebrae(FileHandle pakpath, JSONObject mappackinfo, FileHandle savestatepath, boolean load){
@@ -53,12 +53,12 @@ public class Tenebrae extends GameScreen{
 		}catch(JSONException ex){
 			mappackname = "Tenebrae RPG Engine";
 		}
-		
+
 		doneLoading = false;
 		Log.setLogFile(pakpath.child("debug.log"));
 
 		loadSkin(pakpath);
-		
+
 		//debugActor = new PatchActor(new Rectangle(0, 0, 16, 16), getSkin().getPatch("white"));
 		//getStage().addActor(debugActor);
 
@@ -100,7 +100,7 @@ public class Tenebrae extends GameScreen{
 									if(player.triggerBestTrigger())
 										return true;
 							return false;
-						
+
 						case Input.Keys.X:
 						case Input.Keys.BACKSPACE:
 							if(doneLoading){
@@ -109,14 +109,14 @@ public class Tenebrae extends GameScreen{
 								return true; // Will definitely either do back or open menu
 							}	
 							return false;
-						
+
 						case Input.Keys.M:
 							if(doneLoading && player.isExpanded() && !player.buttonBox.menu.isDisabled()){
 								player.buttonBox.menu.toggle();
 								return true;
 							}
 							return false;
-						
+
 						case Input.Keys.I:
 							if(doneLoading && player.isExpanded() && !player.buttonBox.items.isDisabled()){
 								player.buttonBox.items.toggle();
@@ -130,59 +130,59 @@ public class Tenebrae extends GameScreen{
 				}
 			});
 		getMultiplexer().addProcessor(2, new GestureDetector(new GestureListener(){
-					@Override
-					public boolean touchDown(float p1, float p2, int p3, int p4){
-						// TODO: Implement this method
-						return false;
-					}
-					@Override
-					public boolean tap(float p1, float p2, int p3, int p4){
-						if(doneLoading){
-							if(player.buttonBox.getActiveBox() != null || player.dialogBox.isVisible())
-								player.performBack();
-							else if(player.delay == 0)
-								player.triggerBestTrigger();
-						}
-						return true;
-					}
-					@Override
-					public boolean longPress(float p1, float p2){
-						// TODO: Implement this method
-						return false;
-					}
-					@Override
-					public boolean fling(float p1, float p2, int p3){
-						// TODO: Implement this method
-						return false;
-					}
-					@Override
-					public boolean pan(float x, float y, float dx, float dy){
-						if(doneLoading && player.canMove())
-							player.move(dx * player.speedMult * zoom, -dy * player.speedMult * zoom, 0, true, true);
-							//debugActor.moveBy(dx / map.tileWidth, -dy / map.tileHeight);
-						return true;
-					}
-					@Override
-					public boolean panStop(float p1, float p2, int p3, int p4){
-						updateZoom();
-						return false;
-					}
-					@Override
-					public boolean zoom(float origdist, float dist){
-						getCamera().zoom = origdist / dist * zoom;
-						player.moveCamera();
-						return true;
-					}
-					@Override
-					public boolean pinch(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4){
-						// TODO: Implement this method
-						return false;
-					}
-					@Override
-					public void pinchStop(){
-						// TODO: Implement this method
-					}
-				}));
+											  @Override
+											  public boolean touchDown(float p1, float p2, int p3, int p4){
+												  // TODO: Implement this method
+												  return false;
+											  }
+											  @Override
+											  public boolean tap(float p1, float p2, int p3, int p4){
+												  if(doneLoading){
+													  if(player.buttonBox.getActiveBox() != null || player.dialogBox.isVisible())
+														  player.performBack();
+													  else if(player.delay == 0)
+														  player.triggerBestTrigger();
+												  }
+												  return true;
+											  }
+											  @Override
+											  public boolean longPress(float p1, float p2){
+												  // TODO: Implement this method
+												  return false;
+											  }
+											  @Override
+											  public boolean fling(float p1, float p2, int p3){
+												  // TODO: Implement this method
+												  return false;
+											  }
+											  @Override
+											  public boolean pan(float x, float y, float dx, float dy){
+												  if(doneLoading && player.canMove())
+													  player.move(dx * player.speedMult * zoom, -dy * player.speedMult * zoom, 0, true, true);
+												  //debugActor.moveBy(dx / map.tileWidth, -dy / map.tileHeight);
+												  return true;
+											  }
+											  @Override
+											  public boolean panStop(float p1, float p2, int p3, int p4){
+												  updateZoom();
+												  return false;
+											  }
+											  @Override
+											  public boolean zoom(float origdist, float dist){
+												  getCamera().zoom = origdist / dist * zoom;
+												  player.moveCamera();
+												  return true;
+											  }
+											  @Override
+											  public boolean pinch(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4){
+												  // TODO: Implement this method
+												  return false;
+											  }
+											  @Override
+											  public void pinchStop(){
+												  // TODO: Implement this method
+											  }
+										  }));
 		Gdx.input.setCatchBackKey(true);
 	}
 	public void loadSave(JSONObject save){
@@ -198,7 +198,11 @@ public class Tenebrae extends GameScreen{
 		// Nope that day is here and I'm doing none of those
 		if(save != null)
 			mappack.loadSaveState(save);
-		getScript("mappack.lua", mappack.getGlobals()).call();
+		Globals globals = mappack.getGlobals();
+		getScript("mappack.lua", globals).call();
+		LuaValue func = globals.get("onCreate");
+		if(!func.isnil())
+			func.checkfunction().call(globals);
 		player.changeMap(mappack.loadMap());
 
 		//debugBox = new WRect(new Rectangle(0, 0, 50, 50), new Color(Color.BLACK));
@@ -328,7 +332,7 @@ public class Tenebrae extends GameScreen{
 								Log.debug("Compiling", f.name());
 								final Prototype script;
 								try{
-									script = globals.compilePrototype(f.read(), f.nameWithoutExtension());
+									script = compiler.compilePrototype(f.read(), f.nameWithoutExtension());
 								}catch(IOException ex){throw new GdxRuntimeException("Couldn't load script " + f.name(), ex);}
 								final int j = i;
 								Gdx.app.postRunnable(new Runnable(){
@@ -357,7 +361,7 @@ public class Tenebrae extends GameScreen{
 				else{
 					splash.remove();
 					splash = null;
-					
+
 					Log.debug("Starting loading the save!", continueGame);
 					if(continueGame)
 						loadSave();
@@ -409,11 +413,12 @@ public class Tenebrae extends GameScreen{
 		super.resize(x, y);
 		Viewport vp = getViewport(), uvp = getUiViewport();
 		Log.ui("Game", vp.getScreenWidth(), vp.getScreenHeight(), vp.getWorldWidth(), vp.getWorldHeight(),
-			"UI", uvp.getScreenWidth(), vp.getScreenHeight(), uvp.getWorldWidth(), uvp.getWorldHeight());
+			   "UI", uvp.getScreenWidth(), vp.getScreenHeight(), uvp.getWorldWidth(), uvp.getWorldHeight());
 		vp.setWorldSize(vp.getScreenWidth(), vp.getScreenHeight());
+		vp.apply();
 		screenRect.set(vp.getScreenX(), vp.getScreenY(), vp.getScreenWidth(), vp.getScreenHeight());
 		Log.ui("ScreenRect", screenRect);
-		if(player != null) player.dzRect = null;
+		if(player != null) player.updateMapRect();
 	}
 
 	@Override

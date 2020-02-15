@@ -476,67 +476,6 @@ public class EntityBox extends Table{
 		box.addOption(cat);//down here bc box will detect as empty otherwise and get removed
 	}
 
-	public static class StatBox extends Table{
-		protected MiniHealthBar health, mana;
-		public StatBox(HealthBar health, HealthBar mana, Skin skin){
-			super(skin);
-			setDebug(Tenebrae.TABLEDEBUG);
-			//setClip(true);
-			this.health = new MiniHealthBar(health, skin);
-			this.mana = new MiniHealthBar(mana, skin);
-			setBackground("window-small");
-			pad(Tenebrae.MARGIN * 0.25f);
-
-			add(this.health).grow();
-			row();
-			add(this.mana).grow();
-		}
-
-		public void updateHP(){
-			health.setHealth();
-			mana.setHealth();
-		}
-	}
-	public static class FadingStatBox extends StatBox{
-		private float visTimer = 0;
-		private static final float visMin = 2, visMax = 5;
-		private static final Interpolation interp = Interpolation.fade;
-
-		public FadingStatBox(HealthBar health, HealthBar mana, Skin skin){
-			super(health, mana, skin);
-		}
-		public FadingStatBox(StatBox box){
-			this(box.health, box.mana, box.getSkin());
-			if(box.getStage() != null)
-				box.getStage().addActor(this);
-			setSize(box.getWidth(), box.getHeight());
-		}
-
-		@Override
-		public void act(float delta){
-			super.act(delta);
-
-			visTimer += delta;
-			if(visTimer < visMin){
-				setColor(Color.WHITE);
-			}else if(visTimer >= visMax){
-				setColor(Color.CLEAR);
-			}else{
-				setColor(1, 1, 1, 1 - interp.apply((visTimer - visMin) / (visMax - visMin)));
-			}
-		}
-		@Override
-		public void setVisible(boolean visible){
-			super.setVisible(visible);
-			visTimer = visible ? 0 : visMax;
-		}
-		@Override
-		public void updateHP(){
-			super.updateHP();
-			setVisible(true);
-		}
-	}
-
 	public static class ButtonBox extends Table{//holds item and menu buttons
 		MenuOption menu, items;
 		ButtonBox(final Player player, Skin skin){
@@ -582,10 +521,10 @@ public class EntityBox extends Table{
 		public static final Prototype killScript, healScript, tireScript, invigorScript;
 		static{
 			try{
-				killScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(-player.hp,0)"), "kill");
-				healScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(player.maxhp-player.hp,0)"), "heal");
-				tireScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(0,-player.mp)"), "tire");
-				invigorScript = Tenebrae.globals.compilePrototype(new StringReader("owner.affect(0,player.maxmp-player.mp)"), "invigor");
+				killScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(-player.hp,0)"), "kill");
+				healScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(player.maxhp-player.hp,0)"), "heal");
+				tireScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(0,-player.mp)"), "tire");
+				invigorScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(0,player.maxmp-player.mp)"), "invigor");
 			}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 		}
 

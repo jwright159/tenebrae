@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import org.luaj.vm2.*;
 import java.util.*;
+import com.badlogic.gdx.graphics.glutils.*;
 
 public class TileMap extends ScreenActor{
 	private Tenebrae game;
@@ -29,10 +30,12 @@ public class TileMap extends ScreenActor{
 	public int width, height;
 	private float offsetX, offsetY;
 	private Group ents;
-	public static String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
+	public static final String EMPTY_PATH = Gdx.files.internal("empty.tmx").path();
 	private LuaFunction script;
 	public float lifetime;
 	public boolean hasCameraInit;
+	
+	private static ShapeRenderer debugRenderer = new ShapeRenderer();
 
 	public TileMap(Tenebrae game, FileHandle mapFile, LuaFunction script, Batch batch){
 		this.game = game;
@@ -71,11 +74,9 @@ public class TileMap extends ScreenActor{
 		maprenderer = new OrthogonalExtendedTiledMapRenderer(map, 1/tileWidth, batch){
 			@Override
 			public void renderObjects(MapLayer layer){
-				Entity.DrawableEntity ent;
 				for(Entity e : ents.getChildren())
-					if(e instanceof Entity.DrawableEntity && (ent = (Entity.DrawableEntity)e) != null &&
-						ent.hasMapObject() && ent.isInMapObjects(layer.getObjects()) && ent.isVisible()){
-						ent.draw(getBatch(), 1);
+					if(e.getMapLayer() == layer && e.isVisible()){
+						e.draw(getBatch(), 1);
 					}
 			}
 		};
@@ -220,6 +221,21 @@ public class TileMap extends ScreenActor{
 	public boolean hasOnMap(Entity ent){
 		return ent.getX() >= 0 && ent.getX(Align.right) <= width && ent.getY() >= 0 && ent.getY(Align.top) <= height;
 	}
+	
+	public MapLayers getMapLayers(){
+		return map.getLayers();
+	}
+	public MapLayer getMapLayer(String layerName){
+		return map.getLayers().get(layerName);
+	}
+	public void addMapLayer(String layerName){
+		MapLayer layer = new MapLayer();
+		layer.setName(layerName);
+		map.getLayers().add(layer);
+	}
+	public boolean hasMapLayer(String layerName){
+		return map.getLayers().get(layerName) != null;
+	}
 
 	public void changeTile(int x, int y, String z, String tileset, int id){
 		((TiledMapTileLayer)map.getLayers().get(z)).getCell(x, y).setTile(map.getTileSets().getTileSet(tileset).getTile(id));
@@ -290,17 +306,31 @@ public class TileMap extends ScreenActor{
 	
 	@Override
 	public void draw(Batch batch){
-		batch.end();
-		//Tenebrae.mp.charas.sort();
 		OrthographicCamera cam = (OrthographicCamera)getStage().getCamera();
 		cam.translate(-offsetX, -offsetY, 0);
+		
+		batch.end();
 		cam.update();
+		
 		maprenderer.setView(cam);
 		maprenderer.render();
+		
 		batch.begin();
+		for(Entity e : ents.getChildren())
+			if(!e.hasMapLayer() && e.isVisible())
+				e.draw(batch, 1);
+		
+		/*
+		batch.end();
+		debugRenderer.setProjectionMatrix(cam.combined);
+		debugRenderer.begin(ShapeRenderer.ShapeType.Line);
+		debugRenderer.setColor(0, 1, 0, 1);
 		for(Actor a : ents.getChildren())
-			if((!(a instanceof Entity.DrawableEntity) || !((Entity.DrawableEntity)a).hasMapObject()) && a.isVisible())
-				a.draw(batch, 1);
+			a.drawDebug(debugRenderer);
+		debugRenderer.end();
+		batch.begin();
+		*/
+		
 		cam.translate(offsetX, offsetY, 0);
 		cam.update();
 	}
@@ -309,7 +339,7 @@ public class TileMap extends ScreenActor{
 	public void dispose(){
 		LuaValue onDestroy = game.mappack.getGlobals().get("onDestroy");
 		if(!onDestroy.isnil())
-			onDestroy.call();
+			onDestroy.call(game.mappack.getGlobals());
 		super.dispose();
 		map.dispose();
 		maprenderer.dispose();

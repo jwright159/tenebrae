@@ -38,13 +38,13 @@ public abstract class MenuItem{
 			globals = game.new StdEntGlobals();
 			globals.load(new ScriptItemLib());
 			if(onUse != null)
-				globals.set("onUse", new LuaClosure(onUse, globals));
+				globals.set("onUse", new LuaClosure(onUse, game.mappack.getGlobals()));
 		}
 		
 		@Override
 		public void run(String funcName){
 			game.player.closeMenus();
-			globals.get(funcName).checkfunction().call();
+			globals.get(funcName).checkfunction().call(globals);
 		}
 		
 		@Override
@@ -205,53 +205,53 @@ public abstract class MenuItem{
 			public LuaValue call(LuaValue modname, LuaValue env){
 				LuaTable library = tableOf();
 
-				library.set("decay", new ZeroArgFunction(){
+				library.set("decay", new OneArgFunction(){
 						@Override
-						public LuaValue call(){
+						public LuaValue call(LuaValue self){
 							decay();
 							return NONE;
 						}
 					});
-				library.set("equip", new ZeroArgFunction(){
+				library.set("equip", new OneArgFunction(){
 						@Override
-						public LuaValue call(){
+						public LuaValue call(LuaValue self){
 							equip();
 							return NONE;
 						}
 					});
-				library.set("unequip", new ZeroArgFunction(){
+				library.set("unequip", new OneArgFunction(){
 						@Override
-						public LuaValue call(){
+						public LuaValue call(LuaValue self){
 							unequip();
 							return NONE;
 						}
 					});
-				library.set("setStat", new TwoArgFunction(){
+				library.set("setStat", new ThreeArgFunction(){
 						@Override
-						public LuaValue call(LuaValue stat, LuaValue value){
+						public LuaValue call(LuaValue self, LuaValue stat, LuaValue value){
 							setStat(Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
 							return NONE;
 						}
 					});
-				library.set("setStats", new VarArgFunction(){ // atk, intl, def, agl, maxhp, maxmp
+				library.set("setStats", new VarArgFunction(){ // self, atk, intl, def, agl, maxhp, maxmp
 						@Override
 						public Varargs invoke(Varargs args){
-							setStats((float)args.checkdouble(1), (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6));
+							setStats((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
 							return NONE;
 						}
 					});
-				library.set("attack", new VarArgFunction(){ // enemy, atk, intl, def, agl, maxhp, maxmp
+				library.set("attack", new VarArgFunction(){ // self, enemy, atk, intl, def, agl, maxhp, maxmp
 						@Override
 						public Varargs invoke(Varargs args){
 							if(args.narg() > 1)
-								GameItem.this.owner.setStats("_temp" + owner.stats.size, (float)args.optdouble(2, 0), (float)args.optdouble(3, 0), (float)args.optdouble(4, 0), (float)args.optdouble(5, 0), (float)args.optdouble(6, 0), (float)args.optdouble(7, 0));
-							GameItem.this.owner.attack(args.isnil(1) ? null : (Character)args.checktable(1).getmetatable().get(Entity.ENTITY).checkuserdata(Character.class), magic);
+								GameItem.this.owner.setStats("_temp" + owner.stats.size, (float)args.optdouble(3, 0), (float)args.optdouble(4, 0), (float)args.optdouble(5, 0), (float)args.optdouble(6, 0), (float)args.optdouble(7, 0), (float)args.optdouble(8, 0));
+							GameItem.this.owner.attack(args.isnil(2) ? null : (Character)args.checktable(2).getmetatable().get(Entity.ENTITY).checkuserdata(Character.class), magic);
 							return NONE;
 						}
 					});
-				library.set("addFunc", new TwoArgFunction(){
+				library.set("addFunc", new ThreeArgFunction(){
 						@Override
-						public LuaValue call(LuaValue name, LuaValue function){
+						public LuaValue call(LuaValue self, LuaValue name, LuaValue function){
 							final LuaFunction func = function.checkfunction();
 							EntityBox.MenuOption opt = new EntityBox.MenuOption(name.checkjstring(), null, skin){
 								@Override
@@ -264,9 +264,9 @@ public abstract class MenuItem{
 							return NONE;
 						}
 					});
-				library.set("remove", new ZeroArgFunction(){
+				library.set("remove", new OneArgFunction(){
 						@Override
-						public LuaValue call(){
+						public LuaValue call(LuaValue self){
 							GameItem.this.owner.removeItem(GameItem.this);
 							return NONE;
 						}

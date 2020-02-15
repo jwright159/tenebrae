@@ -16,15 +16,16 @@ public class NPC extends Character{
 	public static final Prototype setup;
 	static{
 		try{
-			setup = Tenebrae.globals.compilePrototype(new StringReader("function setupMap(trigger_, enter_, exit_, idleRoutine) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n setIdleRoutine(idleRoutine) \n end"), "setup");
+			setup = Tenebrae.compiler.compilePrototype(new StringReader("function setupMap(trigger_, enter_, exit_, idleRoutine) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n setIdleRoutine(idleRoutine) \n end"), "setup");
 		}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 	}
 
 	public NPC(Tenebrae game, String name, Prototype script){
 		super(game, name);
-		getGlobals().load(new NPCLib());
-		new LuaClosure(setup, getGlobals()).call();
-		new LuaClosure(script, getGlobals()).call();
+		Globals globals = getGlobals();
+		globals.load(new NPCLib());
+		new LuaClosure(setup, globals).call();
+		new LuaClosure(script, globals).call();
 		hp = maxhp();
 		mp = maxmp();
 		updateBoxHP();
@@ -60,9 +61,9 @@ public class NPC extends Character{
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
 
-			library.set("setIdleRoutine", new OneArgFunction(){
+			library.set("setIdleRoutine", new TwoArgFunction(){
 							@Override
-							public LuaValue call(LuaValue routine){
+							public LuaValue call(LuaValue self, LuaValue routine){
 								idleRoutine.clear();
 								LuaValue k = LuaValue.NIL;
 								while(!routine.isnil()){
@@ -76,26 +77,24 @@ public class NPC extends Character{
 								return NONE;
 							}
 						});
-			library.set("enable", new ZeroArgFunction(){
+			library.set("enable", new OneArgFunction(){
 							@Override
-							public LuaValue call(){
+							public LuaValue call(LuaValue self){
 								enabled = true;
 								boolean had = game.mappack.charas.contains(NPC.this, true);
 								if(!had){
 									game.mappack.charas.add(NPC.this);
-									game.getUiStage().addActor(smolStatBox);
 								}
 								return valueOf(!had);
 							}
 						});
-			library.set("disable", new ZeroArgFunction(){
+			library.set("disable", new OneArgFunction(){
 							@Override
-							public LuaValue call(){
+							public LuaValue call(LuaValue self){
 								enabled = false;
 								boolean had = game.mappack.charas.contains(NPC.this, true);
 								if(had){
 									game.mappack.charas.removeValue(NPC.this, true);
-									smolStatBox.remove();
 								}
 								return valueOf(had);
 							}

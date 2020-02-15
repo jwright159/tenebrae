@@ -31,7 +31,7 @@ public class EnemyWeapon implements ScriptGlob{
 	}
 
 	public void spawn(){
-		globals.get("onSpawn").checkfunction().call();
+		globals.get("onSpawn").checkfunction().call(globals);
 		Entity proj = null;
 		if(type.equals("linear")){
 			float velX = targetX - spawnX;

@@ -38,7 +38,7 @@ public class Mappack implements ScriptGlob, Disposable{
 	private Globals globals;
 	public Array<Character> charas;
 	private ObjectMap<String,TiledMapTileSet> tilesets;
-	
+
 	private float lastdeadzone = -1;
 
 	public Mappack(Tenebrae game, FileHandle folder){
@@ -140,24 +140,24 @@ public class Mappack implements ScriptGlob, Disposable{
 		@Override
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
-			//functions
+			// methods
 			library.set("setTile", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){// x, y, layer, tileset, tileid
-						game.map.changeTile(args.checkint(1),
-							(game.map.height - 1) - args.checkint(2),
-							args.checkjstring(3),
-							args.checkjstring(4),
-							args.checkint(5));
+					public Varargs invoke(Varargs args){// self, x, y, layer, tileset, tileid
+						game.map.changeTile(args.checkint(2),
+											(game.map.height - 1) - args.checkint(3),
+											args.checkjstring(4),
+											args.checkjstring(5),
+											args.checkint(6));
 						return NONE;
 					}
 				});
 			library.set("say", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // text, delayTime, charsPerSec, tapToSkip
-						String text = args.checkjstring(1);
-						float delay = (float)args.optdouble(2, -1), cps = (float)args.optdouble(3, -1);
-						boolean tapDelay = args.toboolean(4);
+					public Varargs invoke(Varargs args){ // self, text, delayTime, charsPerSec, tapToSkip
+						String text = args.checkjstring(2);
+						float delay = (float)args.optdouble(3, -1), cps = (float)args.optdouble(4, -1);
+						boolean tapDelay = args.toboolean(5);
 						Log.gameplay(text, delay, cps);
 						if(delay == -1 && cps == -1){
 							game.player.addDialog(text);
@@ -185,9 +185,9 @@ public class Mappack implements ScriptGlob, Disposable{
 						return NONE;
 					}
 				});
-			library.set("setMap", new TwoArgFunction(){
+			library.set("setMap", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue tmx, LuaValue lua){
+					public LuaValue call(LuaValue self, LuaValue tmx, LuaValue lua){
 						if(tmx.isnil() || (lua.isnil() && tmx.isstring())){
 							game.player.changeMap(loadMap(null, tmx.isnil() ? lua.checkjstring() : tmx.checkjstring()));
 						}else{
@@ -199,146 +199,159 @@ public class Mappack implements ScriptGlob, Disposable{
 						return NONE;
 					}
 				});
-			library.set("enableTrigger", new OneArgFunction(){
+			library.set("enableTrigger", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue trigger){
+					public LuaValue call(LuaValue self, LuaValue trigger){
 						game.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", false);
 						return NONE;
 					}
 				});
-			library.set("disableTrigger", new OneArgFunction(){
+			library.set("disableTrigger", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue trigger){
+					public LuaValue call(LuaValue self, LuaValue trigger){
 						game.map.getMapObject(trigger.checkjstring()).getProperties().put("disabled", true);
 						return NONE;
 					}
 				});
-			library.set("setTrigger", new ThreeArgFunction(){
+			library.set("setTrigger", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue triggerObj, LuaValue type, LuaValue function){
-						game.map.getMapObject(triggerObj.checkjstring()).getProperties().put(type.optjstring("onTrigger"), function.checkfunction());
+					public Varargs invoke(Varargs args){ // self, triggerObj, type, function
+						game.map.getMapObject(args.checkjstring(2)).getProperties().put(args.optjstring(3, "onTrigger"), args.checkfunction(4));
 						return NONE;
 					}
 				});
 			library.set("zoom", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // amount, time, interpolation, tapOverride
+					public Varargs invoke(Varargs args){ // self, amount, time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
 						game.player.addAction(new Action.CameraAction(game, cam,
-								cam.zoom * (float)args.optdouble(1, 1),
-								Utils.getInterpolation(args.optjstring(3, "constant")),
-								(float)args.optdouble(2, 0),
-								args.optboolean(4, false)));
+																	  cam.zoom * (float)args.optdouble(2, 1),
+																	  Utils.getInterpolation(args.optjstring(4, "constant")),
+																	  (float)args.optdouble(3, 0),
+																	  args.optboolean(5, false)));
 						return NONE;
 					}
 				});
 			library.set("pan", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // x, y, time, interpolation, tapOverride
+					public Varargs invoke(Varargs args){ // self, x, y, time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
 						game.player.addAction(new Action.CameraAction(game, cam,
-								cam.position.x + (float)args.optdouble(1, 0),
-								cam.position.y + (float)args.optdouble(2, 0),
-								Utils.getInterpolation(args.optjstring(4, "constant")),
-								(float)args.optdouble(3, 0),
-								args.optboolean(5, false)));
+																	  cam.position.x + (float)args.optdouble(2, 0),
+																	  cam.position.y + (float)args.optdouble(3, 0),
+																	  Utils.getInterpolation(args.optjstring(5, "constant")),
+																	  (float)args.optdouble(4, 0),
+																	  args.optboolean(6, false)));
 						return NONE;
 					}
 				});
 			library.set("panTo", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // [x, y | entity], time, interpolation, tapOverride
+					public Varargs invoke(Varargs args){ // self, [x, y | entity], time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
-						if(args.isnumber(0))
+						if(args.isnumber(2))
 							game.player.addAction(new Action.CameraAction(game, cam,
-									(float)args.optdouble(1, 0),
-									(float)args.optdouble(2, 0),
-									Utils.getInterpolation(args.optjstring(4, "constant")),
-									(float)args.optdouble(3, 0),
-									args.optboolean(5, false)));
+																		  (float)args.optdouble(2, 0),
+																		  (float)args.optdouble(3, 0),
+																		  Utils.getInterpolation(args.optjstring(5, "constant")),
+																		  (float)args.optdouble(4, 0),
+																		  args.optboolean(6, false)));
 						else
 							game.player.addAction(new Action.CameraAction(game, cam,
-									(Character)args.checktable(1).get("__this").checkuserdata(Character.class),
-									Utils.getInterpolation(args.optjstring(3, "constant")),
-									(float)args.optdouble(2, 0),
-									args.optboolean(4, false)));
+																		  (Character)args.checktable(2).get("__this").checkuserdata(Character.class),
+																		  Utils.getInterpolation(args.optjstring(4, "constant")),
+																		  (float)args.optdouble(3, 0),
+																		  args.optboolean(5, false)));
 						return NONE;
 					}
 				});
-			library.set("resetCamera", new ThreeArgFunction(){
+			library.set("resetCamera", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue time, LuaValue interpolation, LuaValue tapOverride){
+					public Varargs invoke(Varargs args){ // self, time, interpolation, tapOverride
 						OrthographicCamera cam = game.getCamera();
 						Vector3 l = game.player.lastCameraPos;
 						game.player.addAction(new Action.CameraAction(game,
-								cam,
-								l.x,
-								l.y,
-								l.z,
-								Utils.getInterpolation(interpolation.optjstring("constant")),
-								(float)time.optdouble(0),
-								tapOverride.optboolean(false)));
+																	  cam,
+																	  l.x,
+																	  l.y,
+																	  l.z,
+																	  Utils.getInterpolation(args.optjstring(3, "constant")),
+																	  (float)args.optdouble(2, 0),
+																	  args.optboolean(4, false)));
 						return NONE;
 					}
 				});
-			library.set("setResolution", new TwoArgFunction(){
+			library.set("setResolution", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue width, LuaValue height){
+					public LuaValue call(LuaValue self, LuaValue width, LuaValue height){
 						game.setViewport(new FitViewport((float)width.checkdouble(), (float)height.checkdouble()));
 						return NONE;
 					}
 				});
-			library.set("applyInterp", new VarArgFunction(){
-				@Override
-				public Varargs invoke(Varargs args){ // interp, alpha, [start, end]
-					if(args.isnil(3) || args.isnil(4))
-						return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(2)));
-					else
-						return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(2)));
-				}
-			});
 			library.set("savestate", tableOf());
-			library.set("save", new ZeroArgFunction(){
+			library.set("save", new OneArgFunction(){
 					@Override
-					public LuaValue call(){
+					public LuaValue call(LuaValue self){
 						game.savestatepath.writeString(saveSaveState().toString(), false);
 						return NONE;
 					}
 				});
-			library.set("delay", new TwoArgFunction(){
+			library.set("delay", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue time, LuaValue function){
+					public LuaValue call(LuaValue self, LuaValue time, LuaValue function){
 						game.player.addDelay((float)time.optdouble(0), function.checkfunction());
 						return NONE;
 					}
 				});
-			library.set("addTexture", new OneArgFunction(){
+			library.set("addTexture", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue path){
+					public LuaValue call(LuaValue self, LuaValue path){
 						game.getSkin().add(Utils.filename(path.checkjstring()), new TextureRegion(new Texture(game.mappackpath.child(path.checkjstring()))), TextureRegion.class);
 						return NONE;
 					}
 				});
 			library.set("addRegion", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // texture, name, x, y, w, h
-						Texture tex = game.getSkin().getRegion(args.checkjstring(1)).getTexture();
-						game.getSkin().add(args.checkjstring(2), new TextureRegion(tex, args.checkint(3), args.checkint(4), args.checkint(5), args.checkint(6)));
+					public Varargs invoke(Varargs args){ // self, texture, name, x, y, w, h
+						Texture tex = game.getSkin().getRegion(args.checkjstring(2)).getTexture();
+						game.getSkin().add(args.checkjstring(3), new TextureRegion(tex, args.checkint(4), args.checkint(5), args.checkint(6), args.checkint(7)));
 						return NONE;
 					}
 				});
-			library.set("regionRect", new OneArgFunction(){
-				@Override
-				public LuaValue call(LuaValue name){
-					TextureRegion region = game.getSkin().getRegion(name.checkjstring());
-					LuaTable rect = tableOf();
-					rect.set("x", region.getRegionX());
-					rect.set("y", region.getRegionY());
-					rect.set("width", region.getRegionWidth());
-					rect.set("height", region.getRegionHeight());
-					return rect;
-				}
-			});
+			library.set("regionRect", new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue name){
+						TextureRegion region = game.getSkin().getRegion(name.checkjstring());
+						LuaTable rect = tableOf();
+						rect.set("x", region.getRegionX());
+						rect.set("y", region.getRegionY());
+						rect.set("width", region.getRegionWidth());
+						rect.set("height", region.getRegionHeight());
+						return rect;
+					}
+				});
+			library.set("addLayer", new TwoArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self, LuaValue layer){
+						if(game.map.hasMapLayer(layer.checkjstring())){
+							return FALSE;
+						}else{
+							game.map.addMapLayer(layer.checkjstring());
+							return TRUE;
+						}
+					}
+				});
+
+			// static methods
+			library.set("applyInterp", new VarArgFunction(){
+					@Override
+					public Varargs invoke(Varargs args){ // interp, alpha, [start, end]
+						if(args.isnil(3) || args.isnil(4))
+							return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(2)));
+						else
+							return valueOf(Utils.getInterpolation(args.checkjstring(1)).apply((float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(2)));
+					}
+				});
 			library.set("NPC", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue name){
@@ -350,30 +363,47 @@ public class Mappack implements ScriptGlob, Disposable{
 			ent.setmetatable(tableOf());
 			ent.getmetatable().set(CALL, new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){ // self(?), x, y, [width, height | region, isPatch]
+					public Varargs invoke(Varargs args){ // self, x, y, [width, height] [region [isPatch]]
+						float x = (float)args.checkdouble(2);
+						float y = (float)args.checkdouble(3);
+						int regI = 4;
+						boolean hasWidth = false;
+						float width = 0, height = 0;
+						Drawable drawable;
 						if(args.arg(4).isnumber()){
-							return new Entity.DrawableEntity(game,
-								(float)args.checkdouble(2), (float)args.checkdouble(3),
-								(float)args.checkdouble(4), (float)args.checkdouble(5),
-								new LayeredTextureRegionDrawable(new LayeredTextureRegion(game.getSkin().getRegion("white")))
-								).vars;
+							regI = 6;
+							hasWidth = true;
+							width  = (float)args.checkdouble(4);
+							height = (float)args.checkdouble(5);
+						}
+						if(args.isnil(regI)){
+							drawable = new LayeredTextureRegionDrawable(new LayeredTextureRegion(game.getSkin().getRegion("white")));
+							if(!hasWidth){
+								width  = 1;
+								height = 1;
+							}
+						}else if(args.isnil(regI + 1)){
+							drawable = game.getSkin().getDrawable(args.checkjstring(regI));
+							if(!hasWidth){
+								width  = drawable.getMinWidth();
+								height = drawable.getMinHeight();
+							}
+						}else if(args.checkboolean(regI + 1)){
+							NinePatch patch = game.getSkin().getPatch(args.checkjstring(regI));
+							drawable = new NinePatchDrawableAligned(patch);
+							if(!hasWidth){
+								width  = patch.getTotalWidth();
+								height = patch.getTotalHeight();
+							}
 						}else{
-							if(args.arg(5).optboolean(false)){
-								NinePatch patch = game.getSkin().getPatch(args.checkjstring(4));
-								return new Entity.DrawableEntity(game,
-									(float)args.checkdouble(2), (float)args.checkdouble(3),
-									(float)patch.getTotalWidth(), (float)patch.getTotalHeight(),
-									new NinePatchDrawable(patch)
-									).vars;
-							}else{
-								TextureRegion region = game.getSkin().getRegion(args.checkjstring(4));
-								return new Entity.DrawableEntity(game,
-									(float)args.checkdouble(2), (float)args.checkdouble(3),
-									(float)region.getRegionWidth(), (float)region.getRegionHeight(),
-									new LayeredTextureRegionDrawable(new LayeredTextureRegion(region))
-									).vars;
+							TextureRegion region = game.getSkin().getRegion(args.checkjstring(regI));
+							drawable = new LayeredTextureRegionDrawable(new LayeredTextureRegion(region));
+							if(!hasWidth){
+								width  = region.getRegionWidth();
+								height = region.getRegionHeight();
 							}
 						}
+						return new Entity.DrawableEntity(game, x, y, width, height, drawable).vars;
 					}
 				});
 			ent.set("add", new OneArgFunction(){
@@ -427,7 +457,7 @@ public class Mappack implements ScriptGlob, Disposable{
 							try{
 								midi = new MidiFile(folder.child(midifile.checkjstring()).file());
 							}catch(IOException|FileNotFoundException ex){
-								throw new RuntimeException("Unable to load midi file", ex);
+								throw new GdxRuntimeException("unable to load midi file", ex);
 							}
 						MusicWrapper wrapper = new MusicWrapper(music, midi);
 						return wrapper.vars;
@@ -498,14 +528,18 @@ public class Mappack implements ScriptGlob, Disposable{
 								break;
 							case "cameraX":
 								game.getCamera().position.x = (float)value.checkdouble();
+								game.getCamera().update();
 								game.map.hasCameraInit = true;
 								break;
 							case "cameraY":
 								game.getCamera().position.y = (float)value.checkdouble();
+								game.getCamera().update();
 								game.map.hasCameraInit = true;
 								break;
 							case "cameraZoom":
 								game.getCamera().zoom = (float)value.checkdouble();
+								game.updateZoom();
+								game.getCamera().update();
 								break;
 							case "deadzone":
 								game.player.deadzone = (float)value.checkdouble();
@@ -535,19 +569,6 @@ public class Mappack implements ScriptGlob, Disposable{
 					}
 				});
 
-			//constructors
-			/*final LuaTable npcClass = tableOf();
-			 npcClass.set(INDEX, npcClass); // instances will look up stuff in class. npcInstance will have npcClass, not npcInstance, so no inf recurse
-			 npcClass.set("new", new TwoArgFunction(){
-			 @Override
-			 public LuaValue call(LuaValue clazz, LuaValue name){
-			 LuaTable instance = loadNPC(name.checkjstring(), game.getStage()).getGlobals();
-			 instance.setmetatable(clazz); // Actually this line is killing the inherited metatables
-			 return instance;
-			 }
-			 });
-			 library.set("NPC", npcClass);*/
-
 			ScriptGlob.S.setLibToEnv(library, env);
 			return env;
 		}
@@ -573,18 +594,28 @@ public class Mappack implements ScriptGlob, Disposable{
 						levent.set("velocity", note.getVelocity());
 						levent.set("note", note.getNoteValue());
 						levent.set("tick", note.getTick());
-						levent.set("channel", note.getChannel()+1); // 0-index to 1-index
+						levent.set("channel", note.getChannel() + 1); // 0-index to 1-index
 
 						Gdx.app.postRunnable(new Runnable(){
 								@Override
 								public void run(){
 									LuaValue onNote = vars.get("onNote");
-									if(!onNote.isnil())
-										onNote.call(vars, levent);
+									if(!onNote.isnil()){
+										try{ // AndroidGraphics catches all exceptions anyway.
+											onNote.call(vars, levent);
+										}catch(Exception ex){
+											Log.error(ex);
+										}
+									}
 
 									onNote = vars.get("onNote" + (note.getChannel() + 1));
-									if(!onNote.isnil())
-										onNote.call(vars, levent);
+									if(!onNote.isnil()){
+										try{ // AndroidGraphics catches all exceptions anyway.
+											onNote.call(vars, levent);
+										}catch(Exception ex){
+											Log.error(ex);
+										}
+									}
 								}
 							});
 					}
@@ -606,18 +637,28 @@ public class Mappack implements ScriptGlob, Disposable{
 						levent.set("velocity", note.getVelocity());
 						levent.set("note", note.getNoteValue());
 						levent.set("tick", note.getTick() - note.getDelta());
-						levent.set("channel", note.getChannel());
+						levent.set("channel", note.getChannel() + 1); // 0-index to 1-index
 
 						Gdx.app.postRunnable(new Runnable(){
 								@Override
 								public void run(){
 									LuaValue offNote = vars.get("offNote");
-									if(!offNote.isnil())
-										offNote.call(vars, levent);
+									if(!offNote.isnil()){
+										try{ // AndroidGraphics catches all exceptions anyway.
+											offNote.call(vars, levent);
+										}catch(Exception ex){
+											Log.error(ex);
+										}
+									}
 
 									offNote = vars.get("offNote" + (note.getChannel() + 1));
-									if(!offNote.isnil())
-										offNote.call(vars, levent);
+									if(!offNote.isnil()){
+										try{ // AndroidGraphics catches all exceptions anyway.
+											offNote.call(vars, levent);
+										}catch(Exception ex){
+											Log.error(ex);
+										}
+									}
 								}
 							});
 					}
@@ -628,30 +669,30 @@ public class Mappack implements ScriptGlob, Disposable{
 				});
 
 			vars = LuaValue.tableOf();
-			vars.set("play", new ZeroArgFunction(){
+			vars.set("play", new OneArgFunction(){
 					@Override
-					public LuaValue call(){
+					public LuaValue call(LuaValue self){
 						music.play();
 						return NONE;
 					}
 				});
-			vars.set("pause", new ZeroArgFunction(){
+			vars.set("pause", new OneArgFunction(){
 					@Override
-					public LuaValue call(){
+					public LuaValue call(LuaValue self){
 						music.pause();
 						return NONE;
 					}
 				});
-			vars.set("stop", new ZeroArgFunction(){
+			vars.set("stop", new OneArgFunction(){
 					@Override
-					public LuaValue call(){
+					public LuaValue call(LuaValue self){
 						music.stop();
 						return NONE;
 					}
 				});
-			vars.set("dispose", new ZeroArgFunction(){
+			vars.set("dispose", new OneArgFunction(){
 					@Override
-					public LuaValue call(){
+					public LuaValue call(LuaValue self){
 						music.dispose();
 						return NONE;
 					}

@@ -39,9 +39,9 @@ public class Trigger{
 		LuaValue call = getLuaValue(prop);
 		if(!call.isnil())
 			if(props.containsKey(Entity.ENTITY))
-				call.call(CoerceJavaToLua.coerce(props.get(Entity.ENTITY, Entity.class)));
+				call.call(props.get(Entity.ENTITY, Entity.class).vars);
 			else
-				call.call();
+				call.call(game.mappack.getGlobals());
 	}
 
 	@Override

@@ -28,7 +28,6 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	protected Array<MenuItem.GameItem> items;
 	public ArrayMap<String,MenuItem.GameItem> equippedItems;
 	public EntityBox box;
-	public EntityBox.StatBox smolStatBox;
 	private ArrayMap<String,Skin> skinList;
 	private Array<Action> actions;
 	protected Action currentAction;
@@ -58,9 +57,6 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		this.filename = filename;
 		
 		box = new EntityBox(this, false, game.getSkin());
-		smolStatBox = new EntityBox.FadingStatBox(box.healthBar, box.manaBar, game.getSkin());
-		smolStatBox.setSize(Tenebrae.MARGIN * 10.0f, Tenebrae.MARGIN * 2.0f);
-		game.getUiStage().addActor(smolStatBox);
 		
 		setStats(baseStats, 0, 0, 0, 0, 1, 1);
 		exp = 0;
@@ -70,11 +66,13 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	public void changeMap(TileMap map){
 		Rectangle rect = new Rectangle();
 		MapObject mapobj = map.getMapObject(filename);
-		setMapObject(mapobj);
 		
 		if(mapobj == null){
 			rect = new Rectangle(-1, -1, 1, 1);
 		}else{
+			for(MapLayer layer : map.getMapLayers())
+				if(layer.getObjects().get(filename) != null)
+					setMapLayer(layer);
 			if(mapobj instanceof RectangleMapObject){
 				RectangleMapObject obj = (RectangleMapObject)mapobj;
 				rect.set(obj.getRectangle());
@@ -92,7 +90,6 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		
 		setBounds(rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
 		currentAction = null;
-		smolStatBox.setVisible(false);
 	}
 
 	public void move(float newX, float newY, float speed, boolean relative, boolean collide){
@@ -433,21 +430,10 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 			addAction(new FunctionAction(funcToRun));
 	}
 	
-	private static Vector2 coordBuffer = new Vector2(), sizeBuffer = new Vector2();
-	public void moveSmolStatBox(){
-		localToScreenCoordinates(coordBuffer.set(0, 0));
-		localToScreenCoordinates(sizeBuffer.set(getWidth(), getHeight()));
-		//Log.debug(coordBuffer, sizeBuffer);
-		sizeBuffer.sub(coordBuffer).scl(1, -1); // sizeBuffer gives top-right point
-		coordBuffer.y = game.getStage().getViewport().getScreenHeight() - coordBuffer.y - game.getStage().getViewport().getBottomGutterHeight();// + game.getStage().getViewport().getLeftGutterWidth(); // screen is y-down // also gutters are messing stuff up???
-		smolStatBox.setPosition(coordBuffer.x + sizeBuffer.x / 2 - smolStatBox.getWidth() / 2, coordBuffer.y + sizeBuffer.y + Tenebrae.MARGIN);
-	}
 	public void updateBoxHP(){
 		Log.gameplay("Updating HP", hp, maxhp(), mp, maxmp(), this);
 		if(box != null)
 			box.updateHP();
-		if(smolStatBox != null)
-			smolStatBox.updateHP();
 	}
 
 	@Override
@@ -473,7 +459,6 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 
 	@Override
 	public void draw(Batch batch, float parentAlpha){
-		moveSmolStatBox();
 		updateSkins();
 		super.draw(batch, parentAlpha);
 	}
@@ -483,19 +468,14 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		return super.toString() + "§" + filename + "{" + tile + "}";
 	}
 
-	public void endSelf(){
-		dispose();
-		smolStatBox.remove();
-	}
-
 	public class CharacterLib extends TwoArgFunction{
 		@Override
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
 
-			library.set("setSkin", new TwoArgFunction(){
+			library.set("setSkin", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue tileset, LuaValue z){
+					public LuaValue call(LuaValue self, LuaValue tileset, LuaValue z){
 						if(!z.isnil())
 							setSkin(z.checkint(), tileset.checkjstring());
 						else
@@ -503,25 +483,25 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 						return NONE;
 					}
 				});
-			library.set("removeSkin", new OneArgFunction(){
+			library.set("removeSkin", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue z){
+					public LuaValue call(LuaValue self, LuaValue z){
 						removeSkin(z.checkint());
 						return NONE;
 					}
 				});
-			library.set("lookToward", new TwoArgFunction(){
+			library.set("lookToward", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue dx, LuaValue dy){
+					public LuaValue call(LuaValue self, LuaValue dx, LuaValue dy){
 						updateSkins((float)dx.checkdouble(), (float)dy.checkdouble());
 						return NONE;
 					}
 				});
-			library.set("affect", new VarArgFunction(){ // hp, mp, override
+			library.set("affect", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){
-						float hp = (float)args.checkdouble(1), mp = (float)args.checkdouble(2);
-						boolean override = args.optboolean(3, false);
+					public Varargs invoke(Varargs args){ // self, hp, mp, override
+						float hp = (float)args.checkdouble(2), mp = (float)args.checkdouble(3);
+						boolean override = args.optboolean(4, false);
 						if(hp < 0)
 							damage(-hp, override);
 						else if(hp > 0)
@@ -533,46 +513,46 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 						return NONE;
 					}
 				});
-			library.set("setStat", new ThreeArgFunction(){
+			library.set("setStat", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue statLevel, LuaValue stat, LuaValue value){
+					public Varargs invoke(Varargs args){ // self, statLevel, stat, value
 						String lv;
-						if(statLevel.isnil())
+						if(args.isnil(2))
 							lv = baseStats;
 						else
-							lv = statLevel.checkjstring();
-						setStat(lv, Character.Stats.valueOf(stat.checkjstring()), (float)value.checkdouble());
+							lv = args.checkjstring(2);
+						setStat(lv, Character.Stats.valueOf(args.checkjstring(3)), (float)args.checkdouble(4));
 						return NONE;
 					}
 				});
-			library.set("setStats", new VarArgFunction(){ // statLevel, atk, intl, def, agl, maxhp, maxmp, exp, g
+			library.set("setStats", new VarArgFunction(){
 					@Override
-					public Varargs invoke(Varargs args){
+					public Varargs invoke(Varargs args){ //self, statLevel, atk, intl, def, agl, maxhp, maxmp, exp, g
 						String lv;
-						if(args.isnil(1))
+						if(args.isnil(2))
 							lv = baseStats;
 						else
-							lv = args.checkjstring(1);
-						setStats(lv, (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
-						if(!args.isnil(8))
-							exp = (float)args.checkdouble(8);
+							lv = args.checkjstring(2);
+						setStats(lv, (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7), (float)args.checkdouble(8));
 						if(!args.isnil(9))
-							g = (float)args.checkdouble(9);
+							exp = (float)args.checkdouble(9);
+						if(!args.isnil(10))
+							g = (float)args.checkdouble(10);
 						return NONE;
 					}
 				});
-			library.set("addItem", new OneArgFunction(){
+			library.set("addItem", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue file){
+					public LuaValue call(LuaValue self, LuaValue file){
 						MenuItem.GameItem item;
 						addItem(item = game.mappack.loadItem(file.checkjstring(), Character.this));
 						Log.debug(item);
 						return item.getGlobals();
 					}
 				});
-			library.set("hasItem", new OneArgFunction(){
+			library.set("hasItem", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue itemName){
+					public LuaValue call(LuaValue self, LuaValue itemName){
 						int amt = 0;
 						for(MenuItem.GameItem item : items)
 							if(item.id.equals(itemName.checkjstring()))
@@ -580,34 +560,34 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 						return valueOf(amt);
 					}
 				});
-			library.set("getItem", new OneArgFunction(){ // Should only be used for unique items
+			library.set("getItem", new TwoArgFunction(){ // Should only be used for unique items
 					@Override
-					public LuaValue call(LuaValue itemName){
+					public LuaValue call(LuaValue self, LuaValue itemName){
 						for(MenuItem.GameItem item : items)
 							if(item.id.equals(itemName.checkjstring()))
 								return item.getGlobals();
 						return NIL;
 					}
 				});
-			library.set("moveBy", new ThreeArgFunction(){
+			library.set("moveBy", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+					public Varargs invoke(Varargs args){ // self, x, y, speed
 						//float dist = (float)Math.hypot(scope.getVal("x"), scope.getVal("y"));
-						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), true, false);
+						move((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.optdouble(4, 0), true, false);
 						return NONE;
 					}
 				});
-			library.set("moveTo", new ThreeArgFunction(){
+			library.set("moveTo", new VarArgFunction(){
 					@Override
-					public LuaValue call(LuaValue x, LuaValue y, LuaValue speed){
+					public Varargs invoke(Varargs args){ // self, x, y, speed
 						//float dist = (float)Math.hypot(x - (float)scope.getVal("x"), y - (float)scope.getVal("y"));
-						move((float)x.checkdouble(), (float)y.checkdouble(), (float)speed.optdouble(0), false, false);
+						move((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.optdouble(4, 0), false, false);
 						return NONE;
 					}
 				});
-			library.set("delay", new TwoArgFunction(){
+			library.set("delay", new ThreeArgFunction(){
 					@Override
-					public LuaValue call(LuaValue delayTime, LuaValue function){
+					public LuaValue call(LuaValue self, LuaValue delayTime, LuaValue function){
 						addDelay((float)delayTime.checkdouble(), function.checkfunction());
 						return NONE;
 					}

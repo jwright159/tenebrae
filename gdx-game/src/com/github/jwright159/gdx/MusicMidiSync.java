@@ -86,12 +86,12 @@ public class MusicMidiSync implements Disposable{
 		if(midipro == null)
 			return;
 		
-		float ms = music.getPosition();
+		float ms = music.getPosition()*1000;
 		if(ms < pMs){
 			midipro.reset();
 			midipro.start();
 		}
-		midipro.setMsElapsed((long)(ms*1000));
+		midipro.setElapsed((long)ms);
 		pMs = ms;
 	}
 	

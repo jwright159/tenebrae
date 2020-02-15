@@ -84,11 +84,6 @@ public class Player extends Character{
 		playerPane.add(box = new PlayerBox(this, skin)).pad(Tenebrae.MARGIN).grow();
 		uiTable.add(playerPane).padLeft(Tenebrae.MARGIN).grow().uniform();
 
-		StatBox prevStatBox = smolStatBox;
-		prevStatBox.remove();
-		game.getUiStage().addActor(smolStatBox = new FadingStatBox(box.healthBar, box.manaBar, skin));
-		smolStatBox.setSize(prevStatBox.getWidth(), prevStatBox.getHeight());
-		
 		dialogTable.add().grow();
 		
 		final Table dialogBoxBox = new Table(skin);
@@ -137,6 +132,7 @@ public class Player extends Character{
 		
 		getGlobals().load(new PlayerLib());
 
+		firstFrame = true; // For GameScreen.resize()
 		setExpanded(false);
 	}
 	@Override
@@ -157,10 +153,12 @@ public class Player extends Character{
 				c.changeMap(map);
 
 		//Log.debug("Changing player! " + toString());
+		
+		updateMapRect();
 
 		LuaValue onCreate = game.mappack.getGlobals().get("onCreate");
 		if(!onCreate.isnil())
-			onCreate.call();
+			onCreate.call(game.mappack.getGlobals());
 	}
 
 	public void setPlayerName(String name){
@@ -476,6 +474,26 @@ public class Player extends Character{
 		lastCameraPos.set(cam.position.x, cam.position.y, cam.zoom);
 		cam.update();
 	}
+	
+	public void updateMapRect(){
+		Vector2 mapCoords = new Vector2();
+		mapRect.localToStageCoordinates(mapCoords);
+		dzRect = new Rectangle(Math.max(mapCoords.x - game.screenRect.getX(), 0), Math.max(mapCoords.y - game.screenRect.getY(), 0),
+							   mapRect.getWidth(), mapRect.getHeight());
+		bigdzRect = new Rectangle(0, 0, game.screenRect.getWidth(), game.screenRect.getHeight());
+		Log.graphics("MapRect!", dzRect, bigdzRect);
+
+		if(firstFrame){
+			game.getCamera().zoom = Tenebrae.TILES / dzRect.getWidth();
+			game.updateZoom();
+			Log.graphics("Zoom", game.zoom, Tenebrae.TILES, dzRect.getWidth(), getWidth());
+		}else{
+			game.getCamera().zoom = game.zoom;
+		}
+		
+		if(game.map != null)
+			setExpanded(isExpanded());
+	}
 
 	public boolean canMove(){
 		return buttonBox.getActiveBox() == null && !hasAnyAction();
@@ -483,19 +501,26 @@ public class Player extends Character{
 	public void handleMovementControls(float delta){
 		if(!canMove())
 			return;
-		
+
+		float dist = JOYSPEED*speedMult*delta;
 		float x = 0, y = 0;
 		if(Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-			x += JOYSPEED*speedMult*delta;
+			x += dist;
 		if(Gdx.input.isKeyPressed(Input.Keys.LEFT))
-			x -= JOYSPEED*speedMult*delta;
+			x -= dist;
 		if(Gdx.input.isKeyPressed(Input.Keys.UP))
-			y += JOYSPEED*speedMult*delta;
+			y += dist;
 		if(Gdx.input.isKeyPressed(Input.Keys.DOWN))
-			y -= JOYSPEED*speedMult*delta;
+			y -= dist;
 		if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
 			x *= SPRINTMULT;
 			y *= SPRINTMULT;
+		}
+		
+		if(x != 0 && y != 0){
+			float sq = (float)Math.sqrt(2);
+			x /= sq;
+			y /= sq;
 		}
 		
 		if(x != 0 || y != 0)
@@ -525,26 +550,6 @@ public class Player extends Character{
 		
 		boolean moved = hasTarget; // back here bc triggerAction() kills them and moves us
 		super.act(delta);
-
-		if(dzRect == null){
-			Vector2 mapCoords = new Vector2();
-			mapRect.localToStageCoordinates(mapCoords);
-			dzRect = new Rectangle(
-				Math.max(mapCoords.x - game.screenRect.getX(), 0), Math.max(mapCoords.y - game.screenRect.getY(), 0),
-				mapRect.getWidth(), mapRect.getHeight());
-			bigdzRect = new Rectangle(0, 0, game.screenRect.getWidth(), game.screenRect.getHeight());
-			Log.graphics("MapRect!", dzRect, bigdzRect);
-			
-			setExpanded(isExpanded());
-			
-			if(firstFrame){
-				game.getCamera().zoom = Tenebrae.TILES / dzRect.getWidth();
-				game.updateZoom();
-				Log.graphics("Zoom", game.zoom, Tenebrae.TILES, dzRect.getWidth(), getWidth());
-			}else{
-				game.getCamera().zoom = game.zoom;
-			}
-		}
 
 		if(moved || firstFrame){
 			/*float rand = (float)Math.random();
@@ -593,9 +598,8 @@ public class Player extends Character{
 		super.draw(batch, parentAlpha);
 	}
 
-	@Override
 	public void endSelf(){
-		super.endSelf();
+		dispose();
 		table.clear();
 	}
 
@@ -604,10 +608,10 @@ public class Player extends Character{
 		public LuaValue call(LuaValue modname, LuaValue env){
 			LuaTable library = tableOf();
 
-			library.set("setStatLv", new VarArgFunction(){ // exp, str, intl, def, agl, maxhp, maxmp
+			library.set("setStatLv", new VarArgFunction(){ // self, exp, str, intl, def, agl, maxhp, maxmp
 					@Override
 					public Varargs invoke(Varargs args){
-						setStatLv((float)args.checkdouble(1), (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7));
+						setStatLv((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.checkdouble(5), (float)args.checkdouble(6), (float)args.checkdouble(7), (float)args.checkdouble(8));
 						return NONE;
 					}
 				});
@@ -631,7 +635,7 @@ public class Player extends Character{
 			library.getmetatable().set(NEWINDEX, new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue self, LuaValue key, LuaValue value){
-						Log.debug("Setting", key.checkjstring());
+						//Log.debug("Setting", key.checkjstring());
 						switch(key.checkjstring()){
 							case "name":
 								setPlayerName(value.checkjstring());

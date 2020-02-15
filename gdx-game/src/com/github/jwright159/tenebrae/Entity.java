@@ -15,6 +15,7 @@ import com.badlogic.gdx.maps.objects.*;
 import com.badlogic.gdx.maps.tiled.objects.*;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
+import com.badlogic.gdx.graphics.glutils.*;
 
 public abstract class Entity extends ScreenActor implements Comparable<Entity>, Disposable{
 	public static final String ENTITY = "__entity";
@@ -22,6 +23,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 	protected Tenebrae game;
 	public LuaTable vars;
 	public float lifetime;
+	private MapLayer layer;
 	
 	public Entity(Tenebrae game, float x, float y){
 		this.game = game;
@@ -30,21 +32,28 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		new EntityLib().call(LuaValue.valueOf(""), vars);
 	}
 
+	public void setMapLayer(MapLayer layer){
+		this.layer = layer;
+	}
+	public MapLayer getMapLayer(){
+		return layer;
+	}
+	public boolean hasMapLayer(){
+		return layer != null;
+	}
+	
 	@Override
 	public int compareTo(Entity c){
-		return getY() > c.getY() ? -1 : 1;
+		return Float.compare(c.getY(), getY());
 	}
 
-	public void act(float delta, float time){
-		LuaValue act = vars.get("act");
-		if(!act.isnil())
-			act.call(vars, LuaValue.valueOf(delta), LuaValue.valueOf(time));
-	}
 	@Override
 	public void act(float delta){
 		super.act(delta);
 		lifetime += delta;
-		act(delta, lifetime);
+		LuaValue act = vars.get("act");
+		if(!act.isnil())
+			act.call(vars, LuaValue.valueOf(delta));
 	}
 
 	@Override
@@ -60,15 +69,26 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			library.set("setColor", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){
-						setColor((float)args.checkdouble(1), (float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.optdouble(4, 1));
+						setColor((float)args.checkdouble(2), (float)args.checkdouble(3), (float)args.checkdouble(4), (float)args.optdouble(5, 1));
 						return NONE;
 					}
 				});
-			library.set("setAlpha", new OneArgFunction(){
+			library.set("setLayer", new TwoArgFunction(){
 					@Override
-					public LuaValue call(LuaValue alpha){
-						setColor(getColor().r, getColor().g, getColor().b, (float)alpha.checkdouble());
+					public LuaValue call(LuaValue self, LuaValue layer){
+						if(layer.isnil())
+							setMapLayer(null);
+						else if(game.map.hasMapLayer(layer.checkjstring()))
+							setMapLayer(game.map.getMapLayer(layer.checkjstring()));
+						else
+							throw new GdxRuntimeException("");
 						return NONE;
+					}
+				});
+			library.set("getLayer", new OneArgFunction(){
+					@Override
+					public LuaValue call(LuaValue self){
+						return valueOf(getMapLayer().getName());
 					}
 				});
 			library.setmetatable(tableOf());
@@ -81,11 +101,21 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 							case "y":
 								return valueOf(getY());
 							case "rotation":
-								return valueOf(getRotation());
+								return valueOf(getRotation()*MathUtils.degreesToRadians);
 							case "originX":
 								return valueOf(getOriginX());
 							case "originY":
 								return valueOf(getOriginY());
+							case "red":
+								return valueOf(getColor().r);
+							case "green":
+								return valueOf(getColor().g);
+							case "blue":
+								return valueOf(getColor().b);
+							case "alpha":
+								return valueOf(getColor().a);
+							case "lifetime":
+								return valueOf(lifetime);
 							default:
 								return NIL;
 						}
@@ -102,13 +132,28 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 								setY((float)value.checkdouble());
 								break;
 							case "rotation":
-								setRotation((float)value.checkdouble());
+								setRotation((float)value.checkdouble()*MathUtils.radiansToDegrees);
 								break;
 							case "originX":
 								setOriginX((float)value.checkdouble());
 								break;
 							case "originY":
 								setOriginY((float)value.checkdouble());
+								break;
+							case "red":
+								getColor().r = (float)value.checkdouble();
+								break;
+							case "green":
+								getColor().g = (float)value.checkdouble();
+								break;
+							case "blue":
+								getColor().b = (float)value.checkdouble();
+								break;
+							case "alpha":
+								getColor().a = (float)value.checkdouble();
+								break;
+							case "lifetime":
+								lifetime = (float)value.checkdouble();
 								break;
 							default:
 								return TRUE;
@@ -128,9 +173,8 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 		
 		private TiledMapTile tile;
 		private LayeredTextureRegionDrawable region;
-		private NinePatchDrawable patch;
+		private NinePatchDrawableAligned patch;
 		
-		private MapObject mapobj; // Either RectMapObj or TileMapObj
 		private ScreenActor tap;
 		//private Array<Trigger> trigs; // Do this if u want the longer prop searching
 		private MapProperties props; // Just for triggers
@@ -141,7 +185,7 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			
 			this.drawable = drawable;
 			region = drawable instanceof LayeredTextureRegionDrawable ? (LayeredTextureRegionDrawable)drawable : new LayeredTextureRegionDrawable(new LayeredTextureRegion());
-			patch = drawable instanceof NinePatchDrawable ? (NinePatchDrawable)drawable : new NinePatchDrawable();
+			patch = drawable instanceof NinePatchDrawableAligned ? (NinePatchDrawableAligned)drawable : new NinePatchDrawableAligned();
 			
 			/*trigs = new Array<Trigger>();*/
 			props = new MapProperties();
@@ -186,27 +230,6 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			setDrawable(this.patch);
 		}
 
-		public void setMapObject(MapObject mapobj){
-			this.mapobj = mapobj;
-			/*trigs.clear();
-			 if(mapobj instanceof RectangleMapObject)
-			 trigs.add(new Trigger(((RectangleMapObject)mapobj).getRectangle(), mapobj.getProperties()));
-			 else if(mapobj instanceof TiledMapTileMapObject){
-			 TiledMapTileMapObject obj = (TiledMapTileMapObject)mapobj;
-			 trigs.add(new Trigger(new Rectangle(0, 0, obj.getTextureRegion().getRegionWidth()*obj.getScaleX(), obj.getTextureRegion().getRegionHeight()*obj.getScaleY()), obj.getProperties()));
-			 }*/
-		}
-		/*public MapObject getMapObject(){
-		 return mapobj;
-		 }*/
-		public boolean hasMapObject(){
-			return mapobj != null;
-		}
-
-		public boolean isInMapObjects(MapObjects objs){
-			return objs.getIndex(mapobj) != -1;
-		}
-
 		public Trigger getTrigger(String prop){
 			/*for(Trigger trig : trigs)
 			 if(trig.hasProperty(prop))
@@ -225,13 +248,36 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			tap.setBounds(coordBuffer.x, coordBuffer.y, sizeBuffer.x, sizeBuffer.y);
 		}
 
+		private float[] verts = new float[8];
+		private Polygon polygon = new Polygon(verts);
+		public Polygon getPolygon(){
+			return polygon;
+		}
+		public void updatePolygon(){
+			verts[2] = getWidth();
+			verts[4] = getWidth();
+			verts[5] = getHeight();
+			verts[7] = getHeight();
+			polygon.setPosition(getX()-getOriginX(), getY()-getOriginY());
+			polygon.setOrigin(getOriginX(), getOriginY());
+			polygon.setRotation(getRotation());
+			polygon.setScale(getScaleX(), getScaleY());
+		}
+
 		@Override
-		public void act(float delta, float time){
-			super.act(delta, time);
-			if(game.player.collide && toRect().overlaps(game.player.toRect())){
-				LuaValue onTouch = vars.get("onTouch");
-				if(!onTouch.isnil())
-					onTouch.call(vars);
+		public void act(float delta){
+			super.act(delta);
+			
+			if(this != game.player && game.player.collide){
+				LuaValue onTouch = vars.get("onTouch"), offTouch = vars.get("offTouch");
+				if(!onTouch.isnil() || !offTouch.isnil()){
+					if(getPolygon().getBoundingRectangle().overlaps(game.player.getPolygon().getBoundingRectangle()) &&
+						Intersector.overlapConvexPolygons(getPolygon(), game.player.getPolygon())){
+						if(!onTouch.isnil()) onTouch.call(vars);
+					}else{
+						if(!offTouch.isnil()) offTouch.call(vars);
+					}
+				}
 			}
 
 			if(tap.getStage() != null)
@@ -243,8 +289,14 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 
 		@Override
 		public void draw(Batch batch){
+			updatePolygon();
 			//Log.debug("Drawing", this, getX(), getY()+"\n"+ batch.getTransformMatrix())
 			drawable.draw(batch, 0, 0, getWidth(), getHeight());
+		}
+
+		@Override
+		public void drawDebug(ShapeRenderer shapes){
+			shapes.polygon(polygon.getTransformedVertices());
 		}
 		
 		@Override
@@ -263,9 +315,9 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			public LuaValue call(LuaValue modname, final LuaValue env){
 				LuaTable library = tableOf();
 
-				library.set("setTexture", new TwoArgFunction(){
+				library.set("setTexture", new ThreeArgFunction(){
 						@Override
-						public LuaValue call(LuaValue tsx, LuaValue tid){
+						public LuaValue call(LuaValue self, LuaValue tsx, LuaValue tid){
 							if(tid.isnumber()){
 								TiledMapTileSet tileset = game.mappack.loadTileset(tsx.checkjstring());
 								tile = tileset.getTile(tid.checkint());
@@ -278,6 +330,28 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 									setPatch(game.getSkin().getPatch(tsx.checkjstring()));
 								else
 									setRegion(game.getSkin().getRegion(tsx.checkjstring()));
+							}
+							return NONE;
+						}
+					});
+				library.set("setPatchAlignment", new TwoArgFunction(){
+						@Override
+						public LuaValue call(LuaValue self, LuaValue alignment){
+							if(drawable != patch)
+								throw new GdxRuntimeException("entity is not a patch");
+							int align = alignment.checkint();
+							switch(align){
+								case 0: // outside
+									patch.setBorderAlignment(Align.left);
+									break;
+								case 1:
+									patch.setBorderAlignment(Align.center);
+									break;
+								case 2:
+									patch.setBorderAlignment(Align.right);
+									break;
+								default:
+									throw new GdxRuntimeException("unexpected alignment: "+align);
 							}
 							return NONE;
 						}
@@ -295,6 +369,8 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 									return valueOf(getScaleX());
 								case "scaleY":
 									return valueOf(getScaleY());
+								case "isVisible":
+									return valueOf(isVisible());
 								default:
 									return NIL;
 							}
@@ -315,6 +391,9 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 									break;
 								case "scaleY":
 									setScaleY((float)value.checkdouble());
+									break;
+								case "isVisible":
+									setVisible(value.checkboolean());
 									break;
 								case "onTap":
 									if(!value.isnil())
@@ -371,16 +450,16 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			public LuaValue call(LuaValue modname, final LuaValue env){
 				LuaTable library = tableOf();
 
-				library.set("add", new OneArgFunction(){
+				library.set("add", new TwoArgFunction(){
 						@Override
-						public LuaValue call(LuaValue actor){
+						public LuaValue call(LuaValue self, LuaValue actor){
 							group.add((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class));
 							return NONE;
 						}
 					});
-				library.set("remove", new OneArgFunction(){
+				library.set("remove", new TwoArgFunction(){
 						@Override
-						public LuaValue call(LuaValue actor){
+						public LuaValue call(LuaValue self, LuaValue actor){
 							group.removeValue((Actor)actor.getmetatable().get(Entity.ENTITY).checkuserdata(Actor.class), true);
 							return NONE;
 						}
