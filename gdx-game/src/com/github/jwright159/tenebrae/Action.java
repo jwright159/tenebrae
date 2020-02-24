@@ -71,13 +71,21 @@ public abstract class Action implements Runnable{
 	}
 	
 	public static class FunctionAction extends Action{
+		private Globals globals;
 		private LuaFunction func;
 		public FunctionAction(LuaFunction funcToRun){
 			func = funcToRun;
 		}
+		public FunctionAction(LuaFunction funcToRun, Globals globals){
+			this.globals = globals;
+			func = funcToRun;
+		}
 		@Override
 		public void run(){
-			func.call();
+			if(globals != null)
+				func.call(globals);
+			else
+				func.call();
 		}
 	}
 	

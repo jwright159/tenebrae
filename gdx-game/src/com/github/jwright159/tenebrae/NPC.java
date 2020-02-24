@@ -16,7 +16,7 @@ public class NPC extends Character{
 	public static final Prototype setup;
 	static{
 		try{
-			setup = Tenebrae.compiler.compilePrototype(new StringReader("function setupMap(trigger_, enter_, exit_, idleRoutine) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n setIdleRoutine(idleRoutine) \n end"), "setup");
+			setup = Tenebrae.compiler.compilePrototype(new StringReader("function setupMap(self, trigger_, enter_, exit_, idleRoutine) \n trigger = trigger_ \n enter = enter_ \n exit = exit_ \n self:setIdleRoutine(idleRoutine) \n end"), "setup");
 		}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 	}
 
@@ -26,6 +26,9 @@ public class NPC extends Character{
 		globals.load(new NPCLib());
 		new LuaClosure(setup, globals).call();
 		new LuaClosure(script, globals).call();
+		LuaValue onCreate = globals.get("onCreate");
+		if(!onCreate.isnil())
+			onCreate.call(globals);
 		hp = maxhp();
 		mp = maxmp();
 		updateBoxHP();
@@ -71,7 +74,7 @@ public class NPC extends Character{
 									if((k = en.arg1()).isnil())
 										break;
 									LuaValue v = en.arg(2);
-									idleRoutine.add(new FunctionAction(v.checkfunction()));
+									idleRoutine.add(new FunctionAction(v.checkfunction(), getGlobals()));
 								}
 								Log.debug("Set idle routine", idleRoutine);
 								return NONE;

@@ -309,6 +309,9 @@ public class TileMap extends ScreenActor{
 	
 	@Override
 	public void draw(Batch batch){
+		if(game.player.moved())
+			game.player.moveCamera();
+		
 		OrthographicCamera cam = (OrthographicCamera)getStage().getCamera();
 		cam.translate(-offsetX, -offsetY, 0);
 		

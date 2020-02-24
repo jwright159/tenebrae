@@ -521,10 +521,10 @@ public class EntityBox extends Table{
 		public static final Prototype killScript, healScript, tireScript, invigorScript;
 		static{
 			try{
-				killScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(-player.hp,0)"), "kill");
-				healScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(player.maxhp-player.hp,0)"), "heal");
-				tireScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(0,-player.mp)"), "tire");
-				invigorScript = Tenebrae.compiler.compilePrototype(new StringReader("owner.affect(0,player.maxmp-player.mp)"), "invigor");
+				killScript = Tenebrae.compiler.compilePrototype(new StringReader("owner:affect(-player.hp,0)"), "kill");
+				healScript = Tenebrae.compiler.compilePrototype(new StringReader("owner:affect(player.maxhp-player.hp,0)"), "heal");
+				tireScript = Tenebrae.compiler.compilePrototype(new StringReader("owner:affect(0,-player.mp)"), "tire");
+				invigorScript = Tenebrae.compiler.compilePrototype(new StringReader("owner:affect(0,player.maxmp-player.mp)"), "invigor");
 			}catch(IOException ex){throw new GdxRuntimeException("Couldn't load static script", ex);}
 		}
 

@@ -163,6 +163,8 @@ public class Player extends Character{
 		LuaValue onCreate = game.mappack.getGlobals().get("onCreate");
 		if(!onCreate.isnil())
 			onCreate.call(game.mappack.getGlobals());
+		
+		game.setFocusTable(null);
 	}
 
 	public void setPlayerName(String name){
@@ -593,13 +595,6 @@ public class Player extends Character{
 			py = getY();
 			firstFrame = false;
 		}
-	}
-
-	@Override
-	public void draw(Batch batch, float parentAlpha){
-		if(px != getX() || py != getY())
-			moveCamera();
-		super.draw(batch, parentAlpha);
 	}
 
 	public void endSelf(){

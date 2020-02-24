@@ -96,6 +96,9 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 		addAction(new Action.MoveAction(this, newX, newY, speed, relative, collide, false));
 		triggerAction();
 	}
+	public boolean moved(){
+		return px != getX() || py != getY();
+	}
 
 	public float calcDamage(Character enemy, boolean magic){
 		float rtn = ((magic ? intl() : str()) - enemy.def() * 2 / 3 + (float)Math.random() * 2) * 2;//ut player
@@ -270,7 +273,7 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 	}
 
 	public void triggerAction(){
-		Log.gameplay("Wanting an action from", this, ", Was", currentAction);
+		//Log.gameplay("Wanting an action from", this, ", Was", currentAction);
 		boolean stop = currentAction == null || currentAction.stop(false);
 		if(stop){
 			delay = 0;

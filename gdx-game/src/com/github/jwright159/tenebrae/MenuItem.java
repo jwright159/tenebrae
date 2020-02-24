@@ -139,8 +139,11 @@ public abstract class MenuItem{
 		}
 		public GameItem(Tenebrae game, String name, Prototype script, Character owner, Skin skin){
 			this(game, name, "Item", owner, new ArrayMap<Character.Stats,Float>(), 0, "Items", "Item", 0, false, skin);
-			Log.gameplay("Parsing file of item!");
+			Log.debug("Parsing file of item!");
 			new LuaClosure(script, getGlobals()).call();
+			LuaValue onCreate = getGlobals().get("onCreate");
+			if(!onCreate.isnil())
+				onCreate.checkfunction().call(getGlobals());
 			if(isEquipable()){
 				addOption(equipOpt);
 				addOption(unequipOpt);
@@ -173,7 +176,7 @@ public abstract class MenuItem{
 			equip.put(stat, value);
 		}
 		public void setStats(float str, float intl, float def, float agl, float maxhp, float maxmp){
-			//Tenebrae.debug("Updating stats of type " + type + " to " + toString() + "! " + atk + " " + def + " " + agl + " " + maxhp + " " + maxmp);
+			Log.debug("Updating stats of item type", type, "to", toString(), str, intl, def, agl, maxhp, maxmp);
 			setStat(Stats.str, str);
 			setStat(Stats.intl, intl);
 			setStat(Stats.def, def);

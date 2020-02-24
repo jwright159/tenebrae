@@ -4,6 +4,7 @@ import com.badlogic.gdx.maps.*;
 import com.badlogic.gdx.math.*;
 import org.luaj.vm2.*;
 import org.luaj.vm2.lib.jse.*;
+import com.github.jwright159.gdx.*;
 
 public class Trigger{
 	private Tenebrae game;
