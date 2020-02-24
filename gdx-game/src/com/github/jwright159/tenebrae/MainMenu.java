@@ -25,7 +25,6 @@ public class MainMenu extends GameScreen{
 	private TextureActor bgactor;
 	private TextureRegion bg;
 	private FileHandle mappackpath, savestatepath;
-	private float t = MathUtils.random() * 10;
 	private JSONObject mappack;
 
 	public MainMenu(){
@@ -56,12 +55,11 @@ public class MainMenu extends GameScreen{
 				mappackpath = null;
 			}
 		}
-		String mpname;
-		try{
-			mpname = mappack.getString("name");
-		}catch(JSONException ex){
-			mpname = "Tenebrae Engine";
-		}
+		String mpname = "Tenebrae Engine";
+		if(mappack != null)
+			try{
+				mpname = mappack.getString("name");
+			}catch(JSONException ex){}
 			
 		loadSkin();
 
@@ -237,19 +235,16 @@ public class MainMenu extends GameScreen{
 		if(menubg != null){
 			bg = new TextureRegion(new Texture(mappackpath.child(menubg)));
 			bgactor = new TextureActor(bg);
+			float scale; // I have no clue why scale isn't working
+			if(bgactor.getWidth()/bgactor.getHeight() > getWidth()/getHeight())
+				scale = getWidth()/bgactor.getWidth();
+			else
+				scale = getHeight()/bgactor.getHeight();
+			bgactor.setSize(bgactor.getWidth()*scale, bgactor.getHeight()*scale);
+			bgactor.setOrigin(bgactor.getWidth()/2, bgactor.getHeight()/2);
 			getStage().addActor(bgactor);
-			getCamera().zoom = 0.5f;
-		}
-	}
-
-	@Override
-	public void act(float delta){
-		if(bgactor != null){
-			t += delta * (MathUtils.map(-1, 1, 0, 1, MathUtils.sin(System.nanoTime() * MathUtils.nanoToSec * 0.2f)) * 0.09f + 0.11f);
-			float x = MathUtils.map(-1, 1, 0, 1, MathUtils.sin(t * 0.7f));
-			float y = MathUtils.map(-1, 1, 0, 1, MathUtils.cos(t));
-			float mx = getCamera().zoom * getStage().getViewport().getScreenWidth() / 2, my = getCamera().zoom * getStage().getViewport().getScreenHeight() / 2;
-			getCamera().position.set(MathUtils.map(0, 1, mx, bgactor.getWidth() - mx, x), MathUtils.map(0, 1, my, bgactor.getHeight() - my, y), 0);
+			getCamera().position.x = 0;
+			getCamera().position.y = 0;
 		}
 	}
 

@@ -60,6 +60,8 @@ public class Player extends Character{
 		dialogTable.setDebug(Tenebrae.TABLEDEBUG);
 		stack.add(dialogTable);
 		dialogTable.setFillParent(true);
+		//Table consoleTable = new Table(skin);
+		//stack.add(consoleTable);
 		table.add(stack).grow();
 
 		Table buttonPane = new Table(skin);
@@ -109,6 +111,8 @@ public class Player extends Character{
 		dialogTable.row();
 		dialogTable.add(dialogBoxBox).pad(Tenebrae.MARGIN).expandX().fill().height(Value.percentHeight(0.3f, dialogTable));
 
+		//consoleTable.add(Tenebrae.console).fillX().bottom();
+		
 		/*Table zoomt = new Table();
 		 game.getUiStage().addActor(zoomt);
 		 zoomt.setFillParent(true);

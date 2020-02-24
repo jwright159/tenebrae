@@ -289,13 +289,20 @@ public class Mappack implements ScriptGlob, Disposable{
 					}
 				});
 			library.set("savestate", tableOf());
-			library.set("save", new OneArgFunction(){
+			library.set("saveGame", new OneArgFunction(){
 					@Override
 					public LuaValue call(LuaValue self){
 						game.savestatepath.writeString(saveSaveState().toString(), false);
 						return NONE;
 					}
 				});
+			library.set("loadGame", new OneArgFunction(){
+				@Override
+				public LuaValue call(LuaValue self){
+					game.loadSave();
+					return NONE;
+				}
+			});
 			library.set("delay", new ThreeArgFunction(){
 					@Override
 					public LuaValue call(LuaValue self, LuaValue time, LuaValue function){
@@ -435,6 +442,12 @@ public class Mappack implements ScriptGlob, Disposable{
 						return varargsOf(valueOf(args.checkdouble(1) + dx * args.checkdouble(5) * args.checkdouble(6)), valueOf(args.checkdouble(2) + dy * args.checkdouble(5) * args.checkdouble(6)));
 					}
 				});
+			ent.set("list", new ZeroArgFunction(){
+					@Override
+					public LuaValue call(){
+						return valueOf(game.map.getEntities().toString());
+					}
+				});
 			library.set("Group", new VarArgFunction(){
 					@Override
 					public Varargs invoke(Varargs args){
@@ -451,7 +464,6 @@ public class Mappack implements ScriptGlob, Disposable{
 					@Override
 					public LuaValue call(LuaValue self, LuaValue musicfile, LuaValue midifile){
 						Music music = Gdx.audio.newMusic(folder.child(musicfile.checkjstring()));
-						music.setLooping(true);
 						MidiFile midi = null;
 						if(!midifile.isnil())
 							try{

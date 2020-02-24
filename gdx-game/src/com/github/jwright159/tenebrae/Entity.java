@@ -442,7 +442,8 @@ public abstract class Entity extends ScreenActor implements Comparable<Entity>, 
 			// haha now im doing that for all screenactors thanks
 			
 			for(Actor actor : group)
-				actor.draw(batch, 1);
+				if(actor.isVisible())
+					actor.draw(batch, 1);
 		}
 		
 		public class GroupEntityLib extends TwoArgFunction{

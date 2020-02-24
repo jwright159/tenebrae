@@ -41,6 +41,8 @@ public class Tenebrae extends GameScreen{
 
 	public static Globals compiler = new ScriptGlob.ServerGlobals();
 
+	//public static TextField console;
+	
 	//private Actor debugActor;
 
 	public Tenebrae(FileHandle pakpath, JSONObject mappackinfo, FileHandle savestatepath, boolean load){
@@ -59,6 +61,9 @@ public class Tenebrae extends GameScreen{
 
 		loadSkin(pakpath);
 
+		//console = new TextField("lua console", getSkin());
+		//console.setVisible(false);
+		
 		//debugActor = new PatchActor(new Rectangle(0, 0, 16, 16), getSkin().getPatch("white"));
 		//getStage().addActor(debugActor);
 
@@ -75,6 +80,9 @@ public class Tenebrae extends GameScreen{
 				}
 				@Override
 				public boolean keyDown(int keycode){
+					//if(console.isVisible())
+						//return false;
+					
 					switch(keycode){
 						case Input.Keys.BACK:
 						case Input.Keys.ESCAPE:
@@ -124,6 +132,11 @@ public class Tenebrae extends GameScreen{
 							}
 							return false;
 
+						/*case Input.Keys.GRAVE:
+							console.setVisible(true);
+							console.getOnscreenKeyboard().show(true);
+							return true;*/
+						
 						default:
 							return false;
 					}

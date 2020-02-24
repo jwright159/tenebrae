@@ -244,6 +244,9 @@ public class TileMap extends ScreenActor{
 	public void addEntity(Entity ent){
 		ents.addActor(ent);
 	}
+	public Group getEntities(){
+		return ents;
+	}
 	
 	public float getTileWidth(){
 		return tileWidth;

@@ -704,7 +704,11 @@ abstract public class Character extends Entity.DrawableEntity implements ScriptG
 				}
 			//Log.debug("Speed end! "+lowspeed+" "+speed);
 			Log.graphics("Getting skin", lowspeed, type, tileList.get(lowspeed));
-			return tileList.get(lowspeed).get(type);
+			ArrayMap<String,TiledMapTile> types = tileList.get(lowspeed);
+			if(types.containsKey(type))
+				return types.get(type);
+			else
+				return types.get("down");
 		}
 		public void sortSkinList(){
 			ArrayMap<Float,ArrayMap<String, TiledMapTile>> sorted = new ArrayMap<Float,ArrayMap<String, TiledMapTile>>();
